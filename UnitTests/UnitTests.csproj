@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
@@ -30,8 +30,10 @@
     <NoWarn>219</NoWarn>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="nunit.framework">
+      <HintPath>..\packages\NUnit.2.6.3\lib\nunit.framework.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
-    <Reference Include="nunit.framework" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\MimeKit\MimeKit\MimeKit.csproj">
@@ -217,16 +219,9 @@
     <EmbeddedResource Include="Net\Smtp\Resources\mailbox-unavailable.txt" />
     <EmbeddedResource Include="Net\Smtp\Resources\pipelined-mail-from-rcpt-to.txt" />
   </ItemGroup>
+  <ItemGroup />
   <ItemGroup>
-    <Folder Include="Net\" />
-    <Folder Include="Net\Imap\" />
-    <Folder Include="Net\Imap\Resources\" />
-    <Folder Include="Net\Imap\Resources\common\" />
-    <Folder Include="Net\Imap\Resources\gmail\" />
-    <Folder Include="Net\Pop3\" />
-    <Folder Include="Net\Pop3\Resources\" />
-    <Folder Include="Net\Smtp\" />
-    <Folder Include="Net\Smtp\Resources\" />
+    <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ProjectExtensions>

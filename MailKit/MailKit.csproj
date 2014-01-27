@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
@@ -31,6 +31,9 @@
     <DocumentationFile>bin\Release\lib\net40\MailKit.xml</DocumentationFile>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="crypto">
+      <HintPath>..\..\bc-csharp\crypto\bin\Debug\crypto.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Net" />
@@ -114,14 +117,7 @@
     <Compile Include="StatusItems.cs" />
     <Compile Include="UniqueId.cs" />
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Net\" />
-    <Folder Include="Net\Imap\" />
-    <Folder Include="Net\Pop3\" />
-    <Folder Include="Net\Smtp\" />
-    <Folder Include="Search\" />
-    <Folder Include="Security\" />
-  </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ProjectExtensions>
     <MonoDevelop>
