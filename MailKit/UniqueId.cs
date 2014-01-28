@@ -30,9 +30,15 @@ namespace MailKit {
 	/// <summary>
 	/// A unique identifier.
 	/// </summary>
-	public class UniqueId : IComparable<UniqueId>
+	/// <remarks>
+	/// Represents a unique identifier for messages in a <see cref="IFolder"/>.
+	/// </remarks>
+	public struct UniqueId : IComparable<UniqueId>, IEquatable<UniqueId>
 	{
-		internal readonly uint Id;
+		/// <summary>
+		/// The identifier.
+		/// </summary>
+		public readonly uint Id;
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="MailKit.UniqueId"/> struct.
@@ -61,6 +67,21 @@ namespace MailKit {
 
 		#endregion
 
+		#region IEquatable implementation
+
+		/// <summary>
+		/// Determines whether the specified <see cref="MailKit.UniqueId"/> is equal to the current <see cref="MailKit.UniqueId"/>.
+		/// </summary>
+		/// <param name="other">The <see cref="MailKit.UniqueId"/> to compare with the current <see cref="MailKit.UniqueId"/>.</param>
+		/// <returns><c>true</c> if the specified <see cref="MailKit.UniqueId"/> is equal to the current
+		/// <see cref="MailKit.UniqueId"/>; otherwise, <c>false</c>.</returns>
+		public bool Equals (UniqueId other)
+		{
+			return other.Id == Id;
+		}
+
+		#endregion
+
 		/// <summary>
 		/// Determines whether the specified <see cref="System.Object"/> is equal to the current <see cref="MailKit.UniqueId"/>.
 		/// </summary>
@@ -69,7 +90,7 @@ namespace MailKit {
 		/// otherwise, <c>false</c>.</returns>
 		public override bool Equals (object obj)
 		{
-			return Id.Equals (obj);
+			return obj is UniqueId && ((UniqueId) obj).Id == Id;
 		}
 
 		/// <summary>

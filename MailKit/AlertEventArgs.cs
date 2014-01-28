@@ -1,5 +1,5 @@
 ﻿//
-// SearchTerm.cs
+// AlertEventArgs.cs
 //
 // Author: Jeffrey Stedfast <jeff@xamarin.com>
 //
@@ -24,47 +24,37 @@
 // THE SOFTWARE.
 //
 
-namespace MailKit.Search {
-	enum SearchTerm {
-		All,
-		And,
-		Answered,
-		BccContains,
-		BodyContains,
-		CcContains,
-		Deleted,
-		DeliveredAfter,
-		DeliveredBefore,
-		DeliveredOn,
-		Draft,
-		Flagged,
-		FromContains,
-		HeaderContains,
-		Keyword,
-		LargerThan,
-		MessageContains,
-		New,
-		Not,
-		NotAnswered,
-		NotDeleted,
-		NotDraft,
-		NotFlagged,
-		NotKeyword,
-		NotRecent,
-		NotSeen,
-		Or,
-		Recent,
-		Seen,
-		SentAfter,
-		SentBefore,
-		SentOn,
-		SmallerThan,
-		SubjectContains,
-		ToContains,
-		Uid,
+using System;
 
-		// GMail SEARCH extensions
-		GMailMessageId,
-		GMailThreadId,
+namespace MailKit {
+	/// <summary>
+	/// Alert event arguments.
+	/// </summary>
+	/// <remarks>
+	/// Some <see cref="IMessageStore"/> implementations, such as
+	/// <see cref="MailKit.Net.Imap.ImapClient"/>, will emit Alert
+	/// events when they receive alert messages from the server.
+	/// </remarks>
+	public class AlertEventArgs : EventArgs
+	{
+		/// <summary>
+		/// Initializes a new instance of the <see cref="MailKit.AlertEventArgs"/> class.
+		/// </summary>
+		/// <param name="message">The alert message.</param>
+		internal AlertEventArgs (string message)
+		{
+			Message = message;
+		}
+
+		/// <summary>
+		/// Gets the alert message.
+		/// </summary>
+		/// <remarks>
+		/// The alert message will be the exact message received from the server.
+		/// </remarks>
+		/// <value>The alert message.</value>
+		public string Message {
+			get; private set;
+		}
 	}
 }
