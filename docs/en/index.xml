@@ -9,7 +9,7 @@
           <AttributeName>System.Reflection.AssemblyConfiguration("")</AttributeName>
         </Attribute>
         <Attribute>
-          <AttributeName>System.Reflection.AssemblyCopyright("Copyright © 2013 Jeffrey Stedfast")</AttributeName>
+          <AttributeName>System.Reflection.AssemblyCopyright("Copyright © 2013, 2014 Jeffrey Stedfast")</AttributeName>
         </Attribute>
         <Attribute>
           <AttributeName>System.Reflection.AssemblyDescription("A cross-platform mail client library.")</AttributeName>
@@ -44,8 +44,8 @@
       </Attributes>
     </Assembly>
   </Assemblies>
-  <Remarks>To be added.</Remarks>
-  <Copyright>To be added.</Copyright>
+  <Remarks>MailKit is a cross-platform mail-client library for .NET.</Remarks>
+  <Copyright>Copyright (c) 2013, 2014 Jeffrey Stedfast</Copyright>
   <Types>
     <Namespace Name="MailKit">
       <Type Name="AlertEventArgs" Kind="Class" />
@@ -72,11 +72,13 @@
       <Type Name="MessageFlags" Kind="Enumeration" />
       <Type Name="MessageSummary" Kind="Class" />
       <Type Name="MessageSummaryItems" Kind="Enumeration" />
+      <Type Name="MessageThread" Kind="Class" />
       <Type Name="NullProtocolLogger" Kind="Class" />
       <Type Name="ProtocolException" Kind="Class" />
       <Type Name="ProtocolLogger" Kind="Class" />
       <Type Name="SpecialFolder" Kind="Enumeration" />
       <Type Name="StatusItems" Kind="Enumeration" />
+      <Type Name="ThreadingAlgorithm" Kind="Enumeration" />
       <Type Name="UniqueId" Kind="Structure" />
     </Namespace>
     <Namespace Name="MailKit.Net.Imap">
@@ -103,6 +105,7 @@
       <Type Name="DateSearchQuery" Kind="Class" />
       <Type Name="HeaderSearchQuery" Kind="Class" />
       <Type Name="NumericSearchQuery" Kind="Class" />
+      <Type Name="OrderBy" Kind="Class" />
       <Type Name="SearchQuery" Kind="Class" />
       <Type Name="TextSearchQuery" Kind="Class" />
       <Type Name="UnarySearchQuery" Kind="Class" />
@@ -118,5 +121,5 @@
       <Type Name="SaslMechanismPlain" Kind="Class" />
     </Namespace>
   </Types>
-  <Title>MailKit.iOS</Title>
+  <Title>MailKit</Title>
 </Overview>

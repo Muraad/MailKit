@@ -46,6 +46,8 @@ namespace UnitTests.Net.Imap {
 	{
 		static readonly Encoding Latin1 = Encoding.GetEncoding (28591);
 
+		static readonly ImapCapabilities GreetingCapabilities = ImapCapabilities.IMAP4rev1 | ImapCapabilities.Status |
+			ImapCapabilities.Namespace | ImapCapabilities.Unselect;
 		static readonly ImapCapabilities GMailInitialCapabilities = ImapCapabilities.IMAP4rev1 | ImapCapabilities.Status |
 			ImapCapabilities.Unselect | ImapCapabilities.Idle | ImapCapabilities.Namespace | ImapCapabilities.Quota |
 			ImapCapabilities.XList | ImapCapabilities.Children | ImapCapabilities.GMailExt1 | ImapCapabilities.SaslIR;
@@ -75,6 +77,27 @@ namespace UnitTests.Net.Imap {
 		}
 
 		[Test]
+		public void TestImapClientGreetingCapabilities ()
+		{
+			var commands = new List<ImapReplayCommand> ();
+			commands.Add (new ImapReplayCommand ("", "common.capability-greeting.txt"));
+
+			using (var client = new ImapClient ()) {
+				try {
+					client.ReplayConnect ("localhost", new ImapReplayStream (commands, false), CancellationToken.None);
+				} catch (Exception ex) {
+					Assert.Fail ("Did not expect an exception in Connect: {0}", ex);
+				}
+
+				Assert.IsTrue (client.IsConnected, "Client failed to connect.");
+
+				Assert.AreEqual (GreetingCapabilities, client.Capabilities);
+				Assert.AreEqual (1, client.AuthenticationMechanisms.Count);
+				Assert.IsTrue (client.AuthenticationMechanisms.Contains ("PLAIN"), "Expected SASL PLAIN auth mechanism");
+			}
+		}
+
+		[Test]
 		public void TestImapClientGMail ()
 		{
 			var commands = new List<ImapReplayCommand> ();
@@ -87,7 +110,7 @@ namespace UnitTests.Net.Imap {
 			commands.Add (new ImapReplayCommand ("A00000005 LIST \"\" \"%\"\r\n", "gmail.list-personal.txt"));
 			commands.Add (new ImapReplayCommand ("A00000006 CREATE UnitTests\r\n", "gmail.create-unittests.txt"));
 			commands.Add (new ImapReplayCommand ("A00000007 LIST \"\" UnitTests\r\n", "gmail.list-unittests.txt"));
-			commands.Add (new ImapReplayCommand ("A00000008 SELECT UnitTests\r\n", "gmail.select-unittests.txt"));
+			commands.Add (new ImapReplayCommand ("A00000008 SELECT UnitTests (CONDSTORE)\r\n", "gmail.select-unittests.txt"));
 
 			for (int i = 0; i < 50; i++) {
 				using (var stream = GetResourceStream (string.Format ("common.message.{0}.msg", i))) {
@@ -107,7 +130,7 @@ namespace UnitTests.Net.Imap {
 				}
 			}
 
-			commands.Add (new ImapReplayCommand ("A00000059 UID SEARCH CHARSET UTF-8 OR TO nsb CC nsb\r\n", "gmail.search.txt"));
+			commands.Add (new ImapReplayCommand ("A00000059 UID SEARCH RETURN () CHARSET UTF-8 OR TO nsb CC nsb\r\n", "gmail.search.txt"));
 			commands.Add (new ImapReplayCommand ("A00000060 UID FETCH 1:3,5,7:9,11:14,26:29,31,34,41:43,50 (UID FLAGS INTERNALDATE RFC822.SIZE ENVELOPE BODY)\r\n", "gmail.search-summary.txt"));
 			commands.Add (new ImapReplayCommand ("A00000061 UID FETCH 1 (BODY.PEEK[])\r\n", "gmail.fetch.1.txt"));
 			commands.Add (new ImapReplayCommand ("A00000062 UID FETCH 2 (BODY.PEEK[])\r\n", "gmail.fetch.2.txt"));

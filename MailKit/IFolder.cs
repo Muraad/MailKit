@@ -131,6 +131,16 @@ namespace MailKit {
 		bool Exists { get; }
 
 		/// <summary>
+		/// Gets whether or not the folder supports mod-sequences.
+		/// </summary>
+		/// <remarks>
+		/// If mod-sequences are not supported by the folder, then all of the APIs that take a modseq
+		/// argument will throw <see cref="System.NotSupportedException"/> and should not be used.
+		/// </remarks>
+		/// <value><c>true</c> if supports mod-sequences; otherwise, <c>false</c>.</value>
+		bool SupportsModSeq { get; }
+
+		/// <summary>
 		/// Gets the highest mod-sequence value of all messages in the mailbox.
 		/// </summary>
 		/// <remarks>
@@ -240,6 +250,14 @@ namespace MailKit {
 		IEnumerable<IFolder> GetSubfolders (bool subscribedOnly, CancellationToken cancellationToken);
 
 		/// <summary>
+		/// Gets the specified subfolder.
+		/// </summary>
+		/// <returns>The subfolder.</returns>
+		/// <param name="name">The name of the subfolder.</param>
+		/// <param name="cancellationToken">The cancellation token.</param>
+		IFolder GetSubfolder (string name, CancellationToken cancellationToken);
+
+		/// <summary>
 		/// Forces the server to flush its state for the folder.
 		/// </summary>
 		/// <param name="cancellationToken">The cancellation token.</param>
@@ -347,6 +365,37 @@ namespace MailKit {
 		IEnumerable<MessageSummary> Fetch (UniqueId[] uids, MessageSummaryItems items, CancellationToken cancellationToken);
 
 		/// <summary>
+		/// Fetches the message summaries for the specified message UIDs that have a higher mod-sequence value than the one specified.
+		/// </summary>
+		/// <returns>An enumeration of summaries for the requested messages.</returns>
+		/// <param name="uids">The UIDs.</param>
+		/// <param name="modseq">The mod-sequence value.</param>
+		/// <param name="items">The message summary items to fetch.</param>
+		/// <param name="cancellationToken">The cancellation token.</param>
+		IEnumerable<MessageSummary> Fetch (UniqueId[] uids, ulong modseq, MessageSummaryItems items, CancellationToken cancellationToken);
+
+		/// <summary>
+		/// Fetches the message summaries for the messages between the two UIDs, inclusive.
+		/// </summary>
+		/// <returns>An enumeration of summaries for the requested messages.</returns>
+		/// <param name="min">The minimum UID.</param>
+		/// <param name="max">The maximum UID, or <c>null</c> to specify no upper bound.</param>
+		/// <param name="items">The message summary items to fetch.</param>
+		/// <param name="cancellationToken">The cancellation token.</param>
+		IEnumerable<MessageSummary> Fetch (UniqueId min, UniqueId? max, MessageSummaryItems items, CancellationToken cancellationToken);
+
+		/// <summary>
+		/// Fetches the message summaries for the messages between the two UIDs (inclusive) that have a higher mod-sequence value than the one specified.
+		/// </summary>
+		/// <returns>An enumeration of summaries for the requested messages.</returns>
+		/// <param name="min">The minimum UID.</param>
+		/// <param name="max">The maximum UID.</param>
+		/// <param name="modseq">The mod-sequence value.</param>
+		/// <param name="items">The message summary items to fetch.</param>
+		/// <param name="cancellationToken">The cancellation token.</param>
+		IEnumerable<MessageSummary> Fetch (UniqueId min, UniqueId? max, ulong modseq, MessageSummaryItems items, CancellationToken cancellationToken);
+
+		/// <summary>
 		/// Fetches the message summaries for the specified message indexes.
 		/// </summary>
 		/// <returns>An enumeration of summaries for the requested messages.</returns>
@@ -356,14 +405,35 @@ namespace MailKit {
 		IEnumerable<MessageSummary> Fetch (int[] indexes, MessageSummaryItems items, CancellationToken cancellationToken);
 
 		/// <summary>
+		/// Fetches the message summaries for the specified message indexes that have a higher mod-sequence value than the one specified.
+		/// </summary>
+		/// <returns>An enumeration of summaries for the requested messages.</returns>
+		/// <param name="indexes">The indexes.</param>
+		/// <param name="modseq">The mod-sequence value.</param>
+		/// <param name="items">The message summary items to fetch.</param>
+		/// <param name="cancellationToken">The cancellation token.</param>
+		IEnumerable<MessageSummary> Fetch (int[] indexes, ulong modseq, MessageSummaryItems items, CancellationToken cancellationToken);
+
+		/// <summary>
 		/// Fetches the message summaries for the messages between the two indexes, inclusive.
 		/// </summary>
 		/// <returns>An enumeration of summaries for the requested messages.</returns>
-		/// <param name="minIndex">The minimum index.</param>
-		/// <param name="maxIndex">The maximum index, or <c>-1</c> to specify no upper bound.</param>
+		/// <param name="min">The minimum index.</param>
+		/// <param name="max">The maximum index, or <c>-1</c> to specify no upper bound.</param>
 		/// <param name="items">The message summary items to fetch.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
-		IEnumerable<MessageSummary> Fetch (int minIndex, int maxIndex, MessageSummaryItems items, CancellationToken cancellationToken);
+		IEnumerable<MessageSummary> Fetch (int min, int max, MessageSummaryItems items, CancellationToken cancellationToken);
+
+		/// <summary>
+		/// Fetches the message summaries for the messages between the two indexes (inclusive) that have a higher mod-sequence value than the one specified.
+		/// </summary>
+		/// <returns>An enumeration of summaries for the requested messages.</returns>
+		/// <param name="min">The minimum index.</param>
+		/// <param name="max">The maximum index, or <c>-1</c> to specify no upper bound.</param>
+		/// <param name="modseq">The mod-sequence value.</param>
+		/// <param name="items">The message summary items to fetch.</param>
+		/// <param name="cancellationToken">The cancellation token.</param>
+		IEnumerable<MessageSummary> Fetch (int min, int max, ulong modseq, MessageSummaryItems items, CancellationToken cancellationToken);
 
 		/// <summary>
 		/// Gets the specified message.
@@ -493,6 +563,39 @@ namespace MailKit {
 		void SetFlags (UniqueId[] uids, MessageFlags flags, bool silent, CancellationToken cancellationToken);
 
 		/// <summary>
+		/// Adds a set of flags to the specified messages only if their mod-sequence value is less than the specified value.
+		/// </summary>
+		/// <returns>The unique IDs of the messages that were not updated.</returns>
+		/// <param name="uids">The UIDs of the messages.</param>
+		/// <param name="modseq">The mod-sequence value.</param>
+		/// <param name="flags">The message flags to add.</param>
+		/// <param name="silent">If set to <c>true</c>, no <see cref="FlagsChanged"/> events will be emitted.</param>
+		/// <param name="cancellationToken">The cancellation token.</param>
+		UniqueId[] AddFlags (UniqueId[] uids, ulong modseq, MessageFlags flags, bool silent, CancellationToken cancellationToken);
+
+		/// <summary>
+		/// Removes a set of flags from the specified messages only if their mod-sequence value is less than the specified value.
+		/// </summary>
+		/// <returns>The unique IDs of the messages that were not updated.</returns>
+		/// <param name="uids">The UIDs of the messages.</param>
+		/// <param name="modseq">The mod-sequence value.</param>
+		/// <param name="flags">The message flags to remove.</param>
+		/// <param name="silent">If set to <c>true</c>, no <see cref="FlagsChanged"/> events will be emitted.</param>
+		/// <param name="cancellationToken">The cancellation token.</param>
+		UniqueId[] RemoveFlags (UniqueId[] uids, ulong modseq, MessageFlags flags, bool silent, CancellationToken cancellationToken);
+
+		/// <summary>
+		/// Sets the flags of the specified messages only if their mod-sequence value is less than the specified value.
+		/// </summary>
+		/// <returns>The unique IDs of the messages that were not updated.</returns>
+		/// <param name="uids">The UIDs of the messages.</param>
+		/// <param name="modseq">The mod-sequence value.</param>
+		/// <param name="flags">The message flags to set.</param>
+		/// <param name="silent">If set to <c>true</c>, no <see cref="FlagsChanged"/> events will be emitted.</param>
+		/// <param name="cancellationToken">The cancellation token.</param>
+		UniqueId[] SetFlags (UniqueId[] uids, ulong modseq, MessageFlags flags, bool silent, CancellationToken cancellationToken);
+
+		/// <summary>
 		/// Adds a set of flags to the specified messages.
 		/// </summary>
 		/// <param name="indexes">The indexes of the messages.</param>
@@ -520,6 +623,64 @@ namespace MailKit {
 		void SetFlags (int[] indexes, MessageFlags flags, bool silent, CancellationToken cancellationToken);
 
 		/// <summary>
+		/// Adds a set of flags to the specified messages only if their mod-sequence value is less than the specified value.
+		/// </summary>
+		/// <returns>The indexes of the messages that were not updated.</returns>
+		/// <param name="indexes">The indexes of the messages.</param>
+		/// <param name="modseq">The mod-sequence value.</param>
+		/// <param name="flags">The message flags to add.</param>
+		/// <param name="silent">If set to <c>true</c>, no <see cref="FlagsChanged"/> events will be emitted.</param>
+		/// <param name="cancellationToken">The cancellation token.</param>
+		int[] AddFlags (int[] indexes, ulong modseq, MessageFlags flags, bool silent, CancellationToken cancellationToken);
+
+		/// <summary>
+		/// Removes a set of flags from the specified messages only if their mod-sequence value is less than the specified value.
+		/// </summary>
+		/// <returns>The indexes of the messages that were not updated.</returns>
+		/// <param name="indexes">The indexes of the messages.</param>
+		/// <param name="modseq">The mod-sequence value.</param>
+		/// <param name="flags">The message flags to remove.</param>
+		/// <param name="silent">If set to <c>true</c>, no <see cref="FlagsChanged"/> events will be emitted.</param>
+		/// <param name="cancellationToken">The cancellation token.</param>
+		int[] RemoveFlags (int[] indexes, ulong modseq, MessageFlags flags, bool silent, CancellationToken cancellationToken);
+
+		/// <summary>
+		/// Sets the flags of the specified messages only if their mod-sequence value is less than the specified value.
+		/// </summary>
+		/// <returns>The indexes of the messages that were not updated.</returns>
+		/// <param name="indexes">The indexes of the messages.</param>
+		/// <param name="modseq">The mod-sequence value.</param>
+		/// <param name="flags">The message flags to set.</param>
+		/// <param name="silent">If set to <c>true</c>, no <see cref="FlagsChanged"/> events will be emitted.</param>
+		/// <param name="cancellationToken">The cancellation token.</param>
+		int[] SetFlags (int[] indexes, ulong modseq, MessageFlags flags, bool silent, CancellationToken cancellationToken);
+
+		/// <summary>
+		/// Searches the folder for messages matching the specified query.
+		/// </summary>
+		/// <remarks>
+		/// The returned array of unique identifiers can be used with <see cref="IFolder.GetMessage(UniqueId,CancellationToken)"/>.
+		/// </remarks>
+		/// <returns>An array of matching UIDs.</returns>
+		/// <param name="query">The search query.</param>
+		/// <param name="cancellationToken">The cancellation token.</param>
+		UniqueId[] Search (SearchQuery query, CancellationToken cancellationToken);
+
+		/// <summary>
+		/// Searches the folder for messages matching the specified query,
+		/// returning them in the preferred sort order.
+		/// </summary>
+		/// <remarks>
+		/// The returned array of unique identifiers will be sorted in the preferred order and
+		/// can be used with <see cref="IFolder.GetMessage(UniqueId,CancellationToken)"/>.
+		/// </remarks>
+		/// <returns>An array of matching UIDs in the specified sort order.</returns>
+		/// <param name="query">The search query.</param>
+		/// <param name="orderBy">The sort order.</param>
+		/// <param name="cancellationToken">The cancellation token.</param>
+		UniqueId[] Search (SearchQuery query, OrderBy[] orderBy, CancellationToken cancellationToken);
+
+		/// <summary>
 		/// Searches the subset of UIDs in the folder for messages matching the specified query.
 		/// </summary>
 		/// <remarks>
@@ -532,15 +693,44 @@ namespace MailKit {
 		UniqueId[] Search (UniqueId[] uids, SearchQuery query, CancellationToken cancellationToken);
 
 		/// <summary>
-		/// Searches the folder for messages matching the specified query.
+		/// Searches the subset of UIDs in the folder for messages matching the specified query,
+		/// returning them in the preferred sort order.
 		/// </summary>
 		/// <remarks>
-		/// The returned array of unique identifiers can be used with <see cref="IFolder.GetMessage(UniqueId,CancellationToken)"/>.
+		/// The returned array of unique identifiers will be sorted in the preferred order and
+		/// can be used with <see cref="IFolder.GetMessage(UniqueId,CancellationToken)"/>.
 		/// </remarks>
-		/// <returns>An array of matching UIDs.</returns>
+		/// <returns>An array of matching UIDs in the specified sort order.</returns>
+		/// <param name="uids">The subset of UIDs</param>
+		/// <param name="query">The search query.</param>
+		/// <param name="orderBy">The sort order.</param>
+		/// <param name="cancellationToken">The cancellation token.</param>
+		UniqueId[] Search (UniqueId[] uids, SearchQuery query, OrderBy[] orderBy, CancellationToken cancellationToken);
+
+		/// <summary>
+		/// Threads the messages in the folder that match the search query using the specified threading algorithm.
+		/// </summary>
+		/// <remarks>
+		/// The <see cref="MessageThread.UniqueId"/> can be used with <see cref="IFolder.GetMessage(UniqueId,CancellationToken)"/>.
+		/// </remarks>
+		/// <returns>An array of message threads.</returns>
+		/// <param name="algorithm">The threading algorithm to use.</param>
 		/// <param name="query">The search query.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
-		UniqueId[] Search (SearchQuery query, CancellationToken cancellationToken);
+		MessageThread[] Thread (ThreadingAlgorithm algorithm, SearchQuery query, CancellationToken cancellationToken);
+
+		/// <summary>
+		/// Threads the messages in the folder that match the search query using the specified threading algorithm.
+		/// </summary>
+		/// <remarks>
+		/// The <see cref="MessageThread.UniqueId"/> can be used with <see cref="IFolder.GetMessage(UniqueId,CancellationToken)"/>.
+		/// </remarks>
+		/// <returns>An array of message threads.</returns>
+		/// <param name="uids">The subset of UIDs</param>
+		/// <param name="algorithm">The threading algorithm to use.</param>
+		/// <param name="query">The search query.</param>
+		/// <param name="cancellationToken">The cancellation token.</param>
+		MessageThread[] Thread (UniqueId[] uids, ThreadingAlgorithm algorithm, SearchQuery query, CancellationToken cancellationToken);
 
 		/// <summary>
 		/// Occurs when the folder is deleted.

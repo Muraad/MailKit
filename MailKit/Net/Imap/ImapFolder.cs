@@ -158,8 +158,10 @@ namespace MailKit.Net.Imap {
 					break;
 				case ImapResponseCodeType.HighestModSeq:
 					HighestModSeq = code.HighestModSeq;
+					SupportsModSeq = true;
 					break;
 				case ImapResponseCodeType.NoModSeq:
+					SupportsModSeq = false;
 					HighestModSeq = 0;
 					break;
 				}
@@ -289,6 +291,23 @@ namespace MailKit.Net.Imap {
 		}
 
 		/// <summary>
+		/// Gets whether or not the folder supports mod-sequences.
+		/// </summary>
+		/// <remarks>
+		/// <para>If mod-sequences are not supported by the folder, then all of the APIs that take a modseq
+		/// argument will throw <see cref="System.NotSupportedException"/> and should not be used.</para>
+		/// <para>There are two reasons that a <see cref="ImapFolder"/> might not support mod-sequences:
+		/// <list type="bullet">
+		/// <item>The IMAP server does not support the CONDSTORE extension (<see cref="ImapCapabilities.CondStore"/>).</item>
+		/// <item>The SELECT or EXAMINE command returned the NOMODSEQ response code.</item>
+		/// </list></para>
+		/// </remarks>
+		/// <value><c>true</c> if supports mod-sequences; otherwise, <c>false</c>.</value>
+		public bool SupportsModSeq {
+			get; private set;
+		}
+
+		/// <summary>
 		/// Gets the highest mod-sequence value of all messages in the mailbox.
 		/// </summary>
 		/// <remarks>
@@ -351,6 +370,11 @@ namespace MailKit.Net.Imap {
 			get; private set;
 		}
 
+		static string SelectOrExamine (FolderAccess access)
+		{
+			return access == FolderAccess.ReadOnly ? "EXAMINE" : "SELECT";
+		}
+
 		/// <summary>
 		/// Opens the folder using the requested folder access.
 		/// </summary>
@@ -388,8 +412,9 @@ namespace MailKit.Net.Imap {
 			if (IsOpen && Access == access)
 				return access;
 
-			string format = access == FolderAccess.ReadOnly ? "EXAMINE %F\r\n" : "SELECT %F\r\n";
-			var ic = Engine.QueueCommand (cancellationToken, this, format, this);
+			var condstore = (Engine.Capabilities & ImapCapabilities.CondStore) != 0 ? " (CONDSTORE)" : string.Empty;
+			var command = string.Format ("{0} %F{1}\r\n", SelectOrExamine (access), condstore);
+			var ic = Engine.QueueCommand (cancellationToken, this, command, this);
 
 			Engine.Wait (ic);
 
@@ -794,6 +819,69 @@ namespace MailKit.Net.Imap {
 		}
 
 		/// <summary>
+		/// Gets the specified subfolder.
+		/// </summary>
+		/// <returns>The subfolder, if available; otherwise, <c>null</c>.</returns>
+		/// <param name="name">The name of the subfolder.</param>
+		/// <param name="cancellationToken">The cancellation token.</param>
+		/// <exception cref="System.ArgumentNullException">
+		/// <paramref name="name"/> is <c>null</c>.
+		/// </exception>
+		/// <exception cref="System.ArgumentException">
+		/// <paramref name="name"/> is either an empty string or contains the <see cref="DirectorySeparator"/>.
+		/// </exception>
+		/// <exception cref="System.ObjectDisposedException">
+		/// The <see cref="ImapClient"/> has been disposed.
+		/// </exception>
+		/// <exception cref="System.InvalidOperationException">
+		/// The <see cref="ImapClient"/> is either not connected or not authenticated.
+		/// </exception>
+		/// <exception cref="System.OperationCanceledException">
+		/// The operation was canceled via the cancellation token.
+		/// </exception>
+		/// <exception cref="System.IO.IOException">
+		/// An I/O error occurred.
+		/// </exception>
+		/// <exception cref="ImapProtocolException">
+		/// The server's response contained unexpected tokens.
+		/// </exception>
+		/// <exception cref="ImapCommandException">
+		/// The server replied with a NO or BAD response.
+		/// </exception>
+		public IFolder GetSubfolder (string name, CancellationToken cancellationToken)
+		{
+			if (name == null)
+				throw new ArgumentNullException ("name");
+
+			if (name.Length == 0 || name.IndexOf (DirectorySeparator) != -1)
+				throw new ArgumentException ("The name of the subfolder is invalid.", "name");
+
+			CheckState (false, false);
+
+			var fullName = FullName.Length > 0 ? FullName + DirectorySeparator + name : name;
+			var encodedName = ImapEncoding.Encode (fullName);
+			ImapFolder subfolder;
+
+			if (Engine.FolderCache.TryGetValue (encodedName, out subfolder))
+				return subfolder;
+
+			var ic = Engine.QueueCommand (cancellationToken, null, "LIST \"\" %S\r\n", encodedName);
+			var list = new List<ImapFolder> ();
+
+			ic.RegisterUntaggedHandler ("LIST", ImapUtils.HandleUntaggedListResponse);
+			ic.UserData = list;
+
+			Engine.Wait (ic);
+
+			ProcessResponseCodes (ic, null);
+
+			if (ic.Result != ImapCommandResult.Ok)
+				throw new ImapCommandException ("LIST", ic.Result);
+
+			return list.Count > 0 ? list[0] : null;
+		}
+
+		/// <summary>
 		/// Forces the server to flush its state for the folder.
 		/// </summary>
 		/// <param name="cancellationToken">The cancellation token.</param>
@@ -838,9 +926,6 @@ namespace MailKit.Net.Imap {
 		/// </summary>
 		/// <param name="items">The items to update.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
-		/// <exception cref="System.NotSupportedException">
-		/// The IMAP server does not support the STATUS command.
-		/// </exception>
 		/// <exception cref="System.ObjectDisposedException">
 		/// The <see cref="ImapClient"/> has been disposed.
 		/// </exception>
@@ -850,6 +935,9 @@ namespace MailKit.Net.Imap {
 		/// <para>The <see cref="ImapClient"/> is not authenticated.</para>
 		/// <para>-or-</para>
 		/// <para>The folder is not currently open.</para>
+		/// </exception>
+		/// <exception cref="System.NotSupportedException">
+		/// The IMAP server does not support the STATUS command.
 		/// </exception>
 		/// <exception cref="System.OperationCanceledException">
 		/// The operation was canceled via the cancellation token.
@@ -866,7 +954,7 @@ namespace MailKit.Net.Imap {
 		public void Status (StatusItems items, CancellationToken cancellationToken)
 		{
 			if ((Engine.Capabilities & ImapCapabilities.Status) != 0)
-				throw new NotSupportedException ();
+				throw new NotSupportedException ("The IMAP server does not support the STATUS command.");
 
 			CheckState (false, false);
 
@@ -1531,7 +1619,7 @@ namespace MailKit.Net.Imap {
 		/// </exception>
 		public void CopyTo (int[] indexes, IFolder destination, CancellationToken cancellationToken)
 		{
-			var set = ImapUtils.FormatUidSet (indexes);
+			var set = ImapUtils.FormatIndexSet (indexes);
 
 			if (destination == null)
 				throw new ArgumentNullException ("destination");
@@ -1600,7 +1688,7 @@ namespace MailKit.Net.Imap {
 				return;
 			}
 
-			var set = ImapUtils.FormatUidSet (indexes);
+			var set = ImapUtils.FormatIndexSet (indexes);
 
 			if (destination == null)
 				throw new ArgumentNullException ("destination");
@@ -1685,6 +1773,24 @@ namespace MailKit.Net.Imap {
 				case "FLAGS":
 					summary.Flags = ImapUtils.ParseFlagsList (engine, ic.CancellationToken);
 					break;
+				case "MODSEQ":
+					token = engine.ReadToken (ic.CancellationToken);
+
+					if (token.Type != ImapTokenType.OpenParen)
+						throw ImapEngine.UnexpectedToken (token, false);
+
+					token = engine.ReadToken (ic.CancellationToken);
+
+					if (token.Type != ImapTokenType.Atom || !ulong.TryParse ((string) token.Value, out value64) || value64 == 0)
+						throw ImapEngine.UnexpectedToken (token, false);
+
+					token = engine.ReadToken (ic.CancellationToken);
+
+					if (token.Type != ImapTokenType.CloseParen)
+						throw ImapEngine.UnexpectedToken (token, false);
+
+					summary.ModSeq = value64;
+					break;
 				case "UID":
 					token = engine.ReadToken (ic.CancellationToken);
 
@@ -1762,6 +1868,11 @@ namespace MailKit.Net.Imap {
 			if ((items & MessageSummaryItems.Body) != 0)
 				query += "BODY ";
 
+			if ((Engine.Capabilities & ImapCapabilities.CondStore) != 0) {
+				if ((items & MessageSummaryItems.ModSeq) != 0)
+					query += "MODSEQ ";
+			}
+
 			if ((Engine.Capabilities & ImapCapabilities.GMailExt1) != 0) {
 				// now for the GMail extension items
 				if ((items & MessageSummaryItems.GMailMessageId) != 0)
@@ -1824,7 +1935,214 @@ namespace MailKit.Net.Imap {
 			if (uids.Length == 0)
 				return new MessageSummary[0];
 
-			var ic = Engine.QueueCommand (cancellationToken, this, "UID FETCH %s (%s)\r\n", set, query);
+			var command = string.Format ("UID FETCH {0} ({1})\r\n", set, query);
+			var ic = Engine.QueueCommand (cancellationToken, this, command);
+			var results = new SortedDictionary<int, MessageSummary> ();
+			ic.RegisterUntaggedHandler ("FETCH", FetchSummaryItems);
+			ic.UserData = results;
+
+			Engine.Wait (ic);
+
+			ProcessResponseCodes (ic, null);
+
+			if (ic.Result != ImapCommandResult.Ok)
+				throw new ImapCommandException ("FETCH", ic.Result);
+
+			return results.Values;
+		}
+
+		/// <summary>
+		/// Fetches the message summaries for the specified message UIDs that have a higher mod-sequence value than the one specified.
+		/// </summary>
+		/// <returns>An enumeration of summaries for the requested messages.</returns>
+		/// <exception cref="System.ArgumentNullException">
+		/// <paramref name="uids"/> is <c>null</c>.
+		/// </exception>
+		/// <exception cref="System.ArgumentOutOfRangeException">
+		/// <paramref name="items"/> is empty.
+		/// </exception>
+		/// <exception cref="System.ArgumentException">
+		/// One or more of the <paramref name="uids"/> is invalid.
+		/// </exception>
+		/// <exception cref="System.ObjectDisposedException">
+		/// The <see cref="ImapClient"/> has been disposed.
+		/// </exception>
+		/// <exception cref="System.InvalidOperationException">
+		/// <para>The <see cref="ImapClient"/> is not connected.</para>
+		/// <para>-or-</para>
+		/// <para>The <see cref="ImapClient"/> is not authenticated.</para>
+		/// <para>-or-</para>
+		/// <para>The folder is not currently open.</para>
+		/// </exception>
+		/// <exception cref="System.NotSupportedException">
+		/// The <see cref="ImapFolder"/> does not support mod-sequences.
+		/// </exception>
+		/// <exception cref="System.OperationCanceledException">
+		/// The operation was canceled via the cancellation token.
+		/// </exception>
+		/// <exception cref="System.IO.IOException">
+		/// An I/O error occurred.
+		/// </exception>
+		/// <exception cref="ImapProtocolException">
+		/// The server's response contained unexpected tokens.
+		/// </exception>
+		/// <exception cref="ImapCommandException">
+		/// The server replied with a NO or BAD response.
+		/// </exception>
+		public IEnumerable<MessageSummary> Fetch (UniqueId[] uids, ulong modseq, MessageSummaryItems items, CancellationToken cancellationToken)
+		{
+			var query = FormatSummaryItems (items);
+			var set = ImapUtils.FormatUidSet (uids);
+
+			if (items == MessageSummaryItems.None)
+				throw new ArgumentOutOfRangeException ("items");
+
+			if (!SupportsModSeq)
+				throw new NotSupportedException ("The ImapFolder does not support mod-sequences.");
+
+			CheckState (true, false);
+
+			if (uids.Length == 0)
+				return new MessageSummary[0];
+
+			var command = string.Format ("UID FETCH {0} ({1}) (CHANGEDSINCE {2})\r\n", set, query, modseq);
+			var ic = Engine.QueueCommand (cancellationToken, this, command);
+			var results = new SortedDictionary<int, MessageSummary> ();
+			ic.RegisterUntaggedHandler ("FETCH", FetchSummaryItems);
+			ic.UserData = results;
+
+			Engine.Wait (ic);
+
+			ProcessResponseCodes (ic, null);
+
+			if (ic.Result != ImapCommandResult.Ok)
+				throw new ImapCommandException ("FETCH", ic.Result);
+
+			return results.Values;
+		}
+
+		/// <summary>
+		/// Fetches the message summaries for the messages between the two UIDs, inclusive.
+		/// </summary>
+		/// <returns>An enumeration of summaries for the requested messages.</returns>
+		/// <param name="min">The minimum UID.</param>
+		/// <param name="max">The maximum UID, or <c>null</c> to specify no upper bound.</param>
+		/// <param name="items">The message summary items to fetch.</param>
+		/// <param name="cancellationToken">The cancellation token.</param>
+		/// <exception cref="System.ArgumentException">
+		/// <paramref name="min"/> is invalid.
+		/// </exception>
+		/// <exception cref="System.ArgumentOutOfRangeException">
+		/// <paramref name="items"/> is empty.
+		/// </exception>
+		/// <exception cref="System.ObjectDisposedException">
+		/// The <see cref="ImapClient"/> has been disposed.
+		/// </exception>
+		/// <exception cref="System.InvalidOperationException">
+		/// <para>The <see cref="ImapClient"/> is not connected.</para>
+		/// <para>-or-</para>
+		/// <para>The <see cref="ImapClient"/> is not authenticated.</para>
+		/// <para>-or-</para>
+		/// <para>The folder is not currently open.</para>
+		/// </exception>
+		/// <exception cref="System.OperationCanceledException">
+		/// The operation was canceled via the cancellation token.
+		/// </exception>
+		/// <exception cref="System.IO.IOException">
+		/// An I/O error occurred.
+		/// </exception>
+		/// <exception cref="ImapProtocolException">
+		/// The server's response contained unexpected tokens.
+		/// </exception>
+		/// <exception cref="ImapCommandException">
+		/// The server replied with a NO or BAD response.
+		/// </exception>
+		public IEnumerable<MessageSummary> Fetch (UniqueId min, UniqueId? max, MessageSummaryItems items, CancellationToken cancellationToken)
+		{
+			if (min.Id == 0)
+				throw new ArgumentException ("The minimum uid is invalid.", "min");
+
+			var query = FormatSummaryItems (items);
+
+			if (items == MessageSummaryItems.None)
+				throw new ArgumentOutOfRangeException ("items");
+
+			CheckState (true, false);
+
+			var maxValue = max.HasValue ? max.Value.Id.ToString () : "*";
+			var command = string.Format ("UID FETCH {0}:{1} ({2})\r\n", min.Id, maxValue, query);
+			var ic = Engine.QueueCommand (cancellationToken, this, command);
+			var results = new SortedDictionary<int, MessageSummary> ();
+			ic.RegisterUntaggedHandler ("FETCH", FetchSummaryItems);
+			ic.UserData = results;
+
+			Engine.Wait (ic);
+
+			ProcessResponseCodes (ic, null);
+
+			if (ic.Result != ImapCommandResult.Ok)
+				throw new ImapCommandException ("FETCH", ic.Result);
+
+			return results.Values;
+		}
+
+		/// <summary>
+		/// Fetches the message summaries for the messages between the two UIDs (inclusive) that have a higher mod-sequence value than the one specified.
+		/// </summary>
+		/// <returns>An enumeration of summaries for the requested messages.</returns>
+		/// <param name="min">The minimum UID.</param>
+		/// <param name="max">The maximum UID.</param>
+		/// <param name="modseq">The mod-sequence value.</param>
+		/// <param name="items">The message summary items to fetch.</param>
+		/// <param name="cancellationToken">The cancellation token.</param>
+		/// <exception cref="System.ArgumentException">
+		/// <paramref name="min"/> is invalid.
+		/// </exception>
+		/// <exception cref="System.ArgumentOutOfRangeException">
+		/// <paramref name="items"/> is empty.
+		/// </exception>
+		/// <exception cref="System.ObjectDisposedException">
+		/// The <see cref="ImapClient"/> has been disposed.
+		/// </exception>
+		/// <exception cref="System.InvalidOperationException">
+		/// <para>The <see cref="ImapClient"/> is not connected.</para>
+		/// <para>-or-</para>
+		/// <para>The <see cref="ImapClient"/> is not authenticated.</para>
+		/// <para>-or-</para>
+		/// <para>The folder is not currently open.</para>
+		/// </exception>
+		/// <exception cref="System.NotSupportedException">
+		/// The <see cref="ImapFolder"/> does not support mod-sequences.
+		/// </exception>
+		/// <exception cref="System.OperationCanceledException">
+		/// The operation was canceled via the cancellation token.
+		/// </exception>
+		/// <exception cref="System.IO.IOException">
+		/// An I/O error occurred.
+		/// </exception>
+		/// <exception cref="ImapProtocolException">
+		/// The server's response contained unexpected tokens.
+		/// </exception>
+		/// <exception cref="ImapCommandException">
+		/// The server replied with a NO or BAD response.
+		/// </exception>
+		public IEnumerable<MessageSummary> Fetch (UniqueId min, UniqueId? max, ulong modseq, MessageSummaryItems items, CancellationToken cancellationToken)
+		{
+			if (min.Id == 0)
+				throw new ArgumentException ("The minimum uid is invalid.", "min");
+
+			if (items == MessageSummaryItems.None)
+				throw new ArgumentOutOfRangeException ("items");
+
+			if (!SupportsModSeq)
+				throw new NotSupportedException ("The ImapFolder does not support mod-sequences.");
+
+			CheckState (true, false);
+
+			var query = FormatSummaryItems (items);
+			var maxValue = max.HasValue ? max.Value.Id.ToString () : "*";
+			var command = string.Format ("UID FETCH {0}:{1} ({2}) (CHANGEDSINCE {3})\r\n", min.Id, maxValue, query, modseq);
+			var ic = Engine.QueueCommand (cancellationToken, this, command);
 			var results = new SortedDictionary<int, MessageSummary> ();
 			ic.RegisterUntaggedHandler ("FETCH", FetchSummaryItems);
 			ic.UserData = results;
@@ -1879,7 +2197,7 @@ namespace MailKit.Net.Imap {
 		/// </exception>
 		public IEnumerable<MessageSummary> Fetch (int[] indexes, MessageSummaryItems items, CancellationToken cancellationToken)
 		{
-			var set = ImapUtils.FormatUidSet (indexes);
+			var set = ImapUtils.FormatIndexSet (indexes);
 			var query = FormatSummaryItems (items);
 
 			if (items == MessageSummaryItems.None)
@@ -1890,7 +2208,82 @@ namespace MailKit.Net.Imap {
 			if (indexes.Length == 0)
 				return new MessageSummary[0];
 
-			var ic = Engine.QueueCommand (cancellationToken, this, "FETCH %s (%s)\r\n", set, query);
+			var command = string.Format ("FETCH {0} ({1})\r\n", set, query);
+			var ic = Engine.QueueCommand (cancellationToken, this, command);
+			var results = new SortedDictionary<int, MessageSummary> ();
+			ic.RegisterUntaggedHandler ("FETCH", FetchSummaryItems);
+			ic.UserData = results;
+
+			Engine.Wait (ic);
+
+			ProcessResponseCodes (ic, null);
+
+			if (ic.Result != ImapCommandResult.Ok)
+				throw new ImapCommandException ("FETCH", ic.Result);
+
+			return results.Values;
+		}
+
+		/// <summary>
+		/// Fetches the message summaries for the specified message indexes that have a higher mod-sequence value than the one specified.
+		/// </summary>
+		/// <returns>An enumeration of summaries for the requested messages.</returns>
+		/// <param name="indexes">The indexes.</param>
+		/// <param name="modseq">The mod-sequence value.</param>
+		/// <param name="items">The message summary items to fetch.</param>
+		/// <param name="cancellationToken">The cancellation token.</param>
+		/// <exception cref="System.ArgumentNullException">
+		/// <paramref name="indexes"/> is <c>null</c>.
+		/// </exception>
+		/// <exception cref="System.ArgumentOutOfRangeException">
+		/// <paramref name="items"/> is empty.
+		/// </exception>
+		/// <exception cref="System.ArgumentException">
+		/// One or more of the <paramref name="indexes"/> is invalid.
+		/// </exception>
+		/// <exception cref="System.ObjectDisposedException">
+		/// The <see cref="ImapClient"/> has been disposed.
+		/// </exception>
+		/// <exception cref="System.InvalidOperationException">
+		/// <para>The <see cref="ImapClient"/> is not connected.</para>
+		/// <para>-or-</para>
+		/// <para>The <see cref="ImapClient"/> is not authenticated.</para>
+		/// <para>-or-</para>
+		/// <para>The folder is not currently open.</para>
+		/// </exception>
+		/// <exception cref="System.NotSupportedException">
+		/// The <see cref="ImapFolder"/> does not support mod-sequences.
+		/// </exception>
+		/// <exception cref="System.OperationCanceledException">
+		/// The operation was canceled via the cancellation token.
+		/// </exception>
+		/// <exception cref="System.IO.IOException">
+		/// An I/O error occurred.
+		/// </exception>
+		/// <exception cref="ImapProtocolException">
+		/// The server's response contained unexpected tokens.
+		/// </exception>
+		/// <exception cref="ImapCommandException">
+		/// The server replied with a NO or BAD response.
+		/// </exception>
+		public IEnumerable<MessageSummary> Fetch (int[] indexes, ulong modseq, MessageSummaryItems items, CancellationToken cancellationToken)
+		{
+			var set = ImapUtils.FormatIndexSet (indexes);
+			var query = FormatSummaryItems (items);
+
+			if (items == MessageSummaryItems.None)
+				throw new ArgumentOutOfRangeException ("items");
+
+			if (!SupportsModSeq)
+				throw new NotSupportedException ("The ImapFolder does not support mod-sequences.");
+
+			CheckState (true, false);
+
+			if (indexes.Length == 0)
+				return new MessageSummary[0];
+
+			var command = string.Format ("FETCH {0} ({1}) (CHANGEDSINCE {2})\r\n", set, query, modseq);
+			var ic = Engine.QueueCommand (cancellationToken, this, command);
 			var results = new SortedDictionary<int, MessageSummary> ();
 			ic.RegisterUntaggedHandler ("FETCH", FetchSummaryItems);
 			ic.UserData = results;
@@ -1909,14 +2302,14 @@ namespace MailKit.Net.Imap {
 		/// Fetches the message summaries for the messages between the two indexes, inclusive.
 		/// </summary>
 		/// <returns>An enumeration of summaries for the requested messages.</returns>
-		/// <param name="minIndex">The minimum index.</param>
-		/// <param name="maxIndex">The maximum index, or <c>-1</c> to specify no upper bound.</param>
+		/// <param name="min">The minimum index.</param>
+		/// <param name="max">The maximum index, or <c>-1</c> to specify no upper bound.</param>
 		/// <param name="items">The message summary items to fetch.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <exception cref="System.ArgumentOutOfRangeException">
-		/// <para><paramref name="minIndex"/> is out of range.</para>
+		/// <para><paramref name="min"/> is out of range.</para>
 		/// <para>-or-</para>
-		/// <para><paramref name="maxIndex"/> is out of range.</para>
+		/// <para><paramref name="max"/> is out of range.</para>
 		/// <para>-or-</para>
 		/// <para><paramref name="items"/> is empty.</para>
 		/// </exception>
@@ -1942,23 +2335,98 @@ namespace MailKit.Net.Imap {
 		/// <exception cref="ImapCommandException">
 		/// The server replied with a NO or BAD response.
 		/// </exception>
-		public IEnumerable<MessageSummary> Fetch (int minIndex, int maxIndex, MessageSummaryItems items, CancellationToken cancellationToken)
+		public IEnumerable<MessageSummary> Fetch (int min, int max, MessageSummaryItems items, CancellationToken cancellationToken)
 		{
-			if (minIndex < 0 || minIndex >= Count)
-				throw new ArgumentOutOfRangeException ("minIndex");
+			if (min < 0 || min >= Count)
+				throw new ArgumentOutOfRangeException ("min");
 
-			if ((maxIndex != -1 && maxIndex < minIndex) || maxIndex >= Count)
-				throw new ArgumentOutOfRangeException ("maxIndex");
+			if ((max != -1 && max < min) || max >= Count)
+				throw new ArgumentOutOfRangeException ("max");
 
 			if (items == MessageSummaryItems.None)
 				throw new ArgumentOutOfRangeException ("items");
 
-			var set = string.Format ("{0}:{1}", minIndex + 1, maxIndex != -1 ? (maxIndex + 1).ToString () : "*");
+			CheckState (true, false);
+
 			var query = FormatSummaryItems (items);
+			var maxValue = max != -1 ? (max + 1).ToString () : "*";
+			var command = string.Format ("FETCH {0}:{1} ({2})\r\n", min + 1, maxValue, query);
+			var ic = Engine.QueueCommand (cancellationToken, this, command);
+			var results = new SortedDictionary<int, MessageSummary> ();
+			ic.RegisterUntaggedHandler ("FETCH", FetchSummaryItems);
+			ic.UserData = results;
+
+			Engine.Wait (ic);
+
+			ProcessResponseCodes (ic, null);
+
+			if (ic.Result != ImapCommandResult.Ok)
+				throw new ImapCommandException ("FETCH", ic.Result);
+
+			return results.Values;
+		}
+
+		/// <summary>
+		/// Fetches the message summaries for the messages between the two indexes (inclusive) that have a higher mod-sequence value than the one specified.
+		/// </summary>
+		/// <returns>An enumeration of summaries for the requested messages.</returns>
+		/// <param name="min">The minimum index.</param>
+		/// <param name="max">The maximum index, or <c>-1</c> to specify no upper bound.</param>
+		/// <param name="modseq">The mod-sequence value.</param>
+		/// <param name="items">The message summary items to fetch.</param>
+		/// <param name="cancellationToken">The cancellation token.</param>
+		/// <exception cref="System.ArgumentOutOfRangeException">
+		/// <para><paramref name="min"/> is out of range.</para>
+		/// <para>-or-</para>
+		/// <para><paramref name="max"/> is out of range.</para>
+		/// <para>-or-</para>
+		/// <para><paramref name="items"/> is empty.</para>
+		/// </exception>
+		/// <exception cref="System.ObjectDisposedException">
+		/// The <see cref="ImapClient"/> has been disposed.
+		/// </exception>
+		/// <exception cref="System.InvalidOperationException">
+		/// <para>The <see cref="ImapClient"/> is not connected.</para>
+		/// <para>-or-</para>
+		/// <para>The <see cref="ImapClient"/> is not authenticated.</para>
+		/// <para>-or-</para>
+		/// <para>The folder is not currently open.</para>
+		/// </exception>
+		/// <exception cref="System.NotSupportedException">
+		/// The <see cref="ImapFolder"/> does not support mod-sequences.
+		/// </exception>
+		/// <exception cref="System.OperationCanceledException">
+		/// The operation was canceled via the cancellation token.
+		/// </exception>
+		/// <exception cref="System.IO.IOException">
+		/// An I/O error occurred.
+		/// </exception>
+		/// <exception cref="ImapProtocolException">
+		/// The server's response contained unexpected tokens.
+		/// </exception>
+		/// <exception cref="ImapCommandException">
+		/// The server replied with a NO or BAD response.
+		/// </exception>
+		public IEnumerable<MessageSummary> Fetch (int min, int max, ulong modseq, MessageSummaryItems items, CancellationToken cancellationToken)
+		{
+			if (min < 0 || min >= Count)
+				throw new ArgumentOutOfRangeException ("min");
+
+			if ((max != -1 && max < min) || max >= Count)
+				throw new ArgumentOutOfRangeException ("max");
+
+			if (items == MessageSummaryItems.None)
+				throw new ArgumentOutOfRangeException ("items");
+
+			if (!SupportsModSeq)
+				throw new NotSupportedException ("The ImapFolder does not support mod-sequences.");
 
 			CheckState (true, false);
 
-			var ic = Engine.QueueCommand (cancellationToken, this, "FETCH %s (%s)\r\n", set, query);
+			var query = FormatSummaryItems (items);
+			var maxValue = max != -1 ? (max + 1).ToString () : "*";
+			var command = string.Format ("FETCH {0}:{1} ({2}) (CHANGEDSINCE {3})\r\n", min + 1, maxValue, query, modseq);
+			var ic = Engine.QueueCommand (cancellationToken, this, command);
 			var results = new SortedDictionary<int, MessageSummary> ();
 			ic.RegisterUntaggedHandler ("FETCH", FetchSummaryItems);
 			ic.UserData = results;
@@ -1982,7 +2450,9 @@ namespace MailKit.Net.Imap {
 		static void FetchMessageBody (ImapEngine engine, ImapCommand ic, int index, ImapToken tok)
 		{
 			var token = engine.ReadToken (ic.CancellationToken);
+			var args = new FlagsChangedEventArgs (index);
 			var type = FetchReturnType.MimeMessage;
+			bool emit = false;
 
 			if (token.Type != ImapTokenType.OpenParen)
 				throw ImapEngine.UnexpectedToken (token, false);
@@ -1997,6 +2467,7 @@ namespace MailKit.Net.Imap {
 					throw ImapEngine.UnexpectedToken (token, false);
 
 				var atom = (string) token.Value;
+				ulong modseq;
 				uint uid;
 
 				switch (atom) {
@@ -2079,13 +2550,31 @@ namespace MailKit.Net.Imap {
 					if (token.Type != ImapTokenType.Atom || !uint.TryParse ((string) token.Value, out uid) || uid == 0)
 						throw ImapEngine.UnexpectedToken (token, false);
 
+					args.Uid = new UniqueId (uid);
+					break;
+				case "MODSEQ":
+					token = engine.ReadToken (ic.CancellationToken);
+
+					if (token.Type != ImapTokenType.OpenParen)
+						throw ImapEngine.UnexpectedToken (token, false);
+
+					token = engine.ReadToken (ic.CancellationToken);
+
+					if (token.Type != ImapTokenType.Atom || !ulong.TryParse ((string) token.Value, out modseq) || modseq == 0)
+						throw ImapEngine.UnexpectedToken (token, false);
+
+					token = engine.ReadToken (ic.CancellationToken);
+
+					if (token.Type != ImapTokenType.CloseParen)
+						throw ImapEngine.UnexpectedToken (token, false);
+
+					args.ModSeq = modseq;
 					break;
 				case "FLAGS":
 					// even though we didn't request this piece of information, the IMAP server
 					// may send it if another client has recently modified the message flags.
-					var flags = ImapUtils.ParseFlagsList (engine, ic.CancellationToken);
-
-					ic.Folder.OnFlagsChanged (index, flags);
+					args.Flags = ImapUtils.ParseFlagsList (engine, ic.CancellationToken);
+					emit = true;
 					break;
 				default:
 					throw ImapEngine.UnexpectedToken (token, false);
@@ -2094,6 +2583,9 @@ namespace MailKit.Net.Imap {
 
 			if (token.Type != ImapTokenType.CloseParen)
 				throw ImapEngine.UnexpectedToken (token, false);
+
+			if (emit)
+				ic.Folder.OnFlagsChanged (args);
 		}
 
 		/// <summary>
@@ -2618,76 +3110,18 @@ namespace MailKit.Net.Imap {
 			return (Stream) ic.UserData;
 		}
 
-		static void FetchModSeq (ImapEngine engine, ImapCommand ic, int index, ImapToken tok)
-		{
-			var token = engine.ReadToken (ic.CancellationToken);
-
-			if (token.Type != ImapTokenType.OpenParen)
-				throw ImapEngine.UnexpectedToken (token, false);
-
-			do {
-				token = engine.ReadToken (ic.CancellationToken);
-
-				if (token.Type == ImapTokenType.CloseParen || token.Type == ImapTokenType.Eoln)
-					break;
-
-				if (token.Type != ImapTokenType.Atom)
-					throw ImapEngine.UnexpectedToken (token, false);
-
-				var atom = (string) token.Value;
-				ulong modseq;
-				uint uid;
-
-				switch (atom) {
-				case "MODSEQ":
-					token = engine.ReadToken (ic.CancellationToken);
-
-					if (token.Type != ImapTokenType.OpenParen)
-						throw ImapEngine.UnexpectedToken (token, false);
-
-					token = engine.ReadToken (ic.CancellationToken);
-
-					if (token.Type != ImapTokenType.Atom || !ulong.TryParse ((string) token.Value, out modseq) || modseq == 0)
-						throw ImapEngine.UnexpectedToken (token, false);
-
-					token = engine.ReadToken (ic.CancellationToken);
-
-					if (token.Type != ImapTokenType.CloseParen)
-						throw ImapEngine.UnexpectedToken (token, false);
-
-					break;
-				case "UID":
-					token = engine.ReadToken (ic.CancellationToken);
-
-					if (token.Type != ImapTokenType.Atom || !uint.TryParse ((string) token.Value, out uid) || uid == 0)
-						throw ImapEngine.UnexpectedToken (token, false);
-
-					break;
-				case "FLAGS":
-					// even though we didn't request this piece of information, the IMAP server
-					// may send it if another client has recently modified the message flags.
-					var flags = ImapUtils.ParseFlagsList (engine, ic.CancellationToken);
-
-					ic.Folder.OnFlagsChanged (index, flags);
-					break;
-				default:
-					throw ImapEngine.UnexpectedToken (token, false);
-				}
-			} while (true);
-
-			if (token.Type != ImapTokenType.CloseParen)
-				throw ImapEngine.UnexpectedToken (token, false);
-		}
-
-		void ModifyFlags (UniqueId[] uids, MessageFlags flags, string action, ulong? modseq, CancellationToken cancellationToken)
+		UniqueId[] ModifyFlags (UniqueId[] uids, ulong? modseq, MessageFlags flags, string action, CancellationToken cancellationToken)
 		{
 			var flaglist = ImapUtils.FormatFlagsList (flags & AcceptedFlags);
 			var set = ImapUtils.FormatUidSet (uids);
 
+			if (modseq.HasValue && !SupportsModSeq)
+				throw new NotSupportedException ("The ImapFolder does not support mod-sequences.");
+
 			CheckState (true, true);
 
 			if (uids.Length == 0)
-				return;
+				return new UniqueId[0];
 
 			string @params = string.Empty;
 			if (modseq.HasValue)
@@ -2695,7 +3129,6 @@ namespace MailKit.Net.Imap {
 
 			var format = string.Format ("UID STORE {0}{1} {2} {3}\r\n", set, @params, action, flaglist);
 			var ic = Engine.QueueCommand (cancellationToken, this, format);
-			ic.RegisterUntaggedHandler ("FETCH", FetchModSeq);
 
 			Engine.Wait (ic);
 
@@ -2703,6 +3136,17 @@ namespace MailKit.Net.Imap {
 
 			if (ic.Result != ImapCommandResult.Ok)
 				throw new ImapCommandException ("STORE", ic.Result);
+
+			if (modseq.HasValue) {
+				foreach (var code in ic.RespCodes) {
+					if (code.Type != ImapResponseCodeType.Modified)
+						continue;
+
+					return code.DestUidSet;
+				}
+			}
+
+			return new UniqueId[0];
 		}
 
 		/// <summary>
@@ -2742,7 +3186,7 @@ namespace MailKit.Net.Imap {
 		/// </exception>
 		public void AddFlags (UniqueId[] uids, MessageFlags flags, bool silent, CancellationToken cancellationToken)
 		{
-			ModifyFlags (uids, flags, silent ? "+FLAGS.SILENT" : "+FLAGS", null, cancellationToken);
+			ModifyFlags (uids, null, flags, silent ? "+FLAGS.SILENT" : "+FLAGS", cancellationToken);
 		}
 
 		/// <summary>
@@ -2782,7 +3226,7 @@ namespace MailKit.Net.Imap {
 		/// </exception>
 		public void RemoveFlags (UniqueId[] uids, MessageFlags flags, bool silent, CancellationToken cancellationToken)
 		{
-			ModifyFlags (uids, flags, silent ? "-FLAGS.SILENT" : "-FLAGS", null, cancellationToken);
+			ModifyFlags (uids, null, flags, silent ? "-FLAGS.SILENT" : "-FLAGS", cancellationToken);
 		}
 
 		/// <summary>
@@ -2822,18 +3266,156 @@ namespace MailKit.Net.Imap {
 		/// </exception>
 		public void SetFlags (UniqueId[] uids, MessageFlags flags, bool silent, CancellationToken cancellationToken)
 		{
-			ModifyFlags (uids, flags, silent ? "FLAGS.SILENT" : "FLAGS", null, cancellationToken);
+			ModifyFlags (uids, null, flags, silent ? "FLAGS.SILENT" : "FLAGS", cancellationToken);
 		}
 
-		void ModifyFlags (int[] indexes, MessageFlags flags, string action, ulong? modseq, CancellationToken cancellationToken)
+		/// <summary>
+		/// Adds a set of flags to the specified messages only if their mod-sequence value is less than the specified value.
+		/// </summary>
+		/// <returns>The unique IDs of the messages that were not updated.</returns>
+		/// <param name="uids">The UIDs of the messages.</param>
+		/// <param name="modseq">The mod-sequence value.</param>
+		/// <param name="flags">The message flags to add.</param>
+		/// <param name="silent">If set to <c>true</c>, no <see cref="FlagsChanged"/> events will be emitted.</param>
+		/// <param name="cancellationToken">The cancellation token.</param>
+		/// <exception cref="System.ArgumentNullException">
+		/// <paramref name="uids"/> is <c>null</c>.
+		/// </exception>
+		/// <exception cref="System.ArgumentException">
+		/// <paramref name="uids"/> contains at least one invalid uid.
+		/// </exception>
+		/// <exception cref="System.ObjectDisposedException">
+		/// The <see cref="ImapClient"/> has been disposed.
+		/// </exception>
+		/// <exception cref="System.InvalidOperationException">
+		/// <para>The <see cref="ImapClient"/> is not connected.</para>
+		/// <para>-or-</para>
+		/// <para>The <see cref="ImapClient"/> is not authenticated.</para>
+		/// <para>-or-</para>
+		/// <para>The folder is not currently open in read-write mode.</para>
+		/// </exception>
+		/// <exception cref="System.NotSupportedException">
+		/// The <see cref="ImapFolder"/> does not support mod-sequences.
+		/// </exception>
+		/// <exception cref="System.OperationCanceledException">
+		/// The operation was canceled via the cancellation token.
+		/// </exception>
+		/// <exception cref="System.IO.IOException">
+		/// An I/O error occurred.
+		/// </exception>
+		/// <exception cref="ImapProtocolException">
+		/// The server's response contained unexpected tokens.
+		/// </exception>
+		/// <exception cref="ImapCommandException">
+		/// The server replied with a NO or BAD response.
+		/// </exception>
+		public UniqueId[] AddFlags (UniqueId[] uids, ulong modseq, MessageFlags flags, bool silent, CancellationToken cancellationToken)
+		{
+			return ModifyFlags (uids, modseq, flags, silent ? "+FLAGS.SILENT" : "+FLAGS", cancellationToken);
+		}
+
+		/// <summary>
+		/// Removes a set of flags from the specified messages only if their mod-sequence value is less than the specified value.
+		/// </summary>
+		/// <returns>The unique IDs of the messages that were not updated.</returns>
+		/// <param name="uids">The UIDs of the messages.</param>
+		/// <param name="modseq">The mod-sequence value.</param>
+		/// <param name="flags">The message flags to remove.</param>
+		/// <param name="silent">If set to <c>true</c>, no <see cref="FlagsChanged"/> events will be emitted.</param>
+		/// <param name="cancellationToken">The cancellation token.</param>
+		/// <exception cref="System.ArgumentNullException">
+		/// <paramref name="uids"/> is <c>null</c>.
+		/// </exception>
+		/// <exception cref="System.ArgumentException">
+		/// <paramref name="uids"/> contains at least one invalid uid.
+		/// </exception>
+		/// <exception cref="System.ObjectDisposedException">
+		/// The <see cref="ImapClient"/> has been disposed.
+		/// </exception>
+		/// <exception cref="System.InvalidOperationException">
+		/// <para>The <see cref="ImapClient"/> is not connected.</para>
+		/// <para>-or-</para>
+		/// <para>The <see cref="ImapClient"/> is not authenticated.</para>
+		/// <para>-or-</para>
+		/// <para>The folder is not currently open in read-write mode.</para>
+		/// </exception>
+		/// <exception cref="System.NotSupportedException">
+		/// The <see cref="ImapFolder"/> does not support mod-sequences.
+		/// </exception>
+		/// <exception cref="System.OperationCanceledException">
+		/// The operation was canceled via the cancellation token.
+		/// </exception>
+		/// <exception cref="System.IO.IOException">
+		/// An I/O error occurred.
+		/// </exception>
+		/// <exception cref="ImapProtocolException">
+		/// The server's response contained unexpected tokens.
+		/// </exception>
+		/// <exception cref="ImapCommandException">
+		/// The server replied with a NO or BAD response.
+		/// </exception>
+		public UniqueId[] RemoveFlags (UniqueId[] uids, ulong modseq, MessageFlags flags, bool silent, CancellationToken cancellationToken)
+		{
+			return ModifyFlags (uids, modseq, flags, silent ? "-FLAGS.SILENT" : "-FLAGS", cancellationToken);
+		}
+
+		/// <summary>
+		/// Sets the flags of the specified messages only if their mod-sequence value is less than the specified value.
+		/// </summary>
+		/// <returns>The unique IDs of the messages that were not updated.</returns>
+		/// <param name="uids">The UIDs of the messages.</param>
+		/// <param name="modseq">The mod-sequence value.</param>
+		/// <param name="flags">The message flags to set.</param>
+		/// <param name="silent">If set to <c>true</c>, no <see cref="FlagsChanged"/> events will be emitted.</param>
+		/// <param name="cancellationToken">The cancellation token.</param>
+		/// <exception cref="System.ArgumentNullException">
+		/// <paramref name="uids"/> is <c>null</c>.
+		/// </exception>
+		/// <exception cref="System.ArgumentException">
+		/// <paramref name="uids"/> contains at least one invalid uid.
+		/// </exception>
+		/// <exception cref="System.ObjectDisposedException">
+		/// The <see cref="ImapClient"/> has been disposed.
+		/// </exception>
+		/// <exception cref="System.InvalidOperationException">
+		/// <para>The <see cref="ImapClient"/> is not connected.</para>
+		/// <para>-or-</para>
+		/// <para>The <see cref="ImapClient"/> is not authenticated.</para>
+		/// <para>-or-</para>
+		/// <para>The folder is not currently open in read-write mode.</para>
+		/// </exception>
+		/// <exception cref="System.NotSupportedException">
+		/// The <see cref="ImapFolder"/> does not support mod-sequences.
+		/// </exception>
+		/// <exception cref="System.OperationCanceledException">
+		/// The operation was canceled via the cancellation token.
+		/// </exception>
+		/// <exception cref="System.IO.IOException">
+		/// An I/O error occurred.
+		/// </exception>
+		/// <exception cref="ImapProtocolException">
+		/// The server's response contained unexpected tokens.
+		/// </exception>
+		/// <exception cref="ImapCommandException">
+		/// The server replied with a NO or BAD response.
+		/// </exception>
+		public UniqueId[] SetFlags (UniqueId[] uids, ulong modseq, MessageFlags flags, bool silent, CancellationToken cancellationToken)
+		{
+			return ModifyFlags (uids, modseq, flags, silent ? "FLAGS.SILENT" : "FLAGS", cancellationToken);
+		}
+
+		int[] ModifyFlags (int[] indexes, ulong? modseq, MessageFlags flags, string action, CancellationToken cancellationToken)
 		{
 			var flaglist = ImapUtils.FormatFlagsList (flags & AcceptedFlags);
-			var set = ImapUtils.FormatUidSet (indexes);
+			var set = ImapUtils.FormatIndexSet (indexes);
+
+			if (modseq.HasValue && !SupportsModSeq)
+				throw new NotSupportedException ("The ImapFolder does not support mod-sequences.");
 
 			CheckState (true, true);
 
 			if (indexes.Length == 0)
-				return;
+				return new int[0];
 
 			string @params = string.Empty;
 			if (modseq.HasValue)
@@ -2841,7 +3423,6 @@ namespace MailKit.Net.Imap {
 
 			var format = string.Format ("STORE {0}{1} {2} {3}\r\n", set, @params, action, flaglist);
 			var ic = Engine.QueueCommand (cancellationToken, this, format);
-			ic.RegisterUntaggedHandler ("FETCH", FetchModSeq);
 
 			Engine.Wait (ic);
 
@@ -2849,6 +3430,21 @@ namespace MailKit.Net.Imap {
 
 			if (ic.Result != ImapCommandResult.Ok)
 				throw new ImapCommandException ("STORE", ic.Result);
+
+			if (modseq.HasValue) {
+				foreach (var code in ic.RespCodes) {
+					if (code.Type != ImapResponseCodeType.Modified)
+						continue;
+
+					var unmodified = new int[code.DestUidSet.Length];
+					for (int i = 0; i < unmodified.Length; i++)
+						unmodified[i] = (int) (code.DestUidSet[i].Id - 1);
+
+					return unmodified;
+				}
+			}
+
+			return new int[0];
 		}
 
 		/// <summary>
@@ -2888,7 +3484,7 @@ namespace MailKit.Net.Imap {
 		/// </exception>
 		public void AddFlags (int[] indexes, MessageFlags flags, bool silent, CancellationToken cancellationToken)
 		{
-			ModifyFlags (indexes, flags, silent ? "+FLAGS.SILENT" : "+FLAGS", null, cancellationToken);
+			ModifyFlags (indexes, null, flags, silent ? "+FLAGS.SILENT" : "+FLAGS", cancellationToken);
 		}
 
 		/// <summary>
@@ -2928,7 +3524,7 @@ namespace MailKit.Net.Imap {
 		/// </exception>
 		public void RemoveFlags (int[] indexes, MessageFlags flags, bool silent, CancellationToken cancellationToken)
 		{
-			ModifyFlags (indexes, flags, silent ? "-FLAGS.SILENT" : "-FLAGS", null, cancellationToken);
+			ModifyFlags (indexes, null, flags, silent ? "-FLAGS.SILENT" : "-FLAGS", cancellationToken);
 		}
 
 		/// <summary>
@@ -2968,7 +3564,141 @@ namespace MailKit.Net.Imap {
 		/// </exception>
 		public void SetFlags (int[] indexes, MessageFlags flags, bool silent, CancellationToken cancellationToken)
 		{
-			ModifyFlags (indexes, flags, silent ? "FLAGS.SILENT" : "FLAGS", null, cancellationToken);
+			ModifyFlags (indexes, null, flags, silent ? "FLAGS.SILENT" : "FLAGS", cancellationToken);
+		}
+
+		/// <summary>
+		/// Adds a set of flags to the specified messages only if their mod-sequence value is less than the specified value.
+		/// </summary>
+		/// <param name="indexes">The indexes of the messages.</param>
+		/// <param name="modseq">The mod-sequence value.</param>
+		/// <param name="flags">The message flags to add.</param>
+		/// <param name="silent">If set to <c>true</c>, no <see cref="FlagsChanged"/> events will be emitted.</param>
+		/// <param name="cancellationToken">The cancellation token.</param>
+		/// <exception cref="System.ArgumentNullException">
+		/// <paramref name="indexes"/> is <c>null</c>.
+		/// </exception>
+		/// <exception cref="System.ArgumentException">
+		/// <paramref name="indexes"/> contains at least one invalid index.
+		/// </exception>
+		/// <exception cref="System.ObjectDisposedException">
+		/// The <see cref="ImapClient"/> has been disposed.
+		/// </exception>
+		/// <exception cref="System.InvalidOperationException">
+		/// <para>The <see cref="ImapClient"/> is not connected.</para>
+		/// <para>-or-</para>
+		/// <para>The <see cref="ImapClient"/> is not authenticated.</para>
+		/// <para>-or-</para>
+		/// <para>The folder is not currently open in read-write mode.</para>
+		/// </exception>
+		/// <exception cref="System.NotSupportedException">
+		/// The <see cref="ImapFolder"/> does not support mod-sequences.
+		/// </exception>
+		/// <exception cref="System.OperationCanceledException">
+		/// The operation was canceled via the cancellation token.
+		/// </exception>
+		/// <exception cref="System.IO.IOException">
+		/// An I/O error occurred.
+		/// </exception>
+		/// <exception cref="ImapProtocolException">
+		/// The server's response contained unexpected tokens.
+		/// </exception>
+		/// <exception cref="ImapCommandException">
+		/// The server replied with a NO or BAD response.
+		/// </exception>
+		public int[] AddFlags (int[] indexes, ulong modseq, MessageFlags flags, bool silent, CancellationToken cancellationToken)
+		{
+			return ModifyFlags (indexes, modseq, flags, silent ? "+FLAGS.SILENT" : "+FLAGS", cancellationToken);
+		}
+
+		/// <summary>
+		/// Removes a set of flags from the specified messages only if their mod-sequence value is less than the specified value.
+		/// </summary>
+		/// <returns>The indexes of the messages that were not updated.</returns>
+		/// <param name="indexes">The indexes of the messages.</param>
+		/// <param name="modseq">The mod-sequence value.</param>
+		/// <param name="flags">The message flags to remove.</param>
+		/// <param name="silent">If set to <c>true</c>, no <see cref="FlagsChanged"/> events will be emitted.</param>
+		/// <param name="cancellationToken">The cancellation token.</param>
+		/// <exception cref="System.ArgumentNullException">
+		/// <paramref name="indexes"/> is <c>null</c>.
+		/// </exception>
+		/// <exception cref="System.ArgumentException">
+		/// <paramref name="indexes"/> contains at least one invalid index.
+		/// </exception>
+		/// <exception cref="System.ObjectDisposedException">
+		/// The <see cref="ImapClient"/> has been disposed.
+		/// </exception>
+		/// <exception cref="System.InvalidOperationException">
+		/// <para>The <see cref="ImapClient"/> is not connected.</para>
+		/// <para>-or-</para>
+		/// <para>The <see cref="ImapClient"/> is not authenticated.</para>
+		/// <para>-or-</para>
+		/// <para>The folder is not currently open in read-write mode.</para>
+		/// </exception>
+		/// <exception cref="System.NotSupportedException">
+		/// The <see cref="ImapFolder"/> does not support mod-sequences.
+		/// </exception>
+		/// <exception cref="System.OperationCanceledException">
+		/// The operation was canceled via the cancellation token.
+		/// </exception>
+		/// <exception cref="System.IO.IOException">
+		/// An I/O error occurred.
+		/// </exception>
+		/// <exception cref="ImapProtocolException">
+		/// The server's response contained unexpected tokens.
+		/// </exception>
+		/// <exception cref="ImapCommandException">
+		/// The server replied with a NO or BAD response.
+		/// </exception>
+		public int[] RemoveFlags (int[] indexes, ulong modseq, MessageFlags flags, bool silent, CancellationToken cancellationToken)
+		{
+			return ModifyFlags (indexes, modseq, flags, silent ? "-FLAGS.SILENT" : "-FLAGS", cancellationToken);
+		}
+
+		/// <summary>
+		/// Sets the flags of the specified messages only if their mod-sequence value is less than the specified value.
+		/// </summary>
+		/// <returns>The indexes of the messages that were not updated.</returns>
+		/// <param name="indexes">The indexes of the messages.</param>
+		/// <param name="modseq">The mod-sequence value.</param>
+		/// <param name="flags">The message flags to set.</param>
+		/// <param name="silent">If set to <c>true</c>, no <see cref="FlagsChanged"/> events will be emitted.</param>
+		/// <param name="cancellationToken">The cancellation token.</param>
+		/// <exception cref="System.ArgumentNullException">
+		/// <paramref name="indexes"/> is <c>null</c>.
+		/// </exception>
+		/// <exception cref="System.ArgumentException">
+		/// <paramref name="indexes"/> contains at least one invalid index.
+		/// </exception>
+		/// <exception cref="System.ObjectDisposedException">
+		/// The <see cref="ImapClient"/> has been disposed.
+		/// </exception>
+		/// <exception cref="System.InvalidOperationException">
+		/// <para>The <see cref="ImapClient"/> is not connected.</para>
+		/// <para>-or-</para>
+		/// <para>The <see cref="ImapClient"/> is not authenticated.</para>
+		/// <para>-or-</para>
+		/// <para>The folder is not currently open in read-write mode.</para>
+		/// </exception>
+		/// <exception cref="System.NotSupportedException">
+		/// The <see cref="ImapFolder"/> does not support mod-sequences.
+		/// </exception>
+		/// <exception cref="System.OperationCanceledException">
+		/// The operation was canceled via the cancellation token.
+		/// </exception>
+		/// <exception cref="System.IO.IOException">
+		/// An I/O error occurred.
+		/// </exception>
+		/// <exception cref="ImapProtocolException">
+		/// The server's response contained unexpected tokens.
+		/// </exception>
+		/// <exception cref="ImapCommandException">
+		/// The server replied with a NO or BAD response.
+		/// </exception>
+		public int[] SetFlags (int[] indexes, ulong modseq, MessageFlags flags, bool silent, CancellationToken cancellationToken)
+		{
+			return ModifyFlags (indexes, modseq, flags, silent ? "FLAGS.SILENT" : "FLAGS", cancellationToken);
 		}
 
 		void BuildQuery (StringBuilder builder, SearchQuery query, List<string> args, bool parens)
@@ -3058,6 +3788,10 @@ namespace MailKit.Net.Imap {
 				text = (TextSearchQuery) query;
 				builder.Append ("TEXT %S");
 				args.Add (text.Text);
+				break;
+			case SearchTerm.ModSeq:
+				numeric = (NumericSearchQuery) query;
+				builder.AppendFormat ("MODSEQ {0}", numeric.Value);
 				break;
 			case SearchTerm.New:
 				builder.Append ("NEW");
@@ -3158,9 +3892,38 @@ namespace MailKit.Net.Imap {
 			return builder.ToString ();
 		}
 
+		static string BuildSortOrder (OrderBy[] orderBy)
+		{
+			var builder = new StringBuilder ();
+
+			builder.Append ('(');
+			for (int i = 0; i < orderBy.Length; i++) {
+				if (builder.Length > 1)
+					builder.Append (' ');
+
+				if (orderBy[i].Order == SortOrder.Descending)
+					builder.Append ("REVERSE ");
+
+				switch (orderBy [i].Type) {
+				case OrderByType.Arrival: builder.Append ("ARRIVAL"); break;
+				case OrderByType.Cc:      builder.Append ("CC"); break;
+				case OrderByType.Date:    builder.Append ("DATE"); break;
+				case OrderByType.From:    builder.Append ("FROM"); break;
+				case OrderByType.Size:    builder.Append ("SIZE"); break;
+				case OrderByType.Subject: builder.Append ("SUBJECT"); break;
+				case OrderByType.To:      builder.Append ("TO"); break;
+				default: throw new ArgumentOutOfRangeException ();
+				}
+			}
+			builder.Append (')');
+
+			return builder.ToString ();
+		}
+
 		static void SearchMatches (ImapEngine engine, ImapCommand ic, int index, ImapToken tok)
 		{
-			var uids = (HashSet<UniqueId>) ic.UserData;
+			var matches = new HashSet<UniqueId> ();
+			UniqueId[] uids;
 			ImapToken token;
 			uint uid;
 
@@ -3175,8 +3938,275 @@ namespace MailKit.Net.Imap {
 				if (token.Type != ImapTokenType.Atom || !uint.TryParse ((string) token.Value, out uid) || uid == 0)
 					throw ImapEngine.UnexpectedToken (token, false);
 
-				uids.Add (new UniqueId (uid));
+				matches.Add (new UniqueId (uid));
 			} while (true);
+
+			uids = matches.ToArray ();
+			Array.Sort (uids);
+
+			ic.UserData = uids;
+		}
+
+		static void ESearchMatches (ImapEngine engine, ImapCommand ic, int index, ImapToken tok)
+		{
+			var token = engine.ReadToken (ic.CancellationToken);
+			UniqueId[] uids = null;
+			uint min, max, count;
+			bool uid = false;
+			string atom;
+			string tag;
+
+			if (token.Type == ImapTokenType.OpenParen) {
+				// optional search correlator
+				do {
+					token = engine.ReadToken (ic.CancellationToken);
+
+					if (token.Type == ImapTokenType.CloseParen)
+						break;
+
+					if (token.Type != ImapTokenType.Atom)
+						throw ImapEngine.UnexpectedToken (token, false);
+
+					atom = (string) token.Value;
+
+					if (atom == "TAG") {
+						token = engine.ReadToken (ic.CancellationToken);
+
+						if (token.Type != ImapTokenType.Atom && token.Type != ImapTokenType.QString)
+							throw ImapEngine.UnexpectedToken (token, false);
+
+						tag = (string) token.Value;
+
+						if (tag != ic.Tag)
+							throw new ImapProtocolException ("Unexpected TAG value in untagged ESEARCH response: " + tag);
+					}
+				} while (true);
+
+				token = engine.ReadToken (ic.CancellationToken);
+			}
+
+			if (token.Type == ImapTokenType.Atom && ((string) token.Value) == "UID") {
+				token = engine.ReadToken (ic.CancellationToken);
+				uid = true;
+			}
+
+			do {
+				if (token.Type != ImapTokenType.Atom)
+					throw ImapEngine.UnexpectedToken (token, false);
+
+				atom = (string) token.Value;
+
+				token = engine.ReadToken (ic.CancellationToken);
+
+				if (token.Type != ImapTokenType.Atom)
+					throw ImapEngine.UnexpectedToken (token, false);
+
+				switch (atom) {
+				case "COUNT":
+					if (!uint.TryParse ((string) token.Value, out count))
+						throw ImapEngine.UnexpectedToken (token, false);
+					break;
+				case "MIN":
+					if (!uint.TryParse ((string) token.Value, out min))
+						throw ImapEngine.UnexpectedToken (token, false);
+					break;
+				case "MAX":
+					if (!uint.TryParse ((string) token.Value, out max))
+						throw ImapEngine.UnexpectedToken (token, false);
+					break;
+				case "ALL":
+					if (!ImapUtils.TryParseUidSet ((string) token.Value, out uids))
+						throw ImapEngine.UnexpectedToken (token, false);
+					break;
+				default:
+					throw ImapEngine.UnexpectedToken (token, false);
+				}
+
+				token = engine.ReadToken (ic.CancellationToken);
+
+				if (token.Type == ImapTokenType.Eoln) {
+					// unget the eoln token
+					engine.Stream.UngetToken (token);
+					break;
+				}
+			} while (true);
+
+			if (!uid && uids != null) {
+				var indexes = new int[uids.Length];
+				for (int i = 0; i < uids.Length; i++)
+					indexes[i] = (int) uids[i].Id - 1;
+
+				ic.UserData = indexes;
+			} else {
+				ic.UserData = uids;
+			}
+		}
+
+		/// <summary>
+		/// Searches the folder for messages matching the specified query.
+		/// </summary>
+		/// <remarks>
+		/// The returned array of unique identifiers can be used with <see cref="IFolder.GetMessage(UniqueId,CancellationToken)"/>.
+		/// </remarks>
+		/// <returns>An array of matching UIDs.</returns>
+		/// <param name="query">The search query.</param>
+		/// <param name="cancellationToken">The cancellation token.</param>
+		/// <exception cref="System.ArgumentNullException">
+		/// <paramref name="query"/> is <c>null</c>.
+		/// </exception>
+		/// <exception cref="System.NotSupportedException">
+		/// One or more search terms in the <paramref name="query"/> are not supported by the IMAP server.
+		/// </exception>
+		/// <exception cref="System.ObjectDisposedException">
+		/// The <see cref="ImapClient"/> has been disposed.
+		/// </exception>
+		/// <exception cref="System.InvalidOperationException">
+		/// <para>The <see cref="ImapClient"/> is not connected.</para>
+		/// <para>-or-</para>
+		/// <para>The <see cref="ImapClient"/> is not authenticated.</para>
+		/// <para>-or-</para>
+		/// <para>The folder is not currently open.</para>
+		/// </exception>
+		/// <exception cref="System.OperationCanceledException">
+		/// The operation was canceled via the cancellation token.
+		/// </exception>
+		/// <exception cref="System.IO.IOException">
+		/// An I/O error occurred.
+		/// </exception>
+		/// <exception cref="ImapProtocolException">
+		/// The server's response contained unexpected tokens.
+		/// </exception>
+		/// <exception cref="ImapCommandException">
+		/// The server replied with a NO or BAD response.
+		/// </exception>
+		public UniqueId[] Search (SearchQuery query, CancellationToken cancellationToken)
+		{
+			var args = new List<string> ();
+
+			if (query == null)
+				throw new ArgumentNullException ("query");
+
+			CheckState (true, false);
+
+			var optimized = query.Optimize (new ImapSearchQueryOptimizer ());
+			var expr = BuildQueryExpression (optimized, args);
+			var command = "UID SEARCH ";
+
+			if ((Engine.Capabilities & ImapCapabilities.ESearch) != 0)
+				command += "RETURN () ";
+
+			if (args.Count > 0)
+				command += "CHARSET UTF-8 ";
+
+			command += expr + "\r\n";
+
+			var ic = Engine.QueueCommand (cancellationToken, this, command, args.ToArray ());
+			if ((Engine.Capabilities & ImapCapabilities.ESearch) != 0)
+				ic.RegisterUntaggedHandler ("ESEARCH", ESearchMatches);
+			else
+				ic.RegisterUntaggedHandler ("SEARCH", SearchMatches);
+
+			Engine.Wait (ic);
+
+			ProcessResponseCodes (ic, null);
+
+			if (ic.Result != ImapCommandResult.Ok)
+				throw new ImapCommandException ("SEARCH", ic.Result);
+
+			return (UniqueId[]) ic.UserData;
+		}
+
+		/// <summary>
+		/// Searches the folder for messages matching the specified query,
+		/// returning them in the preferred sort order.
+		/// </summary>
+		/// <remarks>
+		/// The returned array of unique identifiers will be sorted in the preferred order and
+		/// can be used with <see cref="IFolder.GetMessage(UniqueId,CancellationToken)"/>.
+		/// </remarks>
+		/// <returns>An array of matching UIDs in the specified sort order.</returns>
+		/// <param name="query">The search query.</param>
+		/// <param name="orderBy">The sort order.</param>
+		/// <param name="cancellationToken">The cancellation token.</param>
+		/// <exception cref="System.ArgumentNullException">
+		/// <para><paramref name="query"/> is <c>null</c>.</para>
+		/// <para>-or-</para>
+		/// <para><paramref name="orderBy"/> is <c>null</c>.</para>
+		/// </exception>
+		/// <exception cref="System.ArgumentException">
+		/// <paramref name="orderBy"/> is empty.
+		/// </exception>
+		/// <exception cref="System.NotSupportedException">
+		/// <para>One or more search terms in the <paramref name="query"/> are not supported by the IMAP server.</para>
+		/// <para>-or-</para>
+		/// <para>The server does not support the SORT extension.</para>
+		/// </exception>
+		/// <exception cref="System.ObjectDisposedException">
+		/// The <see cref="ImapClient"/> has been disposed.
+		/// </exception>
+		/// <exception cref="System.InvalidOperationException">
+		/// <para>The <see cref="ImapClient"/> is not connected.</para>
+		/// <para>-or-</para>
+		/// <para>The <see cref="ImapClient"/> is not authenticated.</para>
+		/// <para>-or-</para>
+		/// <para>The folder is not currently open.</para>
+		/// </exception>
+		/// <exception cref="System.OperationCanceledException">
+		/// The operation was canceled via the cancellation token.
+		/// </exception>
+		/// <exception cref="System.IO.IOException">
+		/// An I/O error occurred.
+		/// </exception>
+		/// <exception cref="ImapProtocolException">
+		/// The server's response contained unexpected tokens.
+		/// </exception>
+		/// <exception cref="ImapCommandException">
+		/// The server replied with a NO or BAD response.
+		/// </exception>
+		public UniqueId[] Search (SearchQuery query, OrderBy[] orderBy, CancellationToken cancellationToken)
+		{
+			var args = new List<string> ();
+
+			if (query == null)
+				throw new ArgumentNullException ("query");
+
+			if (orderBy == null)
+				throw new ArgumentNullException ("orderBy");
+
+			if (orderBy.Length == 0)
+				throw new ArgumentException ("No sort order provided.", "orderBy");
+
+			CheckState (true, false);
+
+			if ((Engine.Capabilities & ImapCapabilities.Sort) == 0)
+				throw new NotSupportedException ("The IMAP server does not support the SORT extension.");
+
+			var optimized = query.Optimize (new ImapSearchQueryOptimizer ());
+			var expr = BuildQueryExpression (optimized, args);
+			var order = BuildSortOrder (orderBy);
+			var command = "UID SORT " + order + " ";
+
+			if ((Engine.Capabilities & ImapCapabilities.ESort) != 0)
+				command += "RETURN () ";
+
+			command += "UTF-8 ";
+
+			command += expr + "\r\n";
+
+			var ic = Engine.QueueCommand (cancellationToken, this, command, args.ToArray ());
+			if ((Engine.Capabilities & ImapCapabilities.ESort) != 0)
+				ic.RegisterUntaggedHandler ("ESEARCH", ESearchMatches);
+			else
+				ic.RegisterUntaggedHandler ("SORT", SearchMatches);
+
+			Engine.Wait (ic);
+
+			ProcessResponseCodes (ic, null);
+
+			if (ic.Result != ImapCommandResult.Ok)
+				throw new ImapCommandException ("SORT", ic.Result);
+
+			return (UniqueId[]) ic.UserData;
 		}
 
 		/// <summary>
@@ -3225,7 +4255,7 @@ namespace MailKit.Net.Imap {
 		public UniqueId[] Search (UniqueId[] uids, SearchQuery query, CancellationToken cancellationToken)
 		{
 			var set = ImapUtils.FormatUidSet (uids);
-			List<string> args = new List<string> ();
+			var args = new List<string> ();
 
 			if (query == null)
 				throw new ArgumentNullException ("query");
@@ -3237,14 +4267,21 @@ namespace MailKit.Net.Imap {
 
 			var optimized = query.Optimize (new ImapSearchQueryOptimizer ());
 			var expr = BuildQueryExpression (optimized, args);
-			var command = args.Count > 0 ? "UID SEARCH CHARSET UTF-8 " : "UID SEARCH ";
-			var matches = new HashSet<UniqueId> ();
+			var command = "UID SEARCH ";
+
+			if ((Engine.Capabilities & ImapCapabilities.ESearch) != 0)
+				command += "RETURN () ";
+
+			if (args.Count > 0)
+				command += "CHARSET UTF-8 ";
 
 			command += "UID " + set + " " + expr + "\r\n";
 
 			var ic = Engine.QueueCommand (cancellationToken, this, command, args.ToArray ());
-			ic.RegisterUntaggedHandler ("SEARCH", SearchMatches);
-			ic.UserData = matches;
+			if ((Engine.Capabilities & ImapCapabilities.ESearch) != 0)
+				ic.RegisterUntaggedHandler ("ESEARCH", ESearchMatches);
+			else
+				ic.RegisterUntaggedHandler ("SEARCH", SearchMatches);
 
 			Engine.Wait (ic);
 
@@ -3253,26 +4290,38 @@ namespace MailKit.Net.Imap {
 			if (ic.Result != ImapCommandResult.Ok)
 				throw new ImapCommandException ("SEARCH", ic.Result);
 
-			var results = matches.ToArray ();
-			Array.Sort (results);
-
-			return results;
+			return (UniqueId[]) ic.UserData;
 		}
 
 		/// <summary>
-		/// Searches the folder for messages matching the specified query.
+		/// Searches the subset of UIDs in the folder for messages matching the specified query,
+		/// returning them in the preferred sort order.
 		/// </summary>
 		/// <remarks>
-		/// The returned array of unique identifiers can be used with <see cref="IFolder.GetMessage(UniqueId,CancellationToken)"/>.
+		/// The returned array of unique identifiers will be sorted in the preferred order and
+		/// can be used with <see cref="IFolder.GetMessage(UniqueId,CancellationToken)"/>.
 		/// </remarks>
 		/// <returns>An array of matching UIDs.</returns>
+		/// <param name="uids">The subset of UIDs</param>
 		/// <param name="query">The search query.</param>
+		/// <param name="orderBy">The sort order.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <exception cref="System.ArgumentNullException">
-		/// <paramref name="query"/> is <c>null</c>.
+		/// <para><paramref name="uids"/> is <c>null</c>.</para>
+		/// <para>-or-</para>
+		/// <para><paramref name="query"/> is <c>null</c>.</para>
+		/// <para>-or-</para>
+		/// <para><paramref name="orderBy"/> is <c>null</c>.</para>
+		/// </exception>
+		/// <exception cref="System.ArgumentException">
+		/// <para><paramref name="uids"/> contains one or more invalid UIDs.</para>
+		/// <para>-or-</para>
+		/// <para><paramref name="orderBy"/> is empty.</para>
 		/// </exception>
 		/// <exception cref="System.NotSupportedException">
-		/// One or more search terms in the <paramref name="query"/> are not supported by the IMAP server.
+		/// <para>One or more search terms in the <paramref name="query"/> are not supported by the IMAP server.</para>
+		/// <para>-or-</para>
+		/// <para>The server does not support the SORT extension.</para>
 		/// </exception>
 		/// <exception cref="System.ObjectDisposedException">
 		/// The <see cref="ImapClient"/> has been disposed.
@@ -3296,9 +4345,112 @@ namespace MailKit.Net.Imap {
 		/// <exception cref="ImapCommandException">
 		/// The server replied with a NO or BAD response.
 		/// </exception>
-		public UniqueId[] Search (SearchQuery query, CancellationToken cancellationToken)
+		public UniqueId[] Search (UniqueId[] uids, SearchQuery query, OrderBy[] orderBy, CancellationToken cancellationToken)
 		{
-			List<string> args = new List<string> ();
+			var set = ImapUtils.FormatUidSet (uids);
+			var args = new List<string> ();
+
+			if (query == null)
+				throw new ArgumentNullException ("query");
+
+			if (orderBy == null)
+				throw new ArgumentNullException ("orderBy");
+
+			if (orderBy.Length == 0)
+				throw new ArgumentException ("No sort order provided.", "orderBy");
+
+			CheckState (true, false);
+
+			if ((Engine.Capabilities & ImapCapabilities.Sort) == 0)
+				throw new NotSupportedException ("The IMAP server does not support the SORT extension.");
+
+			if (uids.Length == 0)
+				return new UniqueId[0];
+
+			var optimized = query.Optimize (new ImapSearchQueryOptimizer ());
+			var expr = BuildQueryExpression (optimized, args);
+			var order = BuildSortOrder (orderBy);
+			var command = "UID SORT " + order + " ";
+
+			if ((Engine.Capabilities & ImapCapabilities.ESort) != 0)
+				command += "RETURN () ";
+
+			command += "UTF-8 UID " + set + " " + expr + "\r\n";
+
+			var ic = Engine.QueueCommand (cancellationToken, this, command, args.ToArray ());
+			if ((Engine.Capabilities & ImapCapabilities.ESort) != 0)
+				ic.RegisterUntaggedHandler ("ESEARCH", ESearchMatches);
+			else
+				ic.RegisterUntaggedHandler ("SORT", SearchMatches);
+
+			Engine.Wait (ic);
+
+			ProcessResponseCodes (ic, null);
+
+			if (ic.Result != ImapCommandResult.Ok)
+				throw new ImapCommandException ("SORT", ic.Result);
+
+			return (UniqueId[]) ic.UserData;
+		}
+
+		static void ThreadMatches (ImapEngine engine, ImapCommand ic, int index, ImapToken tok)
+		{
+			ic.UserData = ImapUtils.ParseThreads (engine, ic.CancellationToken);
+		}
+
+		/// <summary>
+		/// Threads the messages in the folder that match the search query using the specified threading algorithm.
+		/// </summary>
+		/// <remarks>
+		/// The <see cref="MessageThread.UniqueId"/> can be used with <see cref="IFolder.GetMessage(UniqueId,CancellationToken)"/>.
+		/// </remarks>
+		/// <returns>An array of message threads.</returns>
+		/// <param name="algorithm">The threading algorithm to use.</param>
+		/// <param name="query">The search query.</param>
+		/// <param name="cancellationToken">The cancellation token.</param>
+		/// <exception cref="System.ArgumentOutOfRangeException">
+		/// <paramref name="algorithm"/> is not supported.
+		/// </exception>
+		/// <exception cref="System.ArgumentNullException">
+		/// <paramref name="query"/> is <c>null</c>.
+		/// </exception>
+		/// <exception cref="System.NotSupportedException">
+		/// <para>One or more search terms in the <paramref name="query"/> are not supported by the IMAP server.</para>
+		/// <para>-or-</para>
+		/// <para>The server does not support the THREAD extension.</para>
+		/// </exception>
+		/// <exception cref="System.ObjectDisposedException">
+		/// The <see cref="ImapClient"/> has been disposed.
+		/// </exception>
+		/// <exception cref="System.InvalidOperationException">
+		/// <para>The <see cref="ImapClient"/> is not connected.</para>
+		/// <para>-or-</para>
+		/// <para>The <see cref="ImapClient"/> is not authenticated.</para>
+		/// <para>-or-</para>
+		/// <para>The folder is not currently open.</para>
+		/// </exception>
+		/// <exception cref="System.OperationCanceledException">
+		/// The operation was canceled via the cancellation token.
+		/// </exception>
+		/// <exception cref="System.IO.IOException">
+		/// An I/O error occurred.
+		/// </exception>
+		/// <exception cref="ImapProtocolException">
+		/// The server's response contained unexpected tokens.
+		/// </exception>
+		/// <exception cref="ImapCommandException">
+		/// The server replied with a NO or BAD response.
+		/// </exception>
+		public MessageThread[] Thread (ThreadingAlgorithm algorithm, SearchQuery query, CancellationToken cancellationToken)
+		{
+			var method = algorithm.ToString ().ToUpperInvariant ();
+			var args = new List<string> ();
+
+			if ((Engine.Capabilities & ImapCapabilities.Thread) == 0)
+				throw new NotSupportedException ("The IMAP server does not support the THREAD extension.");
+
+			if (!Engine.ThreadingAlgorithms.Contains (algorithm))
+				throw new ArgumentOutOfRangeException ("algorithm", "The specified threading algorithm is not supported.");
 
 			if (query == null)
 				throw new ArgumentNullException ("query");
@@ -3307,27 +4459,252 @@ namespace MailKit.Net.Imap {
 
 			var optimized = query.Optimize (new ImapSearchQueryOptimizer ());
 			var expr = BuildQueryExpression (optimized, args);
-			var command = args.Count > 0 ? "UID SEARCH CHARSET UTF-8 " : "UID SEARCH ";
-			var matches = new HashSet<UniqueId> ();
+			var command = "UID THREAD " + method + " UTF-8 ";
 
 			command += expr + "\r\n";
 
 			var ic = Engine.QueueCommand (cancellationToken, this, command, args.ToArray ());
-			ic.RegisterUntaggedHandler ("SEARCH", SearchMatches);
-			ic.UserData = matches;
+			ic.RegisterUntaggedHandler ("THREAD", ThreadMatches);
 
 			Engine.Wait (ic);
 
 			ProcessResponseCodes (ic, null);
 
 			if (ic.Result != ImapCommandResult.Ok)
-				throw new ImapCommandException ("SEARCH", ic.Result);
+				throw new ImapCommandException ("THREAD", ic.Result);
 
-			var results = matches.ToArray ();
-			Array.Sort (results);
-
-			return results;
+			return (MessageThread[]) ic.UserData;
 		}
+
+		/// <summary>
+		/// Threads the messages in the folder that match the search query using the specified threading algorithm.
+		/// </summary>
+		/// <remarks>
+		/// The <see cref="MessageThread.UniqueId"/> can be used with <see cref="IFolder.GetMessage(UniqueId,CancellationToken)"/>.
+		/// </remarks>
+		/// <returns>An array of message threads.</returns>
+		/// <param name="uids">The subset of UIDs</param>
+		/// <param name="algorithm">The threading algorithm to use.</param>
+		/// <param name="query">The search query.</param>
+		/// <param name="cancellationToken">The cancellation token.</param>
+		/// <exception cref="System.ArgumentOutOfRangeException">
+		/// <paramref name="algorithm"/> is not supported.
+		/// </exception>
+		/// <exception cref="System.ArgumentNullException">
+		/// <para><paramref name="uids"/> is <c>null</c>.</para>
+		/// <para>-or-</para>
+		/// <para><paramref name="query"/> is <c>null</c>.</para>
+		/// </exception>
+		/// <exception cref="System.ArgumentException">
+		/// <paramref name="uids"/> contains one or more invalid UIDs.
+		/// </exception>
+		/// <exception cref="System.NotSupportedException">
+		/// <para>One or more search terms in the <paramref name="query"/> are not supported by the IMAP server.</para>
+		/// <para>-or-</para>
+		/// <para>The server does not support the THREAD extension.</para>
+		/// </exception>
+		/// <exception cref="System.ObjectDisposedException">
+		/// The <see cref="ImapClient"/> has been disposed.
+		/// </exception>
+		/// <exception cref="System.InvalidOperationException">
+		/// <para>The <see cref="ImapClient"/> is not connected.</para>
+		/// <para>-or-</para>
+		/// <para>The <see cref="ImapClient"/> is not authenticated.</para>
+		/// <para>-or-</para>
+		/// <para>The folder is not currently open.</para>
+		/// </exception>
+		/// <exception cref="System.OperationCanceledException">
+		/// The operation was canceled via the cancellation token.
+		/// </exception>
+		/// <exception cref="System.IO.IOException">
+		/// An I/O error occurred.
+		/// </exception>
+		/// <exception cref="ImapProtocolException">
+		/// The server's response contained unexpected tokens.
+		/// </exception>
+		/// <exception cref="ImapCommandException">
+		/// The server replied with a NO or BAD response.
+		/// </exception>
+		public MessageThread[] Thread (UniqueId[] uids, ThreadingAlgorithm algorithm, SearchQuery query, CancellationToken cancellationToken)
+		{
+			var method = algorithm.ToString ().ToUpperInvariant ();
+			var set = ImapUtils.FormatUidSet (uids);
+			var args = new List<string> ();
+
+			if ((Engine.Capabilities & ImapCapabilities.Thread) == 0)
+				throw new NotSupportedException ("The IMAP server does not support the THREAD extension.");
+
+			if (!Engine.ThreadingAlgorithms.Contains (algorithm))
+				throw new ArgumentOutOfRangeException ("algorithm", "The specified threading algorithm is not supported.");
+
+			if (query == null)
+				throw new ArgumentNullException ("query");
+
+			CheckState (true, false);
+
+			var optimized = query.Optimize (new ImapSearchQueryOptimizer ());
+			var expr = BuildQueryExpression (optimized, args);
+			var command = "UID THREAD " + method + " UTF-8 ";
+
+			command += "UID " + set + " " + expr + "\r\n";
+
+			var ic = Engine.QueueCommand (cancellationToken, this, command, args.ToArray ());
+			ic.RegisterUntaggedHandler ("THREAD", ThreadMatches);
+
+			Engine.Wait (ic);
+
+			ProcessResponseCodes (ic, null);
+
+			if (ic.Result != ImapCommandResult.Ok)
+				throw new ImapCommandException ("THREAD", ic.Result);
+
+			return (MessageThread[]) ic.UserData;
+		}
+
+		#region Untagged response handlers called by ImapEngine
+
+		internal void OnExists (int count)
+		{
+			if (Count == count)
+				return;
+
+			Count = count;
+
+			OnCountChanged ();
+		}
+
+		internal void OnExpunge (int index)
+		{
+			var handler = Expunged;
+
+			if (handler != null)
+				handler (this, new MessageEventArgs (index));
+		}
+
+		internal void OnFetch (ImapEngine engine, int index, CancellationToken cancellationToken)
+		{
+			var token = engine.ReadToken (cancellationToken);
+			var args = new FlagsChangedEventArgs (index);
+
+			if (token.Type != ImapTokenType.OpenParen)
+				throw ImapEngine.UnexpectedToken (token, false);
+
+			do {
+				token = engine.ReadToken (cancellationToken);
+
+				if (token.Type == ImapTokenType.CloseParen || token.Type == ImapTokenType.Eoln)
+					break;
+
+				if (token.Type != ImapTokenType.Atom)
+					throw ImapEngine.UnexpectedToken (token, false);
+
+				var atom = (string) token.Value;
+				ulong modseq;
+				uint uid;
+
+				switch (atom) {
+				case "MODSEQ":
+					token = engine.ReadToken (cancellationToken);
+
+					if (token.Type != ImapTokenType.OpenParen)
+						throw ImapEngine.UnexpectedToken (token, false);
+
+					token = engine.ReadToken (cancellationToken);
+
+					if (token.Type != ImapTokenType.Atom || !ulong.TryParse ((string) token.Value, out modseq) || modseq == 0)
+						throw ImapEngine.UnexpectedToken (token, false);
+
+					token = engine.ReadToken (cancellationToken);
+
+					if (token.Type != ImapTokenType.CloseParen)
+						throw ImapEngine.UnexpectedToken (token, false);
+
+					args.ModSeq = modseq;
+					break;
+				case "UID":
+					token = engine.ReadToken (cancellationToken);
+
+					if (token.Type != ImapTokenType.Atom || !uint.TryParse ((string) token.Value, out uid) || uid == 0)
+						throw ImapEngine.UnexpectedToken (token, false);
+
+					args.Uid = new UniqueId (uid);
+					break;
+				case "FLAGS":
+					args.Flags = ImapUtils.ParseFlagsList (engine, cancellationToken);
+					break;
+				default:
+					throw ImapEngine.UnexpectedToken (token, false);
+				}
+			} while (true);
+
+			if (token.Type != ImapTokenType.CloseParen)
+				throw ImapEngine.UnexpectedToken (token, false);
+
+			OnFlagsChanged (args);
+		}
+
+		internal void OnRecent (int count)
+		{
+			if (Recent == count)
+				return;
+
+			Recent = count;
+
+			OnRecentChanged ();
+		}
+
+		internal void OnVanished (ImapEngine engine, CancellationToken cancellationToken)
+		{
+			var token = engine.ReadToken (cancellationToken);
+			bool earlier = false;
+			UniqueId[] vanished;
+
+			if (token.Type == ImapTokenType.OpenParen) {
+				do {
+					token = engine.ReadToken (cancellationToken);
+
+					if (token.Type == ImapTokenType.CloseParen)
+						break;
+
+					if (token.Type != ImapTokenType.Atom)
+						throw ImapEngine.UnexpectedToken (token, false);
+
+					var atom = (string) token.Value;
+
+					if (atom == "EARLIER")
+						earlier = true;
+				} while (true);
+
+				token = engine.ReadToken (cancellationToken);
+			}
+
+			if (token.Type != ImapTokenType.Atom || !ImapUtils.TryParseUidSet ((string) token.Value, out vanished))
+				throw ImapEngine.UnexpectedToken (token, false);
+
+			// TODO: emit a Vanished event
+		}
+
+		internal void UpdateFirstUnread (int index)
+		{
+			FirstUnread = index;
+		}
+
+		internal void UpdateUidNext (UniqueId uid)
+		{
+			UidNext = uid;
+		}
+
+		internal void UpdateUidValidity (UniqueId uid)
+		{
+			if (UidValidity.HasValue && UidValidity.Value.Id == uid.Id)
+				return;
+
+			UidValidity = uid;
+
+			OnUidValidityChanged ();
+		}
+
+		#endregion
 
 		/// <summary>
 		/// Occurs when the folder is deleted.
@@ -3386,25 +4763,17 @@ namespace MailKit.Net.Imap {
 		/// </summary>
 		public event EventHandler<MessageEventArgs> Expunged;
 
-		internal void OnExpunged (int index)
-		{
-			var handler = Expunged;
-
-			if (handler != null)
-				handler (this, new MessageEventArgs (index));
-		}
-
 		/// <summary>
 		/// Occurs when flags changed on a message.
 		/// </summary>
 		public event EventHandler<FlagsChangedEventArgs> FlagsChanged;
 
-		internal void OnFlagsChanged (int index, MessageFlags flags)
+		void OnFlagsChanged (FlagsChangedEventArgs args)
 		{
 			var handler = FlagsChanged;
 
 			if (handler != null)
-				handler (this, new FlagsChangedEventArgs (index, flags));
+				handler (this, args);
 		}
 
 		/// <summary>
@@ -3502,46 +4871,6 @@ namespace MailKit.Net.Imap {
 		public override string ToString ()
 		{
 			return FullName;
-		}
-
-		internal void UpdateCount (int count)
-		{
-			if (Count == count)
-				return;
-
-			Count = count;
-
-			OnCountChanged ();
-		}
-
-		internal void UpdateRecent (int count)
-		{
-			if (Recent == count)
-				return;
-
-			Recent = count;
-
-			OnRecentChanged ();
-		}
-
-		internal void UpdateFirstUnread (int index)
-		{
-			FirstUnread = index;
-		}
-
-		internal void UpdateUidNext (UniqueId uid)
-		{
-			UidNext = uid;
-		}
-
-		internal void UpdateUidValidity (UniqueId uid)
-		{
-			if (UidValidity.HasValue && UidValidity.Value.Id == uid.Id)
-				return;
-
-			UidValidity = uid;
-
-			OnUidValidityChanged ();
 		}
 	}
 }

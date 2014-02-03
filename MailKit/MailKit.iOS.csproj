@@ -31,6 +31,7 @@
     <ConsolePause>false</ConsolePause>
     <DefineConstants>__MOBILE__;__IOS__;</DefineConstants>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DocumentationFile>bin\Release\lib\MonoTouch\MimeKit.iOS.xml</DocumentationFile>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -76,8 +77,11 @@
     <Compile Include="Search\HeaderSearchQuery.cs" />
     <Compile Include="Search\ISearchQueryOptimizer.cs" />
     <Compile Include="Search\NumericSearchQuery.cs" />
+    <Compile Include="Search\OrderBy.cs" />
+    <Compile Include="Search\OrderByType.cs" />
     <Compile Include="Search\SearchQuery.cs" />
     <Compile Include="Search\SearchTerm.cs" />
+    <Compile Include="Search\SortOrder.cs" />
     <Compile Include="Search\TextSearchQuery.cs" />
     <Compile Include="Search\UnarySearchQuery.cs" />
     <Compile Include="Security\SaslException.cs" />
@@ -111,11 +115,13 @@
     <Compile Include="MessageFlags.cs" />
     <Compile Include="MessageSummary.cs" />
     <Compile Include="MessageSummaryItems.cs" />
+    <Compile Include="MessageThread.cs" />
     <Compile Include="NullProtocolLogger.cs" />
     <Compile Include="ProtocolException.cs" />
     <Compile Include="ProtocolLogger.cs" />
     <Compile Include="SpecialFolder.cs" />
     <Compile Include="StatusItems.cs" />
+    <Compile Include="ThreadingAlgorithm.cs" />
     <Compile Include="UniqueId.cs" />
   </ItemGroup>
   <ItemGroup>
