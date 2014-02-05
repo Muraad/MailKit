@@ -223,12 +223,9 @@ namespace MailKit.Net.Pop3 {
 			}
 		}
 
-		unsafe int ReadAhead (byte* inbuf, int atleast)
+		unsafe int ReadAhead (byte* inbuf)
 		{
 			int left = inputEnd - inputIndex;
-
-			if (left >= atleast)
-				return left;
 
 			var network = Stream as NetworkStream;
 			if (network != null) {
@@ -247,7 +244,7 @@ namespace MailKit.Net.Pop3 {
 
 			// attempt to align the end of the remaining input with ReadAheadSize
 			if (index >= start) {
-				start -= left < ReadAheadSize ? left : ReadAheadSize;
+				start -= Math.Min (ReadAheadSize, left);
 				MemMove (inbuf, index, start, left);
 				index = start;
 				start += left;
@@ -339,56 +336,58 @@ namespace MailKit.Net.Pop3 {
 			unsafe {
 				fixed (byte* inbuf = input, outbuf = buffer) {
 					byte* outptr = outbuf + offset;
-					byte* inptr, inend, outend;
+					byte* outend = outptr + count;
+					byte* inptr, inend;
 
-					// we need at least 3 bytes: ".\r\n"
-					ReadAhead (inbuf, 3);
+					do {
+						// we need at least 3 bytes: ".\r\n"
+						if ((inputEnd - inputIndex) < 3)
+							ReadAhead (inbuf);
 
-					inptr = inbuf + inputIndex;
-					inend = inbuf + inputEnd;
-					*inend = (byte) '\n';
+						inptr = inbuf + inputIndex;
+						inend = inbuf + inputEnd;
+						*inend = (byte) '\n';
 
-					outend = outptr + count;
+						while (inptr < inend) {
+							if (midline) {
+								// read until end-of-line
+								while (outptr < outend && *inptr != (byte) '\n')
+									*outptr++ = *inptr++;
 
-					while (inptr < inend) {
-						if (midline) {
-							// read until end-of-line
-							while (outptr < outend && *inptr != (byte) '\n')
+								if (inptr == inend || outptr == outend)
+									break;
+
 								*outptr++ = *inptr++;
-
-							if (inptr == inend || outptr == outend)
-								break;
-
-							*outptr++ = *inptr++;
-							midline = false;
-						}
-
-						if (inptr == inend)
-							break;
-
-						if (*inptr == (byte) '.') {
-							if ((inend - inptr) >= 3 && *(inptr + 1) == (byte) '\r' && *(inptr + 2) == (byte) '\n') {
-								IsEndOfData = true;
 								midline = false;
-								inptr += 3;
-								break;
 							}
 
-							if ((inend - inptr) >= 2 && *(inptr + 1) == (byte) '\n') {
-								IsEndOfData = true;
-								midline = false;
-								inptr += 2;
+							if (inptr == inend)
 								break;
+
+							if (*inptr == (byte) '.') {
+								if ((inend - inptr) >= 3 && *(inptr + 1) == (byte) '\r' && *(inptr + 2) == (byte) '\n') {
+									IsEndOfData = true;
+									midline = false;
+									inptr += 3;
+									break;
+								}
+
+								if ((inend - inptr) >= 2 && *(inptr + 1) == (byte) '\n') {
+									IsEndOfData = true;
+									midline = false;
+									inptr += 2;
+									break;
+								}
+
+								if (*(inptr + 1) == (byte) '.')
+									inptr++;
 							}
 
-							if (*(inptr + 1) == (byte) '.')
-								inptr++;
+							midline = true;
 						}
 
-						midline = true;
-					}
-
-					inputIndex = (int) (inptr - inbuf);
+						inputIndex = (int) (inptr - inbuf);
+					} while (outptr < outend && !IsEndOfData);
 
 					return (int) (outptr - outbuf) - offset;
 				}
@@ -419,8 +418,8 @@ namespace MailKit.Net.Pop3 {
 				fixed (byte* inbuf = input) {
 					byte* start, inptr, inend;
 
-					// we need at least 1 byte: "\n"
-					ReadAhead (inbuf, 1);
+					if (inputIndex == inputEnd)
+						ReadAhead (inbuf);
 
 					offset = inputIndex;
 					buffer = input;
