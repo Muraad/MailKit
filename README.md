@@ -45,12 +45,16 @@ MailKit is a cross-platform mail client library built on top of [MimeKit](https:
     * CONDSTORE
     * ESEARCH
     * SASL-IR
+    * COMPRESS
+    * ENABLE
+    * QRESYNC
     * SORT
     * THREAD
+    * ESORT (partial)
     * SPECIAL-USE
     * MOVE
     * XLIST
-    * X-GM-EXT1 (X-GM-MSGID and X-GM-THRID)
+    * X-GM-EXT1 (X-GM-MSGID, X-GM-THRID and X-GM-RAW)
   * All APIs are cancellable.
 
 ## TODO
@@ -75,19 +79,14 @@ MailKit is a cross-platform mail client library built on top of [MimeKit](https:
     * IDLE
     * BINARY
     * CATENATE
-    * COMPRESS
-    * ENABLE
-    * QRESYNC
     * LIST-EXTENDED
     * CONVERT
-    * ESORT
     * METADATA
     * NOTIFY
     * FILTERS
     * LIST-STATUS
     * MULTISEARCH
     * GMail Extensions
-      * X-GM-RAW
       * X-GM-LABELS
   * Async APIs
 * Maildir
@@ -109,7 +108,7 @@ pre-.NET 4.5 platforms. If you haven't already, I'd highly recommend installing 
 
 ## License Information
 
-MailKit is Copyright (C) 2013, 2014 Jeffrey Stedfast and is licensed under the MIT license:
+MailKit is Copyright (C) 2013-2014 Xamarin Inc. and is licensed under the MIT license:
 
     Permission is hereby granted, free of charge, to any person obtaining a copy
     of this software and associated documentation files (the "Software"), to deal
@@ -128,6 +127,15 @@ MailKit is Copyright (C) 2013, 2014 Jeffrey Stedfast and is licensed under the M
     LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
     OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
     THE SOFTWARE.
+
+## Installing via NuGet
+
+The easiest way to install MimeKit is via [NuGet](https://www.nuget.org/packages/MailKit/).
+
+In Visual Studio's [Package Manager Console](http://docs.nuget.org/docs/start-here/using-the-package-manager-console),
+simply enter the following command:
+
+    Install-Package MailKit
 
 ## Building
 

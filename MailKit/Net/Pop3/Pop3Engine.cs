@@ -3,7 +3,7 @@
 //
 // Author: Jeffrey Stedfast <jeff@xamarin.com>
 //
-// Copyright (c) 2013 Jeffrey Stedfast
+// Copyright (c) 2013-2014 Xamarin Inc. (www.xamarin.com)
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -194,7 +194,7 @@ namespace MailKit.Net.Pop3 {
 				stream.Dispose ();
 				stream = null;
 
-				throw new Pop3Exception (Pop3ErrorType.ProtocolError, string.Format ("Unexpected greeting from server: {0}", greeting));
+				throw new Pop3ProtocolException (string.Format ("Unexpected greeting from server: {0}", greeting));
 			}
 
 			index = text.IndexOf ('>');
@@ -310,7 +310,7 @@ namespace MailKit.Net.Pop3 {
 			switch (pc.Status) {
 			case Pop3CommandStatus.ProtocolError:
 				Disconnect ();
-				throw new Pop3Exception (Pop3ErrorType.ProtocolError, string.Format ("Unexpected response from server: {0}", response));
+				throw new Pop3ProtocolException (string.Format ("Unexpected response from server: {0}", response));
 			case Pop3CommandStatus.Continue:
 			case Pop3CommandStatus.Ok:
 				if (pc.Handler != null) {
@@ -350,9 +350,9 @@ namespace MailKit.Net.Pop3 {
 			return pc.Id;
 		}
 
-		public Pop3Command QueueCommand (CancellationToken cancellationToken, string format, params object[] args)
+		public Pop3Command QueueCommand (CancellationToken cancellationToken, Pop3CommandHandler handler, string format, params object[] args)
 		{
-			var pc = new Pop3Command (cancellationToken, format, args);
+			var pc = new Pop3Command (cancellationToken, handler, format, args);
 			pc.Id = nextId++;
 			queue.Add (pc);
 			return pc;
@@ -446,8 +446,7 @@ namespace MailKit.Net.Pop3 {
 			if (stream == null)
 				throw new InvalidOperationException ();
 
-			var pc = QueueCommand (cancellationToken, "CAPA");
-			pc.Handler = CapaHandler;
+			var pc = QueueCommand (cancellationToken, CapaHandler, "CAPA");
 
 			while (Iterate () < pc.Id) {
 				// continue processing commands...

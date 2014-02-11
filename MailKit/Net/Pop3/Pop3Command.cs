@@ -3,7 +3,7 @@
 //
 // Author: Jeffrey Stedfast <jeff@xamarin.com>
 //
-// Copyright (c) 2013 Jeffrey Stedfast
+// Copyright (c) 2013-2014 Xamarin Inc. (www.xamarin.com)
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -50,18 +50,19 @@ namespace MailKit.Net.Pop3 {
 	class Pop3Command
 	{
 		public CancellationToken CancellationToken { get; private set; }
-		public Pop3CommandHandler Handler { get; set; }
+		public Pop3CommandHandler Handler { get; private set; }
 		public string Command { get; private set; }
 		public int Id { get; internal set; }
 
 		// output
 		public Pop3CommandStatus Status { get; internal set; }
-		public Pop3Exception Exception { get; set; }
+		public ProtocolException Exception { get; set; }
 
-		public Pop3Command (CancellationToken cancellationToken, string format, params object[] args)
+		public Pop3Command (CancellationToken cancellationToken, Pop3CommandHandler handler, string format, params object[] args)
 		{
 			Command = string.Format (format, args);
 			CancellationToken = cancellationToken;
+			Handler = handler;
 		}
 	}
 }

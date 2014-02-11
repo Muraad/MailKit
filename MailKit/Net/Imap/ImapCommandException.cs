@@ -24,15 +24,29 @@
 // THE SOFTWARE.
 //
 
+using System;
+using System.Runtime.Serialization;
+
 namespace MailKit.Net.Imap {
 	/// <summary>
 	/// An exception that is thrown when an IMAP command returns NO or BAD.
 	/// </summary>
 	/// <remarks>
-	/// This exception can be thrown by most of the methods in <see cref="ImapFolder"/>.
+	/// The exception that is thrown when an IMAP command fails. Unlike a <see cref="ImapProtocolException"/>,
+	/// a <see cref="ImapCommandException"/> does not require the <see cref="ImapClient"/> to be reconnected.
 	/// </remarks>
+	[Serializable]
 	public class ImapCommandException : ProtocolException
 	{
+		/// <summary>
+		/// Initializes a new instance of the <see cref="MailKit.Net.Imap.ImapCommandException"/> class.
+		/// </summary>
+		/// <param name="info">The serialization info.</param>
+		/// <param name="context">The streaming context.</param>
+		protected ImapCommandException (SerializationInfo info, StreamingContext context) : base (info, context)
+		{
+		}
+
 		/// <summary>
 		/// Initializes a new instance of the <see cref="MailKit.Net.Imap.ImapCommandException"/> class.
 		/// </summary>
@@ -40,6 +54,30 @@ namespace MailKit.Net.Imap {
 		/// <param name="result">The command result.</param>
 		internal ImapCommandException (string command, ImapCommandResult result)
 			: base (string.Format ("The IMAP server replied to the '{0}' command with a '{1}' response.", command, result.ToString ().ToUpperInvariant ()))
+		{
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="MailKit.Net.Imap.ImapCommandException"/> class.
+		/// </summary>
+		/// <param name="message">The error message.</param>
+		/// <param name="innerException">The inner exception.</param>
+		public ImapCommandException (string message, Exception innerException) : base (message, innerException)
+		{
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="MailKit.Net.Imap.ImapCommandException"/> class.
+		/// </summary>
+		/// <param name="message">The error message.</param>
+		public ImapCommandException (string message) : base (message)
+		{
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="MailKit.Net.Imap.ImapCommandException"/> class.
+		/// </summary>
+		public ImapCommandException ()
 		{
 		}
 	}

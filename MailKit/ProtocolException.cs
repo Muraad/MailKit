@@ -3,7 +3,7 @@
 //
 // Author: Jeffrey Stedfast <jeff@xamarin.com>
 //
-// Copyright (c) 2013 Jeffrey Stedfast
+// Copyright (c) 2013-2014 Xamarin Inc. (www.xamarin.com)
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -25,13 +25,24 @@
 //
 
 using System;
+using System.Runtime.Serialization;
 
 namespace MailKit {
 	/// <summary>
 	/// The exception that is thrown when there is a protocol error.
 	/// </summary>
+	[Serializable]
 	public abstract class ProtocolException : Exception
 	{
+		/// <summary>
+		/// Initializes a new instance of the <see cref="MailKit.ProtocolException"/> class.
+		/// </summary>
+		/// <param name="info">The serialization info.</param>
+		/// <param name="context">The streaming context.</param>
+		protected ProtocolException (SerializationInfo info, StreamingContext context) : base (info, context)
+		{
+		}
+
 		/// <summary>
 		/// Initializes a new instance of the <see cref="MailKit.ProtocolException"/> class.
 		/// </summary>
@@ -46,6 +57,13 @@ namespace MailKit {
 		/// </summary>
 		/// <param name="message">The error message.</param>
 		protected ProtocolException (string message) : base (message)
+		{
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="MailKit.ProtocolException"/> class.
+		/// </summary>
+		protected ProtocolException ()
 		{
 		}
 	}

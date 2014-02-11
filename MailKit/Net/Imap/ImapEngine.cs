@@ -3,7 +3,7 @@
 //
 // Author: Jeffrey Stedfast <jeff@xamarin.com>
 //
-// Copyright (c) 2014 Jeffrey Stedfast
+// Copyright (c) 2013-2014 Xamarin Inc. (www.xamarin.com)
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -201,6 +201,14 @@ namespace MailKit.Net.Imap {
 		}
 
 		/// <summary>
+		/// Gets whether or not the QRESYNC feature has been enabled.
+		/// </summary>
+		/// <value><c>true</c> if the QRESYNC feature has been enabled; otherwise, <c>false</c>.</value>
+		public bool QResyncEnabled {
+			get; internal set;
+		}
+
+		/// <summary>
 		/// Gets the underlying IMAP stream.
 		/// </summary>
 		/// <value>The IMAP stream.</value>
@@ -386,6 +394,7 @@ namespace MailKit.Net.Imap {
 			State = ImapEngineState.Connected;
 			SupportedCharsets.Add ("UTF-8");
 			CapabilitiesVersion = 0;
+			QResyncEnabled = false;
 			stream = imap;
 			Tag = 0;
 
@@ -644,7 +653,7 @@ namespace MailKit.Net.Imap {
 					case "LIST-EXTENDED": Capabilities |= ImapCapabilities.ListExtended; break;
 					case "CONVERT":       Capabilities |= ImapCapabilities.Convert; break;
 					case "ESORT":         Capabilities |= ImapCapabilities.ESort; break;
-					case "METADATA":      Capabilities |= ImapCapabilities.MetaData; break;
+					case "METADATA":      Capabilities |= ImapCapabilities.Metadata; break;
 					case "NOTIFY":        Capabilities |= ImapCapabilities.Notify; break;
 					case "LIST-STATUS":   Capabilities |= ImapCapabilities.ListStatus; break;
 					case "SPECIAL-USE":   Capabilities |= ImapCapabilities.SpecialUse; break;
@@ -703,8 +712,8 @@ namespace MailKit.Net.Imap {
 						// parse the namespace pair - first token is the path
 						token = stream.ReadToken (cancellationToken);
 
-						if (token.Type != ImapTokenType.QString) {
-							Debug.WriteLine ("Expected qstring token as first element in namespace pair, but got: {0}", token);
+						if (token.Type != ImapTokenType.QString && token.Type != ImapTokenType.Atom) {
+							Debug.WriteLine ("Expected string token as first element in namespace pair, but got: {0}", token);
 							throw UnexpectedToken (token, false);
 						}
 
@@ -713,12 +722,12 @@ namespace MailKit.Net.Imap {
 						// second token is the directory separator
 						token = stream.ReadToken (cancellationToken);
 
-						if (token.Type != ImapTokenType.QString) {
-							Debug.WriteLine ("Expected qstring token as second element in namespace pair, but got: {0}", token);
+						if (token.Type != ImapTokenType.QString && token.Type != ImapTokenType.Nil) {
+							Debug.WriteLine ("Expected string or nil token as second element in namespace pair, but got: {0}", token);
 							throw UnexpectedToken (token, false);
 						}
 
-						var qstring = (string) token.Value;
+						var qstring = token.Type == ImapTokenType.Nil ? string.Empty : (string) token.Value;
 
 						if (qstring.Length > 0) {
 							delim = qstring[0];
@@ -737,13 +746,32 @@ namespace MailKit.Net.Imap {
 
 						folder.IsNamespace = true;
 
-						// read the closing ')'
-						token = stream.ReadToken (cancellationToken);
+						do {
+							token = stream.ReadToken (cancellationToken);
 
-						if (token.Type != ImapTokenType.CloseParen) {
-							Debug.WriteLine ("Expected ')' to close namespace pair, but got: {0}", token);
-							throw UnexpectedToken (token, false);
-						}
+							if (token.Type == ImapTokenType.CloseParen)
+								break;
+
+							// NAMESPACE extension
+
+							if (token.Type != ImapTokenType.QString && token.Type != ImapTokenType.Atom)
+								throw UnexpectedToken (token, false);
+
+							token = stream.ReadToken (cancellationToken);
+
+							if (token.Type != ImapTokenType.OpenParen)
+								throw UnexpectedToken (token, false);
+
+							do {
+								token = stream.ReadToken (cancellationToken);
+
+								if (token.Type == ImapTokenType.CloseParen)
+									break;
+
+								if (token.Type != ImapTokenType.QString && token.Type != ImapTokenType.Atom)
+									throw UnexpectedToken (token, false);
+							} while (true);
+						} while (true);
 
 						// read the next token - it should either be '(' or ')'
 						token = stream.ReadToken (cancellationToken);
@@ -797,6 +825,7 @@ namespace MailKit.Net.Imap {
 			case "HIGHESTMODSEQ":  return ImapResponseCodeType.HighestModSeq;
 			case "MODIFIED":       return ImapResponseCodeType.Modified;
 			case "NOMODSEQ":       return ImapResponseCodeType.NoModSeq;
+			case "CLOSED":         return ImapResponseCodeType.Closed;
 			default:               return ImapResponseCodeType.Unknown;
 			}
 		}
@@ -1002,6 +1031,7 @@ namespace MailKit.Net.Imap {
 				token = stream.ReadToken (cancellationToken);
 				break;
 			case ImapResponseCodeType.NoModSeq: break;
+			case ImapResponseCodeType.Closed: break;
 			default:
 				code = new ImapResponseCode (ImapResponseCodeType.Unknown);
 
@@ -1182,7 +1212,7 @@ namespace MailKit.Net.Imap {
 
 					if (token.Type == ImapTokenType.OpenBracket) {
 						var code = ParseResponseCode (cancellationToken);
-						if (current != null)
+						if (current != null && code.Type != ImapResponseCodeType.Closed)
 							current.RespCodes.Add (code);
 					} else if (token.Type != ImapTokenType.Eoln) {
 						// throw away any remaining text up until the end of the line
@@ -1319,9 +1349,18 @@ namespace MailKit.Net.Imap {
 		public ImapCommand QueueCommand (CancellationToken cancellationToken, ImapFolder folder, string format, params object[] args)
 		{
 			var ic = new ImapCommand (this, cancellationToken, folder, format, args);
+			QueueCommand (ic);
+			return ic;
+		}
+
+		/// <summary>
+		/// Queues the command.
+		/// </summary>
+		/// <param name="ic">The command.</param>
+		public void QueueCommand (ImapCommand ic)
+		{
 			ic.Id = nextId++;
 			queue.Add (ic);
-			return ic;
 		}
 
 		/// <summary>

@@ -1,5 +1,5 @@
 ﻿//
-// FlagsChangedEventArgs.cs
+// MessagesVanishedEventArgs.cs
 //
 // Author: Jeffrey Stedfast <jeff@xamarin.com>
 //
@@ -24,38 +24,34 @@
 // THE SOFTWARE.
 //
 
+using System;
+
 namespace MailKit {
 	/// <summary>
-	/// Event args for the <see cref="IFolder.FlagsChanged"/> event.
+	/// Event args used when a message vanishes from a folder.
 	/// </summary>
-	public class FlagsChangedEventArgs : MessageEventArgs
+	public class MessagesVanishedEventArgs : EventArgs
 	{
-		internal FlagsChangedEventArgs (int index) : base (index)
+		internal MessagesVanishedEventArgs (UniqueId[] uids, bool earlier)
 		{
+			Earlier = earlier;
+			UniqueIds = uids;
 		}
 
 		/// <summary>
-		/// Gets the unique ID of the message that changed, if available.
+		/// Gets the unique identifiers of the messages that vanished.
 		/// </summary>
-		/// <value>The unique ID of the message.</value>
-		public UniqueId? Uid {
-			get; internal set;
+		/// <value>The unique identifiers.</value>
+		public UniqueId[] UniqueIds {
+			get; private set;
 		}
 
 		/// <summary>
-		/// Gets the updated message flags.
+		/// Gets whether the messages vanished inthe past as opposed to just now.
 		/// </summary>
-		/// <value>The updated message flags.</value>
-		public MessageFlags Flags {
-			get; internal set;
-		}
-
-		/// <summary>
-		/// Gets the updated mod-sequence value of the message, if available.
-		/// </summary>
-		/// <value>The mod-sequence value.</value>
-		public ulong? ModSeq {
-			get; internal set;
+		/// <value><c>true</c> if the messages vanished earlier; otherwise, <c>false</c>.</value>
+		public bool Earlier {
+			get; private set;
 		}
 	}
 }

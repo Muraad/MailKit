@@ -1,9 +1,9 @@
 <Type Name="NullProtocolLogger" FullName="MailKit.NullProtocolLogger">
-  <TypeSignature Language="C#" Value="public class NullProtocolLogger : IDisposable, MailKit.IProtocolLogger" />
-  <TypeSignature Language="ILAsm" Value=".class public auto ansi beforefieldinit NullProtocolLogger extends System.Object implements class MailKit.IProtocolLogger, class System.IDisposable" />
+  <TypeSignature Language="C#" Value="public sealed class NullProtocolLogger : IDisposable, MailKit.IProtocolLogger" />
+  <TypeSignature Language="ILAsm" Value=".class public auto ansi sealed beforefieldinit NullProtocolLogger extends System.Object implements class MailKit.IProtocolLogger, class System.IDisposable" />
   <AssemblyInfo>
     <AssemblyName>MailKit</AssemblyName>
-    <AssemblyVersion>0.1.0.0</AssemblyVersion>
+    <AssemblyVersion>0.4.0.0</AssemblyVersion>
   </AssemblyInfo>
   <Base>
     <BaseTypeName>System.Object</BaseTypeName>
@@ -20,7 +20,12 @@
     <summary>
             A protocol logger that does not log to anywhere.
             </summary>
-    <remarks>To be added.</remarks>
+    <remarks>
+            By default, the <see cref="T:MailKit.Net.Smtp.SmtpClient" />,
+            <see cref="T:MailKit.Net.Pop3.Pop3Client" />, and
+            <see cref="T:MailKit.Net.Imap.ImapClient" /> all use a
+            <see cref="T:MailKit.NullProtocolLogger" />.
+            </remarks>
   </Docs>
   <Members>
     <Member MemberName=".ctor">
@@ -28,7 +33,7 @@
       <MemberSignature Language="ILAsm" Value=".method public hidebysig specialname rtspecialname instance void .ctor() cil managed" />
       <MemberType>Constructor</MemberType>
       <AssemblyInfo>
-        <AssemblyVersion>0.1.0.0</AssemblyVersion>
+        <AssemblyVersion>0.4.0.0</AssemblyVersion>
       </AssemblyInfo>
       <Parameters />
       <Docs>
@@ -41,7 +46,7 @@
       <MemberSignature Language="ILAsm" Value=".method public hidebysig newslot virtual instance void Dispose() cil managed" />
       <MemberType>Method</MemberType>
       <AssemblyInfo>
-        <AssemblyVersion>0.1.0.0</AssemblyVersion>
+        <AssemblyVersion>0.4.0.0</AssemblyVersion>
       </AssemblyInfo>
       <ReturnValue>
         <ReturnType>System.Void</ReturnType>
@@ -62,7 +67,7 @@
       <MemberSignature Language="ILAsm" Value=".method public hidebysig newslot virtual instance void LogClient(unsigned int8[] buffer, int32 offset, int32 count) cil managed" />
       <MemberType>Method</MemberType>
       <AssemblyInfo>
-        <AssemblyVersion>0.1.0.0</AssemblyVersion>
+        <AssemblyVersion>0.4.0.0</AssemblyVersion>
       </AssemblyInfo>
       <ReturnValue>
         <ReturnType>System.Void</ReturnType>
@@ -79,7 +84,9 @@
         <summary>
             Logs a sequence of bytes sent by the client.
             </summary>
-        <remarks>To be added.</remarks>
+        <remarks>
+            This method does nothing.
+            </remarks>
         <exception cref="T:System.ArgumentNullException">
           <paramref name="buffer" /> is <c>null</c>.
             </exception>
@@ -90,7 +97,7 @@
       <MemberSignature Language="ILAsm" Value=".method public hidebysig newslot virtual instance void LogConnect(class System.Uri uri) cil managed" />
       <MemberType>Method</MemberType>
       <AssemblyInfo>
-        <AssemblyVersion>0.1.0.0</AssemblyVersion>
+        <AssemblyVersion>0.4.0.0</AssemblyVersion>
       </AssemblyInfo>
       <ReturnValue>
         <ReturnType>System.Void</ReturnType>
@@ -103,7 +110,9 @@
         <summary>
             Logs a connection to the specified URI.
             </summary>
-        <remarks>To be added.</remarks>
+        <remarks>
+            This method does nothing.
+            </remarks>
       </Docs>
     </Member>
     <Member MemberName="LogServer">
@@ -111,7 +120,7 @@
       <MemberSignature Language="ILAsm" Value=".method public hidebysig newslot virtual instance void LogServer(unsigned int8[] buffer, int32 offset, int32 count) cil managed" />
       <MemberType>Method</MemberType>
       <AssemblyInfo>
-        <AssemblyVersion>0.1.0.0</AssemblyVersion>
+        <AssemblyVersion>0.4.0.0</AssemblyVersion>
       </AssemblyInfo>
       <ReturnValue>
         <ReturnType>System.Void</ReturnType>
@@ -128,7 +137,9 @@
         <summary>
             Logs a sequence of bytes sent by the server.
             </summary>
-        <remarks>To be added.</remarks>
+        <remarks>
+            This method does nothing.
+            </remarks>
         <exception cref="T:System.ArgumentNullException">
           <paramref name="buffer" /> is <c>null</c>.
             </exception>

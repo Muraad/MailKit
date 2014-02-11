@@ -3,7 +3,7 @@
 //
 // Author: Jeffrey Stedfast <jeff@xamarin.com>
 //
-// Copyright (c) 2014 Jeffrey Stedfast
+// Copyright (c) 2013-2014 Xamarin Inc. (www.xamarin.com)
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -226,16 +226,6 @@ namespace MailKit.Net.Imap {
 
 			if (left >= atleast)
 				return left;
-
-			var network = Stream as NetworkStream;
-			if (network != null) {
-				if (!network.DataAvailable)
-					return left;
-			} else if (Stream.CanSeek) {
-				// running the unit tests
-				if (Stream.Position == Stream.Length)
-					return left;
-			}
 
 			int index = inputIndex;
 			int start = inputStart;
@@ -573,6 +563,9 @@ namespace MailKit.Net.Imap {
 		/// <exception cref="System.ObjectDisposedException">
 		/// The stream has been disposed.
 		/// </exception>
+		/// <exception cref="System.OperationCanceledException">
+		/// The operation was canceled via the cancellation token.
+		/// </exception>
 		/// <exception cref="System.IO.IOException">
 		/// An I/O error occurred.
 		/// </exception>
@@ -827,12 +820,14 @@ namespace MailKit.Net.Imap {
 		}
 
 		/// <summary>
-		/// Dispose the specified disposing.
+		/// Releases the unmanaged resources used by the <see cref="ImapStream"/> and
+		/// optionally releases the managed resources.
 		/// </summary>
-		/// <param name="disposing">If set to <c>true</c> disposing.</param>
+		/// <param name="disposing"><c>true</c> to release both managed and unmanaged resources;
+		/// <c>false</c> to release only the unmanaged resources.</param>
 		protected override void Dispose (bool disposing)
 		{
-			if (disposing) {
+			if (disposing && !disposed) {
 				IsConnected = false;
 				Stream.Dispose ();
 				disposed = true;

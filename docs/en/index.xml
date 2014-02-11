@@ -1,24 +1,24 @@
 <Overview>
   <Assemblies>
-    <Assembly Name="MailKit" Version="0.1.0.0">
+    <Assembly Name="MailKit" Version="0.4.0.0">
       <Attributes>
         <Attribute>
-          <AttributeName>System.Reflection.AssemblyCompany("")</AttributeName>
+          <AttributeName>System.Reflection.AssemblyCompany("Xamarin Inc.")</AttributeName>
         </Attribute>
         <Attribute>
           <AttributeName>System.Reflection.AssemblyConfiguration("")</AttributeName>
         </Attribute>
         <Attribute>
-          <AttributeName>System.Reflection.AssemblyCopyright("Copyright © 2013, 2014 Jeffrey Stedfast")</AttributeName>
+          <AttributeName>System.Reflection.AssemblyCopyright("Copyright © 2014 Xamarin Inc. (www.xamarin.com)")</AttributeName>
         </Attribute>
         <Attribute>
           <AttributeName>System.Reflection.AssemblyDescription("A cross-platform mail client library.")</AttributeName>
         </Attribute>
         <Attribute>
-          <AttributeName>System.Reflection.AssemblyFileVersion("0.1.0.0")</AttributeName>
+          <AttributeName>System.Reflection.AssemblyFileVersion("0.4.0.0")</AttributeName>
         </Attribute>
         <Attribute>
-          <AttributeName>System.Reflection.AssemblyInformationalVersion("0.1")</AttributeName>
+          <AttributeName>System.Reflection.AssemblyInformationalVersion("0.4")</AttributeName>
         </Attribute>
         <Attribute>
           <AttributeName>System.Reflection.AssemblyProduct("MailKit")</AttributeName>
@@ -45,7 +45,7 @@
     </Assembly>
   </Assemblies>
   <Remarks>MailKit is a cross-platform mail-client library for .NET.</Remarks>
-  <Copyright>Copyright (c) 2013, 2014 Jeffrey Stedfast</Copyright>
+  <Copyright>Copyright (c) 2013-2014 Xamarin Inc. (www.xamarin.com)</Copyright>
   <Types>
     <Namespace Name="MailKit">
       <Type Name="AlertEventArgs" Kind="Class" />
@@ -56,11 +56,11 @@
       <Type Name="BodyPartMultipart" Kind="Class" />
       <Type Name="BodyPartText" Kind="Class" />
       <Type Name="Envelope" Kind="Class" />
-      <Type Name="FlagsChangedEventArgs" Kind="Class" />
       <Type Name="FolderAccess" Kind="Enumeration" />
       <Type Name="FolderAttributes" Kind="Enumeration" />
       <Type Name="FolderNamespace" Kind="Class" />
       <Type Name="FolderNamespaceCollection" Kind="Class" />
+      <Type Name="FolderNotFoundException" Kind="Class" />
       <Type Name="FolderRenamedEventArgs" Kind="Class" />
       <Type Name="IFolder" Kind="Interface" />
       <Type Name="IMessageService" Kind="Interface" />
@@ -70,8 +70,10 @@
       <Type Name="IProtocolLogger" Kind="Interface" />
       <Type Name="MessageEventArgs" Kind="Class" />
       <Type Name="MessageFlags" Kind="Enumeration" />
+      <Type Name="MessageFlagsChangedEventArgs" Kind="Class" />
       <Type Name="MessageSummary" Kind="Class" />
       <Type Name="MessageSummaryItems" Kind="Enumeration" />
+      <Type Name="MessagesVanishedEventArgs" Kind="Class" />
       <Type Name="MessageThread" Kind="Class" />
       <Type Name="NullProtocolLogger" Kind="Class" />
       <Type Name="ProtocolException" Kind="Class" />
@@ -91,14 +93,15 @@
     <Namespace Name="MailKit.Net.Pop3">
       <Type Name="Pop3Capabilities" Kind="Enumeration" />
       <Type Name="Pop3Client" Kind="Class" />
-      <Type Name="Pop3ErrorType" Kind="Enumeration" />
-      <Type Name="Pop3Exception" Kind="Class" />
+      <Type Name="Pop3CommandException" Kind="Class" />
+      <Type Name="Pop3ProtocolException" Kind="Class" />
     </Namespace>
     <Namespace Name="MailKit.Net.Smtp">
       <Type Name="SmtpCapabilities" Kind="Enumeration" />
       <Type Name="SmtpClient" Kind="Class" />
+      <Type Name="SmtpCommandException" Kind="Class" />
       <Type Name="SmtpErrorCode" Kind="Enumeration" />
-      <Type Name="SmtpException" Kind="Class" />
+      <Type Name="SmtpProtocolException" Kind="Class" />
     </Namespace>
     <Namespace Name="MailKit.Search">
       <Type Name="BinarySearchQuery" Kind="Class" />

@@ -3,7 +3,7 @@
   <TypeSignature Language="ILAsm" Value=".class public sequential ansi sealed beforefieldinit UniqueId extends System.ValueType implements class System.IComparable`1&lt;valuetype MailKit.UniqueId&gt;, class System.IEquatable`1&lt;valuetype MailKit.UniqueId&gt;" />
   <AssemblyInfo>
     <AssemblyName>MailKit</AssemblyName>
-    <AssemblyVersion>0.1.0.0</AssemblyVersion>
+    <AssemblyVersion>0.4.0.0</AssemblyVersion>
   </AssemblyInfo>
   <Base>
     <BaseTypeName>System.ValueType</BaseTypeName>
@@ -30,7 +30,7 @@
       <MemberSignature Language="ILAsm" Value=".method public hidebysig specialname rtspecialname instance void .ctor(unsigned int32 id) cil managed" />
       <MemberType>Constructor</MemberType>
       <AssemblyInfo>
-        <AssemblyVersion>0.1.0.0</AssemblyVersion>
+        <AssemblyVersion>0.4.0.0</AssemblyVersion>
       </AssemblyInfo>
       <Parameters>
         <Parameter Name="id" Type="System.UInt32" />
@@ -48,7 +48,7 @@
       <MemberSignature Language="ILAsm" Value=".method public hidebysig newslot virtual instance int32 CompareTo(valuetype MailKit.UniqueId other) cil managed" />
       <MemberType>Method</MemberType>
       <AssemblyInfo>
-        <AssemblyVersion>0.1.0.0</AssemblyVersion>
+        <AssemblyVersion>0.4.0.0</AssemblyVersion>
       </AssemblyInfo>
       <ReturnValue>
         <ReturnType>System.Int32</ReturnType>
@@ -74,7 +74,7 @@
       <MemberSignature Language="ILAsm" Value=".method public hidebysig newslot virtual instance bool Equals(valuetype MailKit.UniqueId other) cil managed" />
       <MemberType>Method</MemberType>
       <AssemblyInfo>
-        <AssemblyVersion>0.1.0.0</AssemblyVersion>
+        <AssemblyVersion>0.4.0.0</AssemblyVersion>
       </AssemblyInfo>
       <ReturnValue>
         <ReturnType>System.Boolean</ReturnType>
@@ -98,7 +98,7 @@
       <MemberSignature Language="ILAsm" Value=".method public hidebysig virtual instance bool Equals(object obj) cil managed" />
       <MemberType>Method</MemberType>
       <AssemblyInfo>
-        <AssemblyVersion>0.1.0.0</AssemblyVersion>
+        <AssemblyVersion>0.4.0.0</AssemblyVersion>
       </AssemblyInfo>
       <ReturnValue>
         <ReturnType>System.Boolean</ReturnType>
@@ -122,7 +122,7 @@
       <MemberSignature Language="ILAsm" Value=".method public hidebysig virtual instance int32 GetHashCode() cil managed" />
       <MemberType>Method</MemberType>
       <AssemblyInfo>
-        <AssemblyVersion>0.1.0.0</AssemblyVersion>
+        <AssemblyVersion>0.4.0.0</AssemblyVersion>
       </AssemblyInfo>
       <ReturnValue>
         <ReturnType>System.Int32</ReturnType>
@@ -141,7 +141,7 @@
       <MemberSignature Language="ILAsm" Value=".field public initonly unsigned int32 Id" />
       <MemberType>Field</MemberType>
       <AssemblyInfo>
-        <AssemblyVersion>0.1.0.0</AssemblyVersion>
+        <AssemblyVersion>0.4.0.0</AssemblyVersion>
       </AssemblyInfo>
       <ReturnValue>
         <ReturnType>System.UInt32</ReturnType>
@@ -153,12 +153,162 @@
         <remarks>To be added.</remarks>
       </Docs>
     </Member>
+    <Member MemberName="op_Equality">
+      <MemberSignature Language="C#" Value="public static bool op_Equality (MailKit.UniqueId uid1, MailKit.UniqueId uid2);" />
+      <MemberSignature Language="ILAsm" Value=".method public static hidebysig specialname bool op_Equality(valuetype MailKit.UniqueId uid1, valuetype MailKit.UniqueId uid2) cil managed" />
+      <MemberType>Method</MemberType>
+      <AssemblyInfo>
+        <AssemblyVersion>0.4.0.0</AssemblyVersion>
+      </AssemblyInfo>
+      <ReturnValue>
+        <ReturnType>System.Boolean</ReturnType>
+      </ReturnValue>
+      <Parameters>
+        <Parameter Name="uid1" Type="MailKit.UniqueId" />
+        <Parameter Name="uid2" Type="MailKit.UniqueId" />
+      </Parameters>
+      <Docs>
+        <param name="uid1">The first unique id to compare.</param>
+        <param name="uid2">The second unique id to compare.</param>
+        <summary>
+            Determines whether two unique identifiers are equal.
+            </summary>
+        <returns>
+          <c>true</c> if <paramref name="uid1" /> and <paramref name="uid2" /> are equal; otherwise, <c>false</c>.</returns>
+        <remarks>To be added.</remarks>
+      </Docs>
+    </Member>
+    <Member MemberName="op_GreaterThan">
+      <MemberSignature Language="C#" Value="public static bool op_GreaterThan (MailKit.UniqueId uid1, MailKit.UniqueId uid2);" />
+      <MemberSignature Language="ILAsm" Value=".method public static hidebysig specialname bool op_GreaterThan(valuetype MailKit.UniqueId uid1, valuetype MailKit.UniqueId uid2) cil managed" />
+      <MemberType>Method</MemberType>
+      <AssemblyInfo>
+        <AssemblyVersion>0.4.0.0</AssemblyVersion>
+      </AssemblyInfo>
+      <ReturnValue>
+        <ReturnType>System.Boolean</ReturnType>
+      </ReturnValue>
+      <Parameters>
+        <Parameter Name="uid1" Type="MailKit.UniqueId" />
+        <Parameter Name="uid2" Type="MailKit.UniqueId" />
+      </Parameters>
+      <Docs>
+        <param name="uid1">The first unique id to compare.</param>
+        <param name="uid2">The second unique id to compare.</param>
+        <summary>
+            Determines whether one unique identifier is greater than another unique identifier.
+            </summary>
+        <returns>
+          <c>true</c> if <paramref name="uid1" /> is greater than <paramref name="uid2" />; otherwise, <c>false</c>.</returns>
+        <remarks>To be added.</remarks>
+      </Docs>
+    </Member>
+    <Member MemberName="op_GreaterThanOrEqual">
+      <MemberSignature Language="C#" Value="public static bool op_GreaterThanOrEqual (MailKit.UniqueId uid1, MailKit.UniqueId uid2);" />
+      <MemberSignature Language="ILAsm" Value=".method public static hidebysig specialname bool op_GreaterThanOrEqual(valuetype MailKit.UniqueId uid1, valuetype MailKit.UniqueId uid2) cil managed" />
+      <MemberType>Method</MemberType>
+      <AssemblyInfo>
+        <AssemblyVersion>0.4.0.0</AssemblyVersion>
+      </AssemblyInfo>
+      <ReturnValue>
+        <ReturnType>System.Boolean</ReturnType>
+      </ReturnValue>
+      <Parameters>
+        <Parameter Name="uid1" Type="MailKit.UniqueId" />
+        <Parameter Name="uid2" Type="MailKit.UniqueId" />
+      </Parameters>
+      <Docs>
+        <param name="uid1">The first unique id to compare.</param>
+        <param name="uid2">The second unique id to compare.</param>
+        <summary>
+            Determines whether one unique identifier is greater than or equal to another unique identifier.
+            </summary>
+        <returns>
+          <c>true</c> if <paramref name="uid1" /> is greater than or equal to <paramref name="uid2" />; otherwise, <c>false</c>.</returns>
+        <remarks>To be added.</remarks>
+      </Docs>
+    </Member>
+    <Member MemberName="op_Inequality">
+      <MemberSignature Language="C#" Value="public static bool op_Inequality (MailKit.UniqueId uid1, MailKit.UniqueId uid2);" />
+      <MemberSignature Language="ILAsm" Value=".method public static hidebysig specialname bool op_Inequality(valuetype MailKit.UniqueId uid1, valuetype MailKit.UniqueId uid2) cil managed" />
+      <MemberType>Method</MemberType>
+      <AssemblyInfo>
+        <AssemblyVersion>0.4.0.0</AssemblyVersion>
+      </AssemblyInfo>
+      <ReturnValue>
+        <ReturnType>System.Boolean</ReturnType>
+      </ReturnValue>
+      <Parameters>
+        <Parameter Name="uid1" Type="MailKit.UniqueId" />
+        <Parameter Name="uid2" Type="MailKit.UniqueId" />
+      </Parameters>
+      <Docs>
+        <param name="uid1">The first unique id to compare.</param>
+        <param name="uid2">The second unique id to compare.</param>
+        <summary>
+            Determines whether two unique identifiers are not equal.
+            </summary>
+        <returns>
+          <c>true</c> if <paramref name="uid1" /> and <paramref name="uid2" /> are not equal; otherwise, <c>false</c>.</returns>
+        <remarks>To be added.</remarks>
+      </Docs>
+    </Member>
+    <Member MemberName="op_LessThan">
+      <MemberSignature Language="C#" Value="public static bool op_LessThan (MailKit.UniqueId uid1, MailKit.UniqueId uid2);" />
+      <MemberSignature Language="ILAsm" Value=".method public static hidebysig specialname bool op_LessThan(valuetype MailKit.UniqueId uid1, valuetype MailKit.UniqueId uid2) cil managed" />
+      <MemberType>Method</MemberType>
+      <AssemblyInfo>
+        <AssemblyVersion>0.4.0.0</AssemblyVersion>
+      </AssemblyInfo>
+      <ReturnValue>
+        <ReturnType>System.Boolean</ReturnType>
+      </ReturnValue>
+      <Parameters>
+        <Parameter Name="uid1" Type="MailKit.UniqueId" />
+        <Parameter Name="uid2" Type="MailKit.UniqueId" />
+      </Parameters>
+      <Docs>
+        <param name="uid1">The first unique id to compare.</param>
+        <param name="uid2">The second unique id to compare.</param>
+        <summary>
+            Determines whether one unique identifier is less than another unique identifier.
+            </summary>
+        <returns>
+          <c>true</c> if <paramref name="uid1" /> is less than <paramref name="uid2" />; otherwise, <c>false</c>.</returns>
+        <remarks>To be added.</remarks>
+      </Docs>
+    </Member>
+    <Member MemberName="op_LessThanOrEqual">
+      <MemberSignature Language="C#" Value="public static bool op_LessThanOrEqual (MailKit.UniqueId uid1, MailKit.UniqueId uid2);" />
+      <MemberSignature Language="ILAsm" Value=".method public static hidebysig specialname bool op_LessThanOrEqual(valuetype MailKit.UniqueId uid1, valuetype MailKit.UniqueId uid2) cil managed" />
+      <MemberType>Method</MemberType>
+      <AssemblyInfo>
+        <AssemblyVersion>0.4.0.0</AssemblyVersion>
+      </AssemblyInfo>
+      <ReturnValue>
+        <ReturnType>System.Boolean</ReturnType>
+      </ReturnValue>
+      <Parameters>
+        <Parameter Name="uid1" Type="MailKit.UniqueId" />
+        <Parameter Name="uid2" Type="MailKit.UniqueId" />
+      </Parameters>
+      <Docs>
+        <param name="uid1">The first unique id to compare.</param>
+        <param name="uid2">The second unique id to compare.</param>
+        <summary>
+            Determines whether one unique identifier is less than or equal to another unique identifier.
+            </summary>
+        <returns>
+          <c>true</c> if <paramref name="uid1" /> is less than or equal to <paramref name="uid2" />; otherwise, <c>false</c>.</returns>
+        <remarks>To be added.</remarks>
+      </Docs>
+    </Member>
     <Member MemberName="ToString">
       <MemberSignature Language="C#" Value="public override string ToString ();" />
       <MemberSignature Language="ILAsm" Value=".method public hidebysig virtual instance string ToString() cil managed" />
       <MemberType>Method</MemberType>
       <AssemblyInfo>
-        <AssemblyVersion>0.1.0.0</AssemblyVersion>
+        <AssemblyVersion>0.4.0.0</AssemblyVersion>
       </AssemblyInfo>
       <ReturnValue>
         <ReturnType>System.String</ReturnType>

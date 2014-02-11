@@ -3,7 +3,7 @@
 //
 // Author: Jeffrey Stedfast <jeff@xamarin.com>
 //
-// Copyright (c) 2013 Jeffrey Stedfast
+// Copyright (c) 2013-2014 Xamarin Inc. (www.xamarin.com)
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -287,7 +287,7 @@ namespace UnitTests.Net.Smtp {
 				try {
 					client.Send (CreateSimpleMessage (), CancellationToken.None);
 					Assert.Fail ("Expected an SmtpException");
-				} catch (SmtpException sex) {
+				} catch (SmtpCommandException sex) {
 					Assert.AreEqual (sex.ErrorCode, SmtpErrorCode.SenderNotAccepted, "Unexpected SmtpErrorCode");
 				} catch (Exception ex) {
 					Assert.Fail ("Did not expect this exception in Send: {0}", ex);
@@ -350,7 +350,7 @@ namespace UnitTests.Net.Smtp {
 				try {
 					client.Send (CreateSimpleMessage (), CancellationToken.None);
 					Assert.Fail ("Expected an SmtpException");
-				} catch (SmtpException sex) {
+				} catch (SmtpCommandException sex) {
 					Assert.AreEqual (sex.ErrorCode, SmtpErrorCode.RecipientNotAccepted, "Unexpected SmtpErrorCode");
 				} catch (Exception ex) {
 					Assert.Fail ("Did not expect this exception in Send: {0}", ex);

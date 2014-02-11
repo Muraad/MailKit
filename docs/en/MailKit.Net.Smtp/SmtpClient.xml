@@ -3,7 +3,7 @@
   <TypeSignature Language="ILAsm" Value=".class public auto ansi beforefieldinit SmtpClient extends System.Object implements class MailKit.IMessageService, class MailKit.IMessageTransport, class System.IDisposable" />
   <AssemblyInfo>
     <AssemblyName>MailKit</AssemblyName>
-    <AssemblyVersion>0.1.0.0</AssemblyVersion>
+    <AssemblyVersion>0.4.0.0</AssemblyVersion>
   </AssemblyInfo>
   <Base>
     <BaseTypeName>System.Object</BaseTypeName>
@@ -34,7 +34,7 @@
       <MemberSignature Language="ILAsm" Value=".method public hidebysig specialname rtspecialname instance void .ctor() cil managed" />
       <MemberType>Constructor</MemberType>
       <AssemblyInfo>
-        <AssemblyVersion>0.1.0.0</AssemblyVersion>
+        <AssemblyVersion>0.4.0.0</AssemblyVersion>
       </AssemblyInfo>
       <Parameters />
       <Docs>
@@ -49,12 +49,38 @@
             </remarks>
       </Docs>
     </Member>
+    <Member MemberName=".ctor">
+      <MemberSignature Language="C#" Value="public SmtpClient (MailKit.IProtocolLogger protocolLogger);" />
+      <MemberSignature Language="ILAsm" Value=".method public hidebysig specialname rtspecialname instance void .ctor(class MailKit.IProtocolLogger protocolLogger) cil managed" />
+      <MemberType>Constructor</MemberType>
+      <AssemblyInfo>
+        <AssemblyVersion>0.4.0.0</AssemblyVersion>
+      </AssemblyInfo>
+      <Parameters>
+        <Parameter Name="protocolLogger" Type="MailKit.IProtocolLogger" />
+      </Parameters>
+      <Docs>
+        <param name="protocolLogger">The protocol logger.</param>
+        <summary>
+            Initializes a new instance of the <see cref="T:MailKit.Net.Smtp.SmtpClient" /> class.
+            </summary>
+        <remarks>
+            Before you can send messages with the <see cref="T:MailKit.Net.Smtp.SmtpClient" />, you
+            must first call the <see cref="M:MailKit.Net.Smtp.SmtpClient.Connect(System.Uri,System.Threading.CancellationToken)" /> method. Depending on the
+            server, you may also need to authenticate using the
+            <see cref="M:MailKit.Net.Smtp.SmtpClient.Authenticate(System.Net.ICredentials,System.Threading.CancellationToken)" /> method.
+            </remarks>
+        <exception cref="T:System.ArgumentNullException">
+          <paramref name="protocolLogger" /> is <c>null</c>.
+            </exception>
+      </Docs>
+    </Member>
     <Member MemberName="Authenticate">
       <MemberSignature Language="C#" Value="public void Authenticate (System.Net.ICredentials credentials, System.Threading.CancellationToken cancellationToken);" />
       <MemberSignature Language="ILAsm" Value=".method public hidebysig newslot virtual instance void Authenticate(class System.Net.ICredentials credentials, valuetype System.Threading.CancellationToken cancellationToken) cil managed" />
       <MemberType>Method</MemberType>
       <AssemblyInfo>
-        <AssemblyVersion>0.1.0.0</AssemblyVersion>
+        <AssemblyVersion>0.4.0.0</AssemblyVersion>
       </AssemblyInfo>
       <ReturnValue>
         <ReturnType>System.Void</ReturnType>
@@ -102,6 +128,12 @@
         <exception cref="T:MailKit.Net.Smtp.SmtpException">
             An SMTP protocol error occurred.
             </exception>
+        <exception cref="T:MailKit.Net.Smtp.SmtpCommandException">
+            The SMTP command failed.
+            </exception>
+        <exception cref="T:MailKit.Net.Smtp.SmtpProtocolException">
+            An SMTP protocol error occurred.
+            </exception>
       </Docs>
     </Member>
     <Member MemberName="AuthenticationMechanisms">
@@ -109,7 +141,7 @@
       <MemberSignature Language="ILAsm" Value=".property instance class System.Collections.Generic.HashSet`1&lt;string&gt; AuthenticationMechanisms" />
       <MemberType>Property</MemberType>
       <AssemblyInfo>
-        <AssemblyVersion>0.1.0.0</AssemblyVersion>
+        <AssemblyVersion>0.4.0.0</AssemblyVersion>
       </AssemblyInfo>
       <ReturnValue>
         <ReturnType>System.Collections.Generic.HashSet&lt;System.String&gt;</ReturnType>
@@ -129,7 +161,7 @@
       <MemberSignature Language="ILAsm" Value=".property instance valuetype MailKit.Net.Smtp.SmtpCapabilities Capabilities" />
       <MemberType>Property</MemberType>
       <AssemblyInfo>
-        <AssemblyVersion>0.1.0.0</AssemblyVersion>
+        <AssemblyVersion>0.4.0.0</AssemblyVersion>
       </AssemblyInfo>
       <ReturnValue>
         <ReturnType>MailKit.Net.Smtp.SmtpCapabilities</ReturnType>
@@ -151,7 +183,7 @@
       <MemberSignature Language="ILAsm" Value=".property instance class System.Security.Cryptography.X509Certificates.X509CertificateCollection ClientCertificates" />
       <MemberType>Property</MemberType>
       <AssemblyInfo>
-        <AssemblyVersion>0.1.0.0</AssemblyVersion>
+        <AssemblyVersion>0.4.0.0</AssemblyVersion>
       </AssemblyInfo>
       <ReturnValue>
         <ReturnType>System.Security.Cryptography.X509Certificates.X509CertificateCollection</ReturnType>
@@ -173,7 +205,7 @@
       <MemberSignature Language="ILAsm" Value=".method public hidebysig newslot virtual instance void Connect(class System.Uri uri, valuetype System.Threading.CancellationToken cancellationToken) cil managed" />
       <MemberType>Method</MemberType>
       <AssemblyInfo>
-        <AssemblyVersion>0.1.0.0</AssemblyVersion>
+        <AssemblyVersion>0.4.0.0</AssemblyVersion>
       </AssemblyInfo>
       <ReturnValue>
         <ReturnType>System.Void</ReturnType>
@@ -220,6 +252,12 @@
         <exception cref="T:System.InvalidOperationException">
             The <see cref="T:MailKit.Net.Smtp.SmtpClient" /> is already connected.
             </exception>
+        <exception cref="T:MailKit.Net.Smtp.SmtpCommandException">
+            An SMTP command failed.
+            </exception>
+        <exception cref="T:MailKit.Net.Smtp.SmtpProtocolException">
+            An SMTP protocol error occurred.
+            </exception>
       </Docs>
     </Member>
     <Member MemberName="Disconnect">
@@ -227,7 +265,7 @@
       <MemberSignature Language="ILAsm" Value=".method public hidebysig newslot virtual instance void Disconnect(bool quit, valuetype System.Threading.CancellationToken cancellationToken) cil managed" />
       <MemberType>Method</MemberType>
       <AssemblyInfo>
-        <AssemblyVersion>0.1.0.0</AssemblyVersion>
+        <AssemblyVersion>0.4.0.0</AssemblyVersion>
       </AssemblyInfo>
       <ReturnValue>
         <ReturnType>System.Void</ReturnType>
@@ -258,7 +296,7 @@
       <MemberSignature Language="ILAsm" Value=".method public hidebysig newslot virtual instance void Dispose() cil managed" />
       <MemberType>Method</MemberType>
       <AssemblyInfo>
-        <AssemblyVersion>0.1.0.0</AssemblyVersion>
+        <AssemblyVersion>0.4.0.0</AssemblyVersion>
       </AssemblyInfo>
       <ReturnValue>
         <ReturnType>System.Void</ReturnType>
@@ -274,12 +312,55 @@
             the garbage collector can reclaim the memory that the <see cref="T:MailKit.Net.Smtp.SmtpClient" /> was occupying.</remarks>
       </Docs>
     </Member>
+    <Member MemberName="Dispose">
+      <MemberSignature Language="C#" Value="protected virtual void Dispose (bool disposing);" />
+      <MemberSignature Language="ILAsm" Value=".method familyhidebysig newslot virtual instance void Dispose(bool disposing) cil managed" />
+      <MemberType>Method</MemberType>
+      <AssemblyInfo>
+        <AssemblyVersion>0.4.0.0</AssemblyVersion>
+      </AssemblyInfo>
+      <ReturnValue>
+        <ReturnType>System.Void</ReturnType>
+      </ReturnValue>
+      <Parameters>
+        <Parameter Name="disposing" Type="System.Boolean" />
+      </Parameters>
+      <Docs>
+        <param name="disposing">
+          <c>true</c> to release both managed and unmanaged resources;
+            <c>false</c> to release only the unmanaged resources.</param>
+        <summary>
+            Releases the unmanaged resources used by the <see cref="T:MailKit.Net.Smtp.SmtpClient" /> and
+            optionally releases the managed resources.
+            </summary>
+        <remarks>To be added.</remarks>
+      </Docs>
+    </Member>
+    <Member MemberName="Finalize">
+      <MemberSignature Language="C#" Value="~SmtpClient ();" />
+      <MemberSignature Language="ILAsm" Value=".method familyhidebysig virtual instance void Finalize() cil managed" />
+      <MemberType>Method</MemberType>
+      <AssemblyInfo>
+        <AssemblyVersion>0.4.0.0</AssemblyVersion>
+      </AssemblyInfo>
+      <ReturnValue>
+        <ReturnType>System.Void</ReturnType>
+      </ReturnValue>
+      <Parameters />
+      <Docs>
+        <summary>
+            Releases unmanaged resources and performs other cleanup operations before the
+            <see cref="T:MailKit.Net.Smtp.SmtpClient" /> is reclaimed by garbage collection.
+            </summary>
+        <remarks>To be added.</remarks>
+      </Docs>
+    </Member>
     <Member MemberName="IsConnected">
       <MemberSignature Language="C#" Value="public bool IsConnected { get; }" />
       <MemberSignature Language="ILAsm" Value=".property instance bool IsConnected" />
       <MemberType>Property</MemberType>
       <AssemblyInfo>
-        <AssemblyVersion>0.1.0.0</AssemblyVersion>
+        <AssemblyVersion>0.4.0.0</AssemblyVersion>
       </AssemblyInfo>
       <ReturnValue>
         <ReturnType>System.Boolean</ReturnType>
@@ -291,7 +372,7 @@
         <value>
           <c>true</c> if the client is connected; otherwise, <c>false</c>.</value>
         <remarks>
-            When an <see cref="T:MailKit.Net.Smtp.SmtpException" /> is caught, the connection state of the
+            When a <see cref="T:MailKit.Net.Smtp.SmtpProtocolException" /> is caught, the connection state of the
             <see cref="T:MailKit.Net.Smtp.SmtpClient" /> should be checked before continuing.
             </remarks>
       </Docs>
@@ -301,7 +382,7 @@
       <MemberSignature Language="ILAsm" Value=".property instance unsigned int32 MaxSize" />
       <MemberType>Property</MemberType>
       <AssemblyInfo>
-        <AssemblyVersion>0.1.0.0</AssemblyVersion>
+        <AssemblyVersion>0.4.0.0</AssemblyVersion>
       </AssemblyInfo>
       <ReturnValue>
         <ReturnType>System.UInt32</ReturnType>
@@ -326,7 +407,7 @@
       <MemberSignature Language="ILAsm" Value=".method public hidebysig newslot virtual instance void NoOp(valuetype System.Threading.CancellationToken cancellationToken) cil managed" />
       <MemberType>Method</MemberType>
       <AssemblyInfo>
-        <AssemblyVersion>0.1.0.0</AssemblyVersion>
+        <AssemblyVersion>0.4.0.0</AssemblyVersion>
       </AssemblyInfo>
       <ReturnValue>
         <ReturnType>System.Void</ReturnType>
@@ -355,6 +436,12 @@
         <exception cref="T:MailKit.Net.Smtp.SmtpException">
             The SMTP server returned an unexpected status code.
             </exception>
+        <exception cref="T:MailKit.Net.Smtp.SmtpCommandException">
+            The SMTP command failed.
+            </exception>
+        <exception cref="T:MailKit.Net.Smtp.SmtpProtocolException">
+            An SMTP protocol error occurred.
+            </exception>
       </Docs>
     </Member>
     <Member MemberName="Send">
@@ -362,7 +449,7 @@
       <MemberSignature Language="ILAsm" Value=".method public hidebysig newslot virtual instance void Send(class MimeKit.MimeMessage message, valuetype System.Threading.CancellationToken cancellationToken) cil managed" />
       <MemberType>Method</MemberType>
       <AssemblyInfo>
-        <AssemblyVersion>0.1.0.0</AssemblyVersion>
+        <AssemblyVersion>0.4.0.0</AssemblyVersion>
       </AssemblyInfo>
       <ReturnValue>
         <ReturnType>System.Void</ReturnType>
@@ -403,6 +490,12 @@
             An I/O error occurred.
             </exception>
         <exception cref="T:MailKit.Net.Smtp.SmtpException">
+            An SMTP protocol exception occurred.
+            </exception>
+        <exception cref="T:MailKit.Net.Smtp.SmtpCommandException">
+            The SMTP command failed.
+            </exception>
+        <exception cref="T:MailKit.Net.Smtp.SmtpProtocolException">
             An SMTP protocol exception occurred.
             </exception>
       </Docs>

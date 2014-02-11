@@ -3,7 +3,7 @@
 //
 // Author: Jeffrey Stedfast <jeff@xamarin.com>
 //
-// Copyright (c) 2014 Jeffrey Stedfast
+// Copyright (c) 2013-2014 Xamarin Inc. (www.xamarin.com)
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -60,6 +60,15 @@ namespace MailKit {
 				throw new ArgumentNullException ("stream");
 
 			this.stream = stream;
+		}
+
+		/// <summary>
+		/// Releases unmanaged resources and performs other cleanup operations before the <see cref="MailKit.ProtocolLogger"/>
+		/// is reclaimed by garbage collection.
+		/// </summary>
+		~ProtocolLogger ()
+		{
+			Dispose (false);
 		}
 
 		#region IProtocolLogger implementation
@@ -194,15 +203,28 @@ namespace MailKit {
 		#region IDisposable implementation
 
 		/// <summary>
+		/// Releases the unmanaged resources used by the <see cref="ProtocolLogger"/> and
+		/// optionally releases the managed resources.
+		/// </summary>
+		/// <param name="disposing"><c>true</c> to release both managed and unmanaged resources;
+		/// <c>false</c> to release only the unmanaged resources.</param>
+		protected virtual void Dispose (bool disposing)
+		{
+			if (disposing)
+				stream.Dispose ();
+		}
+
+		/// <summary>
 		/// Releases all resource used by the <see cref="MailKit.ProtocolLogger"/> object.
 		/// </summary>
-		/// <remarks>Call <see cref="Dispose"/> when you are finished using the <see cref="MailKit.ProtocolLogger"/>. The
-		/// <see cref="Dispose"/> method leaves the <see cref="MailKit.ProtocolLogger"/> in an unusable state. After calling
-		/// <see cref="Dispose"/>, you must release all references to the <see cref="MailKit.ProtocolLogger"/> so the garbage
+		/// <remarks>Call <see cref="Dispose()"/> when you are finished using the <see cref="MailKit.ProtocolLogger"/>. The
+		/// <see cref="Dispose()"/> method leaves the <see cref="MailKit.ProtocolLogger"/> in an unusable state. After calling
+		/// <see cref="Dispose()"/>, you must release all references to the <see cref="MailKit.ProtocolLogger"/> so the garbage
 		/// collector can reclaim the memory that the <see cref="MailKit.ProtocolLogger"/> was occupying.</remarks>
 		public void Dispose ()
 		{
-			stream.Dispose ();
+			Dispose (true);
+			GC.SuppressFinalize (this);
 		}
 
 		#endregion

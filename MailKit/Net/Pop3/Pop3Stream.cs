@@ -3,7 +3,7 @@
 //
 // Author: Jeffrey Stedfast <jeff@xamarin.com>
 //
-// Copyright (c) 2013 Jeffrey Stedfast
+// Copyright (c) 2013-2014 Xamarin Inc. (www.xamarin.com)
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -115,7 +115,7 @@ namespace MailKit.Net.Pop3 {
 		/// </remarks>
 		/// <value><c>true</c> if the end of the data has been reached; otherwise, <c>false</c>.</value>
 		public bool IsEndOfData {
-			get; set;
+			get; private set;
 		}
 
 		/// <summary>
@@ -226,17 +226,6 @@ namespace MailKit.Net.Pop3 {
 		unsafe int ReadAhead (byte* inbuf)
 		{
 			int left = inputEnd - inputIndex;
-
-			var network = Stream as NetworkStream;
-			if (network != null) {
-				if (!network.DataAvailable)
-					return left;
-			} else if (Stream.CanSeek) {
-				// running the unit tests
-				if (Stream.Position == Stream.Length)
-					return left;
-			}
-
 			int index = inputIndex;
 			int start = inputStart;
 			int end = inputEnd;
@@ -337,12 +326,18 @@ namespace MailKit.Net.Pop3 {
 				fixed (byte* inbuf = input, outbuf = buffer) {
 					byte* outptr = outbuf + offset;
 					byte* outend = outptr + count;
+					bool allowReadAhead = true;
 					byte* inptr, inend;
 
 					do {
 						// we need at least 3 bytes: ".\r\n"
-						if ((inputEnd - inputIndex) < 3)
+						if ((inputEnd - inputIndex) < 3) {
+							if (!allowReadAhead)
+								break;
+
+							allowReadAhead = false;
 							ReadAhead (inbuf);
+						}
 
 						inptr = inbuf + inputIndex;
 						inend = inbuf + inputEnd;
@@ -545,12 +540,14 @@ namespace MailKit.Net.Pop3 {
 		}
 
 		/// <summary>
-		/// Dispose the specified disposing.
+		/// Releases the unmanaged resources used by the <see cref="Pop3Stream"/> and
+		/// optionally releases the managed resources.
 		/// </summary>
-		/// <param name="disposing">If set to <c>true</c> disposing.</param>
+		/// <param name="disposing"><c>true</c> to release both managed and unmanaged resources;
+		/// <c>false</c> to release only the unmanaged resources.</param>
 		protected override void Dispose (bool disposing)
 		{
-			if (disposing) {
+			if (disposing && !disposed) {
 				IsConnected = false;
 				Stream.Dispose ();
 				disposed = true;

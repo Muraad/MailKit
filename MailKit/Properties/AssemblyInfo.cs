@@ -3,7 +3,7 @@
 //
 // Author: Jeffrey Stedfast <jeff@xamarin.com>
 //
-// Copyright (c) 2014 Jeffrey Stedfast
+// Copyright (c) 2013-2014 Xamarin Inc. (www.xamarin.com)
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -34,9 +34,9 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyTitle ("MailKit")]
 [assembly: AssemblyDescription ("A cross-platform mail client library.")]
 [assembly: AssemblyConfiguration ("")]
-[assembly: AssemblyCompany ("")]
+[assembly: AssemblyCompany ("Xamarin Inc.")]
 [assembly: AssemblyProduct ("MailKit")]
-[assembly: AssemblyCopyright ("Copyright © 2014 Jeffrey Stedfast")]
+[assembly: AssemblyCopyright ("Copyright © 2014 Xamarin Inc. (www.xamarin.com)")]
 [assembly: AssemblyTrademark ("")]
 [assembly: AssemblyCulture ("")]
 
@@ -76,6 +76,6 @@ using System.Runtime.InteropServices;
 //
 // If there have only been bug fixes, bump the Micro Version and/or the Build Number
 //    in the AssemblyFileVersion attribute.
-[assembly: AssemblyInformationalVersion ("0.2")]
-[assembly: AssemblyFileVersion ("0.2.0.0")]
-[assembly: AssemblyVersion ("0.2.0.0")]
+[assembly: AssemblyInformationalVersion ("0.4")]
+[assembly: AssemblyFileVersion ("0.4.0.0")]
+[assembly: AssemblyVersion ("0.4.0.0")]

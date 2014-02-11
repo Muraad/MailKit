@@ -3,7 +3,7 @@
 //
 // Author: Jeffrey Stedfast <jeff@xamarin.com>
 //
-// Copyright (c) 2014 Jeffrey Stedfast
+// Copyright (c) 2013-2014 Xamarin Inc. (www.xamarin.com)
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -31,6 +31,7 @@ using System.Text;
 using System.Threading;
 using System.Net.Sockets;
 using System.Net.Security;
+using System.IO.Compression;
 using System.Collections.Generic;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
@@ -91,6 +92,15 @@ namespace MailKit.Net.Imap {
 		}
 
 		/// <summary>
+		/// Releases unmanaged resources and performs other cleanup operations before the
+		/// <see cref="MailKit.Net.Imap.ImapClient"/> is reclaimed by garbage collection.
+		/// </summary>
+		~ImapClient ()
+		{
+			Dispose (false);
+		}
+
+		/// <summary>
 		/// Gets the capabilities supported by the IMAP server.
 		/// </summary>
 		/// <remarks>
@@ -109,18 +119,70 @@ namespace MailKit.Net.Imap {
 				throw new ObjectDisposedException ("ImapClient");
 		}
 
-		void CheckConnected ()
-		{
-			if (!IsConnected)
-				throw new InvalidOperationException ("The ImapClient is not connected.");
-		}
-
 		bool ValidateRemoteCertificate (object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors errors)
 		{
 			if (ServicePointManager.ServerCertificateValidationCallback != null)
 				return ServicePointManager.ServerCertificateValidationCallback (sender, certificate, chain, errors);
 
 			return true;
+		}
+
+		/// <summary>
+		/// Enables the QRESYNC feature.
+		/// </summary>
+		/// <remarks>
+		/// <para>The QRESYNC extension improves resynchronization performance of folders by
+		/// querying the IMAP server for a list of changes when the folder is opened using the
+		/// <see cref="ImapFolder.Open(FolderAccess,UniqueId,ulong,UniqueId[],System.Threading.CancellationToken)"/>
+		/// method.</para>
+		/// <para>If this feature is enabled, the <see cref="ImapFolder.Expunged"/> event is replaced
+		/// with the <see cref="ImapFolder.Vanished"/> event.</para>
+		/// <para>This method needs to be called immediately after <see cref="Authenticate"/>, before
+		/// the opening any folders.</para>
+		/// </remarks>
+		/// <param name="cancellationToken">Cancellation token.</param>
+		/// <exception cref="System.ObjectDisposedException">
+		/// The <see cref="ImapClient"/> has been disposed.
+		/// </exception>
+		/// <exception cref="System.InvalidOperationException">
+		/// The <see cref="ImapClient"/> is not connected, not authenticated, or a folder has been selected.
+		/// </exception>
+		/// <exception cref="System.NotSupportedException">
+		/// The IMAP server does not support the QRESYNC extension.
+		/// </exception>
+		/// <exception cref="System.OperationCanceledException">
+		/// The operation was canceled via the cancellation token.
+		/// </exception>
+		/// <exception cref="System.IO.IOException">
+		/// An I/O error occurred.
+		/// </exception>
+		/// <exception cref="ImapProtocolException">
+		/// An IMAP protocol error occurred.
+		/// </exception>
+		public void EnableQuickResync (CancellationToken cancellationToken)
+		{
+			CheckDisposed ();
+
+			if (!IsConnected)
+				throw new InvalidOperationException ("The ImapClient must be connected before you can enable QRESYNC.");
+
+			if (engine.State > ImapEngineState.Authenticated)
+				throw new InvalidOperationException ("QRESYNC needs to be enabled immediately after authenticating.");
+
+			if ((engine.Capabilities & ImapCapabilities.QuickResync) == 0)
+				throw new NotSupportedException ();
+
+			if (engine.QResyncEnabled)
+				return;
+
+			var ic = engine.QueueCommand (cancellationToken, null, "ENABLE QRESYNC CONDSTORE\r\n");
+
+			engine.Wait (ic);
+
+			if (ic.Result != ImapCommandResult.Ok)
+				throw new ImapCommandException ("ENABLE", ic.Result);
+
+			engine.QResyncEnabled = true;
 		}
 
 		#region IMessageService implementation
@@ -338,8 +400,11 @@ namespace MailKit.Net.Imap {
 		/// <para>It should be noted that when using a clear-text IMAP connection,
 		/// if the server advertizes support for the STARTTLS extension, the client
 		/// will automatically switch into TLS mode before authenticating.</para>
-		/// If a successful connection is made, the <see cref="AuthenticationMechanisms"/>
-		/// and <see cref="Capabilities"/> properties will be populated.
+		/// <para>If the non-IMAP/S server does not support the STARTTLS extension but
+		/// advertizes the COMPRESS extension, the client will automatically opt into
+		/// using a compressed data connection to optimize bandwidth usage.</para>
+		/// <para>If a successful connection is made, the <see cref="AuthenticationMechanisms"/>
+		/// and <see cref="Capabilities"/> properties will be populated.</para>
 		/// </remarks>
 		/// <param name="uri">The server URI. The <see cref="System.Uri.Scheme"/> should either
 		/// be "imap" to make a clear-text connection or "imaps" to make an SSL connection.</param>
@@ -365,6 +430,9 @@ namespace MailKit.Net.Imap {
 		public void Connect (Uri uri, CancellationToken cancellationToken)
 		{
 			CheckDisposed ();
+
+			if (uri == null)
+				throw new ArgumentNullException ("uri");
 
 			if (IsConnected)
 				throw new InvalidOperationException ("The ImapClient is already connected.");
@@ -407,7 +475,7 @@ namespace MailKit.Net.Imap {
 			if (engine.CapabilitiesVersion == 0)
 				engine.QueryCapabilities (cancellationToken);
 
-			if (!imaps && engine.Capabilities.HasFlag (ImapCapabilities.StartTLS)) {
+			if (!imaps && (engine.Capabilities & ImapCapabilities.StartTLS) != 0) {
 				var ic = engine.QueueCommand (cancellationToken, null, "STARTTLS\r\n");
 
 				engine.Wait (ic);
@@ -419,6 +487,22 @@ namespace MailKit.Net.Imap {
 
 					// Query the CAPABILITIES again if the server did not include an
 					// untagged CAPABILITIES response to the STARTTLS command.
+					if (engine.CapabilitiesVersion == 1)
+						engine.QueryCapabilities (cancellationToken);
+				}
+			} else if (!imaps && (engine.Capabilities & ImapCapabilities.Compress) != 0) {
+				var ic = engine.QueueCommand (cancellationToken, null, "COMPRESS DEFLATE\r\n");
+
+				engine.Wait (ic);
+
+				if (ic.Result == ImapCommandResult.Ok) {
+					var decompress = new DeflateStream (stream, CompressionMode.Decompress);
+					var compress = new DeflateStream (stream, CompressionMode.Compress);
+
+					engine.Stream.Stream = new DuplexStream (decompress, compress);
+
+					// Query the CAPABILITIES again if the server did not include an
+					// untagged CAPABILITIES response to the COMPRESS command.
 					if (engine.CapabilitiesVersion == 1)
 						engine.QueryCapabilities (cancellationToken);
 				}
@@ -569,7 +653,7 @@ namespace MailKit.Net.Imap {
 			case SpecialFolder.Sent:    return engine.Sent;
 			case SpecialFolder.Trash:   return engine.Trash;
 			default:
-				throw new ArgumentOutOfRangeException ();
+				throw new ArgumentOutOfRangeException ("folder");
 			}
 		}
 
@@ -613,19 +697,31 @@ namespace MailKit.Net.Imap {
 		#region IDisposable implementation
 
 		/// <summary>
-		/// Releases all resource used by the <see cref="MailKit.Net.Imap.ImapClient"/> object.
+		/// Releases the unmanaged resources used by the <see cref="ImapClient"/> and
+		/// optionally releases the managed resources.
 		/// </summary>
-		/// <remarks>Call <see cref="Dispose"/> when you are finished using the <see cref="MailKit.Net.Imap.ImapClient"/>. The
-		/// <see cref="Dispose"/> method leaves the <see cref="MailKit.Net.Imap.ImapClient"/> in an unusable state. After
-		/// calling <see cref="Dispose"/>, you must release all references to the <see cref="MailKit.Net.Imap.ImapClient"/> so
-		/// the garbage collector can reclaim the memory that the <see cref="MailKit.Net.Imap.ImapClient"/> was occupying.</remarks>
-		public void Dispose ()
+		/// <param name="disposing"><c>true</c> to release both managed and unmanaged resources;
+		/// <c>false</c> to release only the unmanaged resources.</param>
+		protected virtual void Dispose (bool disposing)
 		{
-			if (!disposed) {
+			if (disposing && !disposed) {
 				engine.Dispose ();
 				logger.Dispose ();
 				disposed = true;
 			}
+		}
+
+		/// <summary>
+		/// Releases all resource used by the <see cref="MailKit.Net.Imap.ImapClient"/> object.
+		/// </summary>
+		/// <remarks>Call <see cref="Dispose()"/> when you are finished using the <see cref="MailKit.Net.Imap.ImapClient"/>. The
+		/// <see cref="Dispose()"/> method leaves the <see cref="MailKit.Net.Imap.ImapClient"/> in an unusable state. After
+		/// calling <see cref="Dispose()"/>, you must release all references to the <see cref="MailKit.Net.Imap.ImapClient"/> so
+		/// the garbage collector can reclaim the memory that the <see cref="MailKit.Net.Imap.ImapClient"/> was occupying.</remarks>
+		public void Dispose ()
+		{
+			Dispose (true);
+			GC.SuppressFinalize (this);
 		}
 
 		#endregion

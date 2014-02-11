@@ -1,9 +1,9 @@
 //
-// Pop3Exception.cs
+// Pop3ProtocolException.cs
 //
 // Author: Jeffrey Stedfast <jeff@xamarin.com>
 //
-// Copyright (c) 2013 Jeffrey Stedfast
+// Copyright (c) 2013-2014 Xamarin Inc. (www.xamarin.com)
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -25,66 +25,51 @@
 //
 
 using System;
+using System.Runtime.Serialization;
 
 namespace MailKit.Net.Pop3 {
-	/// <summary>
-	/// An enumeration of the possible types of POP3 errors.
-	/// </summary>
-	public enum Pop3ErrorType {
-		/// <summary>
-		/// There was a fatal protocol error.
-		/// </summary>
-		ProtocolError,
-
-		/// <summary>
-		/// The POP3 server replied with <c>"-ERR"</c> to a command.
-		/// </summary>
-		CommandError,
-
-		/// <summary>
-		/// An error occurred while parsing the response from the server.
-		/// </summary>
-		ParseError,
-	}
-
 	/// <summary>
 	/// A POP3 protocol exception.
 	/// </summary>
 	/// <remarks>
-	/// The exception that is thrown when there is an error communicating with a POP3 server.
+	/// The exception that is thrown when there is an error communicating with a POP3 server. A
+	/// <see cref="Pop3ProtocolException"/> is typically fatal and requires the <see cref="Pop3Client"/>
+	/// to be reconnected.
 	/// </remarks>
-	public class Pop3Exception : ProtocolException
+	[Serializable]
+	public class Pop3ProtocolException : ProtocolException
 	{
 		/// <summary>
-		/// Initializes a new instance of the <see cref="MailKit.Net.Pop3.Pop3Exception"/> class.
+		/// Initializes a new instance of the <see cref="MailKit.Net.Pop3.Pop3ProtocolException"/> class.
 		/// </summary>
-		/// <param name="type">The error type.</param>
+		/// <param name="info">The serialization info.</param>
+		/// <param name="context">The streaming context.</param>
+		protected Pop3ProtocolException (SerializationInfo info, StreamingContext context) : base (info, context)
+		{
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="MailKit.Net.Pop3.Pop3ProtocolException"/> class.
+		/// </summary>
 		/// <param name="message">The error message.</param>
 		/// <param name="innerException">An inner exception.</param>
-		internal Pop3Exception (Pop3ErrorType type, string message, Exception innerException) : base (message, innerException)
+		public Pop3ProtocolException (string message, Exception innerException) : base (message, innerException)
 		{
-			ErrorType = type;
 		}
 
 		/// <summary>
-		/// Initializes a new instance of the <see cref="MailKit.Net.Pop3.Pop3Exception"/> class.
+		/// Initializes a new instance of the <see cref="MailKit.Net.Pop3.Pop3ProtocolException"/> class.
 		/// </summary>
-		/// <param name="type">The error type.</param>
 		/// <param name="message">The error message.</param>
-		internal Pop3Exception (Pop3ErrorType type, string message) : base (message)
+		public Pop3ProtocolException (string message) : base (message)
 		{
-			ErrorType = type;
 		}
 
 		/// <summary>
-		/// Gets the type of the error.
+		/// Initializes a new instance of the <see cref="MailKit.Net.Pop3.Pop3ProtocolException"/> class.
 		/// </summary>
-		/// <remarks>
-		/// <see cref="Pop3ErrorType.ProtocolError"/> always requires the client to reconnect before coninuing.
-		/// </remarks>
-		/// <value>The type of the error.</value>
-		public Pop3ErrorType ErrorType {
-			get; private set;
+		public Pop3ProtocolException ()
+		{
 		}
 	}
 }

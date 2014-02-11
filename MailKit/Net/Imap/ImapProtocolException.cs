@@ -3,7 +3,7 @@
 //
 // Author: Jeffrey Stedfast <jeff@xamarin.com>
 //
-// Copyright (c) 2014 Jeffrey Stedfast
+// Copyright (c) 2013-2014 Xamarin Inc. (www.xamarin.com)
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -23,23 +23,28 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 //
+
 using System;
+using System.Runtime.Serialization;
 
 namespace MailKit.Net.Imap {
 	/// <summary>
 	/// A IMAP protocol exception.
 	/// </summary>
 	/// <remarks>
-	/// The exception that is thrown when there is an error communicating with a IMAP server.
+	/// The exception that is thrown when there is an error communicating with an IMAP server. A
+	/// <see cref="ImapProtocolException"/> is typically fatal and requires the <see cref="ImapClient"/>
+	/// to be reconnected.
 	/// </remarks>
+	[Serializable]
 	public class ImapProtocolException : ProtocolException
 	{
 		/// <summary>
 		/// Initializes a new instance of the <see cref="MailKit.Net.Imap.ImapProtocolException"/> class.
 		/// </summary>
-		/// <param name="message">The error message.</param>
-		/// <param name="innerException">An inner exception.</param>
-		internal ImapProtocolException (string message, Exception innerException) : base (message, innerException)
+		/// <param name="info">The serialization info.</param>
+		/// <param name="context">The streaming context.</param>
+		protected ImapProtocolException (SerializationInfo info, StreamingContext context) : base (info, context)
 		{
 		}
 
@@ -47,7 +52,23 @@ namespace MailKit.Net.Imap {
 		/// Initializes a new instance of the <see cref="MailKit.Net.Imap.ImapProtocolException"/> class.
 		/// </summary>
 		/// <param name="message">The error message.</param>
-		internal ImapProtocolException (string message) : base (message)
+		/// <param name="innerException">An inner exception.</param>
+		public ImapProtocolException (string message, Exception innerException) : base (message, innerException)
+		{
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="MailKit.Net.Imap.ImapProtocolException"/> class.
+		/// </summary>
+		/// <param name="message">The error message.</param>
+		public ImapProtocolException (string message) : base (message)
+		{
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="MailKit.Net.Imap.ImapProtocolException"/> class.
+		/// </summary>
+		public ImapProtocolException ()
 		{
 		}
 	}

@@ -3,7 +3,7 @@
 //
 // Author: Jeffrey Stedfast <jeff@xamarin.com>
 //
-// Copyright (c) 2014 Jeffrey Stedfast
+// Copyright (c) 2013-2014 Xamarin Inc. (www.xamarin.com)
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -30,13 +30,22 @@ namespace MailKit {
 	/// <summary>
 	/// A protocol logger that does not log to anywhere.
 	/// </summary>
-	public class NullProtocolLogger : IProtocolLogger
+	/// <remarks>
+	/// By default, the <see cref="MailKit.Net.Smtp.SmtpClient"/>,
+	/// <see cref="MailKit.Net.Pop3.Pop3Client"/>, and
+	/// <see cref="MailKit.Net.Imap.ImapClient"/> all use a
+	/// <see cref="NullProtocolLogger"/>.
+	/// </remarks>
+	public sealed class NullProtocolLogger : IProtocolLogger
 	{
 		#region IProtocolLogger implementation
 
 		/// <summary>
 		/// Logs a connection to the specified URI.
 		/// </summary>
+		/// <remarks>
+		/// This method does nothing.
+		/// </remarks>
 		/// <param name="uri">The URI.</param>
 		public void LogConnect (Uri uri)
 		{
@@ -45,6 +54,9 @@ namespace MailKit {
 		/// <summary>
 		/// Logs a sequence of bytes sent by the client.
 		/// </summary>
+		/// <remarks>
+		/// This method does nothing.
+		/// </remarks>
 		/// <param name='buffer'>The buffer to log.</param>
 		/// <param name='offset'>The offset of the first byte to log.</param>
 		/// <param name='count'>The number of bytes to log.</param>
@@ -58,6 +70,9 @@ namespace MailKit {
 		/// <summary>
 		/// Logs a sequence of bytes sent by the server.
 		/// </summary>
+		/// <remarks>
+		/// This method does nothing.
+		/// </remarks>
 		/// <param name='buffer'>The buffer to log.</param>
 		/// <param name='offset'>The offset of the first byte to log.</param>
 		/// <param name='count'>The number of bytes to log.</param>
