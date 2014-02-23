@@ -1,6 +1,6 @@
 <Overview>
   <Assemblies>
-    <Assembly Name="MailKit" Version="0.4.0.0">
+    <Assembly Name="MailKit" Version="0.5.0.0">
       <Attributes>
         <Attribute>
           <AttributeName>System.Reflection.AssemblyCompany("Xamarin Inc.")</AttributeName>
@@ -15,10 +15,10 @@
           <AttributeName>System.Reflection.AssemblyDescription("A cross-platform mail client library.")</AttributeName>
         </Attribute>
         <Attribute>
-          <AttributeName>System.Reflection.AssemblyFileVersion("0.4.0.0")</AttributeName>
+          <AttributeName>System.Reflection.AssemblyFileVersion("0.5.0.0")</AttributeName>
         </Attribute>
         <Attribute>
-          <AttributeName>System.Reflection.AssemblyInformationalVersion("0.4")</AttributeName>
+          <AttributeName>System.Reflection.AssemblyInformationalVersion("0.5")</AttributeName>
         </Attribute>
         <Attribute>
           <AttributeName>System.Reflection.AssemblyProduct("MailKit")</AttributeName>
@@ -68,13 +68,17 @@
       <Type Name="IMessageStore" Kind="Interface" />
       <Type Name="IMessageTransport" Kind="Interface" />
       <Type Name="IProtocolLogger" Kind="Interface" />
+      <Type Name="ISortable" Kind="Interface" />
+      <Type Name="IThreadable" Kind="Interface" />
       <Type Name="MessageEventArgs" Kind="Class" />
       <Type Name="MessageFlags" Kind="Enumeration" />
       <Type Name="MessageFlagsChangedEventArgs" Kind="Class" />
+      <Type Name="MessageSorter" Kind="Class" />
       <Type Name="MessageSummary" Kind="Class" />
       <Type Name="MessageSummaryItems" Kind="Enumeration" />
       <Type Name="MessagesVanishedEventArgs" Kind="Class" />
       <Type Name="MessageThread" Kind="Class" />
+      <Type Name="MessageThreader" Kind="Class" />
       <Type Name="NullProtocolLogger" Kind="Class" />
       <Type Name="ProtocolException" Kind="Class" />
       <Type Name="ProtocolLogger" Kind="Class" />

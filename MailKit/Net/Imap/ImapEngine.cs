@@ -1356,9 +1356,10 @@ namespace MailKit.Net.Imap {
 		/// <summary>
 		/// Queues the command.
 		/// </summary>
-		/// <param name="ic">The command.</param>
+		/// <param name="ic">The IMAP command.</param>
 		public void QueueCommand (ImapCommand ic)
 		{
+			ic.Status = ImapCommandStatus.Queued;
 			ic.Id = nextId++;
 			queue.Add (ic);
 		}
@@ -1380,6 +1381,55 @@ namespace MailKit.Net.Imap {
 		}
 
 		/// <summary>
+		/// Looks up and sets the <see cref="ImapFolder.ParentFolder"/> property of each of the folders.
+		/// </summary>
+		/// <param name="folders">The IMAP folders.</param>
+		/// <param name="cancellationToken">The cancellation token.</param>
+		void LookupParentFolders (IEnumerable<ImapFolder> folders, CancellationToken cancellationToken)
+		{
+			var list = new List<ImapFolder> (folders);
+			string encodedName;
+			ImapFolder parent;
+			int index;
+
+			foreach (var folder in list) {
+				if (folder.ParentFolder != null)
+					continue;
+
+				if ((index = folder.FullName.LastIndexOf (folder.DirectorySeparator)) != -1) {
+					if (index == 0)
+						continue;
+
+					var parentName = folder.FullName.Substring (0, index);
+					encodedName = ImapEncoding.Encode (parentName);
+				} else {
+					encodedName = string.Empty;
+				}
+
+				if (FolderCache.TryGetValue (encodedName, out parent)) {
+					folder.SetParentFolder (parent);
+					continue;
+				}
+
+				var ic = new ImapCommand (this, cancellationToken, null, "LIST \"\" %S\r\n", encodedName);
+				ic.RegisterUntaggedHandler ("LIST", ImapUtils.ParseFolderList);
+				ic.UserData = new List<ImapFolder> ();
+
+				QueueCommand (ic);
+				Wait (ic);
+
+				if (!FolderCache.TryGetValue (encodedName, out parent)) {
+					parent = new ImapFolder (this, encodedName, FolderAttributes.NonExistent, folder.DirectorySeparator);
+					FolderCache.Add (encodedName, parent);
+				} else if (parent.ParentFolder == null && !parent.IsNamespace) {
+					list.Add (parent);
+				}
+
+				folder.SetParentFolder (parent);
+			}
+		}
+
+		/// <summary>
 		/// Queries the namespaces.
 		/// </summary>
 		/// <returns>The command result.</returns>
@@ -1397,10 +1447,11 @@ namespace MailKit.Net.Imap {
 			} else {
 				var list = new List<ImapFolder> ();
 
-				ic = QueueCommand (cancellationToken, null, "LIST \"\" \"\"\r\n");
-				ic.RegisterUntaggedHandler ("LIST", ImapUtils.HandleUntaggedListResponse);
+				ic = new ImapCommand (this, cancellationToken, null, "LIST \"\" \"\"\r\n");
+				ic.RegisterUntaggedHandler ("LIST", ImapUtils.ParseFolderList);
 				ic.UserData = list;
 
+				QueueCommand (ic);
 				Wait (ic);
 
 				PersonalNamespaces.Clear ();
@@ -1412,7 +1463,7 @@ namespace MailKit.Net.Imap {
 					list[0].IsNamespace = true;
 				}
 
-				ImapUtils.LookupParentFolders (this, list, cancellationToken);
+				LookupParentFolders (list, cancellationToken);
 			}
 
 			return ic.Result;
@@ -1433,10 +1484,11 @@ namespace MailKit.Net.Imap {
 			if (!FolderCache.TryGetValue ("INBOX", out folder)) {
 				var list = new List<ImapFolder> ();
 
-				var ic = QueueCommand (cancellationToken, null, "LIST \"\" \"INBOX\"\r\n");
-				ic.RegisterUntaggedHandler ("LIST", ImapUtils.HandleUntaggedListResponse);
+				var ic = new ImapCommand (this, cancellationToken, null, "LIST \"\" \"INBOX\"\r\n");
+				ic.RegisterUntaggedHandler ("LIST", ImapUtils.ParseFolderList);
 				ic.UserData = list;
 
+				QueueCommand (ic);
 				Wait (ic);
 
 				Inbox = list.Count > 0 ? list[0] : null;
@@ -1445,13 +1497,14 @@ namespace MailKit.Net.Imap {
 			if ((Capabilities & ImapCapabilities.SpecialUse) != 0) {
 				var list = new List<ImapFolder> ();
 
-				var ic = QueueCommand (cancellationToken, null, "LIST (SPECIAL-USE) \"\" \"*\"\r\n");
-				ic.RegisterUntaggedHandler ("LIST", ImapUtils.HandleUntaggedListResponse);
+				var ic = new ImapCommand (this, cancellationToken, null, "LIST (SPECIAL-USE) \"\" \"*\"\r\n");
+				ic.RegisterUntaggedHandler ("LIST", ImapUtils.ParseFolderList);
 				ic.UserData = list;
 
+				QueueCommand (ic);
 				Wait (ic);
 
-				ImapUtils.LookupParentFolders (this, list, cancellationToken);
+				LookupParentFolders (list, cancellationToken);
 
 				for (int i = 0; i < list.Count; i++) {
 					folder = list[i];
@@ -1474,13 +1527,14 @@ namespace MailKit.Net.Imap {
 			} else if ((Capabilities & ImapCapabilities.XList) != 0) {
 				var list = new List<ImapFolder> ();
 
-				var ic = QueueCommand (cancellationToken, null, "XLIST \"\" \"*\"\r\n");
-				ic.RegisterUntaggedHandler ("XLIST", ImapUtils.HandleUntaggedListResponse);
+				var ic = new ImapCommand (this, cancellationToken, null, "XLIST \"\" \"*\"\r\n");
+				ic.RegisterUntaggedHandler ("XLIST", ImapUtils.ParseFolderList);
 				ic.UserData = list;
 
+				QueueCommand (ic);
 				Wait (ic);
 
-				ImapUtils.LookupParentFolders (this, list, cancellationToken);
+				LookupParentFolders (list, cancellationToken);
 
 				for (int i = 0; i < list.Count; i++) {
 					folder = list[i];
@@ -1501,6 +1555,38 @@ namespace MailKit.Net.Imap {
 						Trash = folder;
 				}
 			}
+		}
+
+		/// <summary>
+		/// Gets the folder for the specified path.
+		/// </summary>
+		/// <returns>The folder.</returns>
+		/// <param name="path">The folder path.</param>
+		/// <param name="cancellationToken">The cancellation token.</param>
+		public ImapFolder GetFolder (string path, CancellationToken cancellationToken)
+		{
+			var encodedName = ImapEncoding.Encode (path);
+			var list = new List<ImapFolder> ();
+			ImapFolder folder;
+
+			if (FolderCache.TryGetValue (encodedName, out folder))
+				return folder;
+
+			var ic = new ImapCommand (this, cancellationToken, null, "LIST \"\" %S\r\n", encodedName);
+			ic.RegisterUntaggedHandler ("LIST", ImapUtils.ParseFolderList);
+			ic.UserData = list;
+
+			QueueCommand (ic);
+			Wait (ic);
+
+			LookupParentFolders (list, cancellationToken);
+
+			ProcessResponseCodes (ic);
+
+			if (ic.Result != ImapCommandResult.Ok)
+				throw new ImapCommandException ("LIST", ic.Result);
+
+			return list.Count > 0 ? list[0] : null;
 		}
 
 		public event EventHandler<AlertEventArgs> Alert;

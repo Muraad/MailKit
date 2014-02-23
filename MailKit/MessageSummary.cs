@@ -26,6 +26,8 @@
 
 using System;
 
+using MimeKit;
+
 namespace MailKit {
 	/// <summary>
 	/// A summary of a message.
@@ -36,7 +38,7 @@ namespace MailKit {
 	/// The properties of the <see cref="MessageSummary"/> that will be available
 	/// depend on the <see cref="MessageSummaryItems"/> passed to the aformentioned method.
 	/// </remarks>
-	public class MessageSummary
+	public class MessageSummary : IThreadable, ISortable
 	{
 		internal MessageSummary (int index)
 		{
@@ -104,10 +106,18 @@ namespace MailKit {
 		}
 
 		/// <summary>
+		/// Gets the message-ids that the message references, if available.
+		/// </summary>
+		/// <value>The references.</value>
+		public MessageIdList References {
+			get; internal set;
+		}
+
+		/// <summary>
 		/// Gets the unique ID of the message, if available.
 		/// </summary>
 		/// <value>The uid of the message.</value>
-		public UniqueId Uid {
+		public UniqueId UniqueId {
 			get; internal set;
 		}
 
@@ -135,6 +145,104 @@ namespace MailKit {
 		/// <value>The GMail thread identifier.</value>
 		public ulong GMailThreadId {
 			get; internal set;
+		}
+
+		#endregion
+
+		#region ISortable implementation
+
+		bool ISortable.CanSort {
+			get { return Envelope != null; }
+		}
+
+		int ISortable.SortableIndex {
+			get { return Index; }
+		}
+
+		string ISortable.SortableCc {
+			get { return Envelope.Cc.ToString (); }
+		}
+
+		DateTimeOffset ISortable.SortableDate {
+			get { return Envelope.Date ?? InternalDate ?? DateTimeOffset.MinValue; }
+		}
+
+		string ISortable.SortableFrom {
+			get { return Envelope.From.ToString (); }
+		}
+
+		uint ISortable.SortableSize {
+			get { return MessageSize ?? 0; }
+		}
+
+		string ISortable.SortableSubject {
+			get { return Envelope.Subject; }
+		}
+
+		string ISortable.SortableTo {
+			get { return Envelope.To.ToString (); }
+		}
+
+		#endregion
+
+		#region IThreadable implementation
+
+		MessageIdList threadableReferences;
+		int threadableReplyDepth = -1;
+		string threadableSubject;
+
+		void UpdateThreadableSubject ()
+		{
+			if (threadableSubject != null)
+				return;
+
+			if (Envelope.Subject != null) {
+				threadableSubject = MessageThreader.GetThreadableSubject (Envelope.Subject, out threadableReplyDepth);
+			} else {
+				threadableSubject = string.Empty;
+				threadableReplyDepth = 0;
+			}
+		}
+
+		bool IThreadable.CanThread {
+			get { return Envelope != null; }
+		}
+
+		string IThreadable.ThreadableSubject {
+			get {
+				UpdateThreadableSubject ();
+
+				return threadableSubject;
+			}
+		}
+
+		bool IThreadable.IsThreadableReply {
+			get {
+				UpdateThreadableSubject ();
+
+				return threadableReplyDepth != 0;
+			}
+		}
+
+		string IThreadable.ThreadableMessageId {
+			get { return Envelope.MessageId; }
+		}
+
+		MessageIdList IThreadable.ThreadableReferences {
+			get {
+				if (threadableReferences == null) {
+					threadableReferences = References != null ? References.Clone () : new MessageIdList ();
+
+					if (Envelope.InReplyTo != null)
+						threadableReferences.Add (Envelope.InReplyTo);
+				}
+
+				return threadableReferences;
+			}
+		}
+
+		UniqueId IThreadable.ThreadableUniqueId {
+			get { return UniqueId; }
 		}
 
 		#endregion

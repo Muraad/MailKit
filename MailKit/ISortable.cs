@@ -1,9 +1,9 @@
 ﻿//
-// MessageFlagsChangedEventArgs.cs
+// ISortable.cs
 //
 // Author: Jeffrey Stedfast <jeff@xamarin.com>
 //
-// Copyright (c) 2013-2014 Xamarin Inc. (www.xamarin.com)
+// Copyright (c) 2014 Xamarin Inc. (www.xamarin.com)
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -24,38 +24,60 @@
 // THE SOFTWARE.
 //
 
+using System;
+
 namespace MailKit {
 	/// <summary>
-	/// Event args for the <see cref="IFolder.MessageFlagsChanged"/> event.
+	/// An interface for message sorting.
 	/// </summary>
-	public class MessageFlagsChangedEventArgs : MessageEventArgs
+	public interface ISortable
 	{
-		internal MessageFlagsChangedEventArgs (int index) : base (index)
-		{
-		}
+		/// <summary>
+		/// Gets a value indicating whether this instance can be sorted.
+		/// </summary>
+		/// <value><c>true</c> if this instance can be sorted; otherwise, <c>false</c>.</value>
+		bool CanSort { get; }
 
 		/// <summary>
-		/// Gets the unique ID of the message that changed, if available.
+		/// Gets the message index in the folder it belongs to.
 		/// </summary>
-		/// <value>The unique ID of the message.</value>
-		public UniqueId? UniqueId {
-			get; internal set;
-		}
+		/// <value>The index.</value>
+		int SortableIndex { get; }
 
 		/// <summary>
-		/// Gets the updated message flags.
+		/// Gets the Cc header value.
 		/// </summary>
-		/// <value>The updated message flags.</value>
-		public MessageFlags Flags {
-			get; internal set;
-		}
+		/// <value>The Cc header value.</value>
+		string SortableCc { get; }
 
 		/// <summary>
-		/// Gets the updated mod-sequence value of the message, if available.
+		/// Gets the Date header value.
 		/// </summary>
-		/// <value>The mod-sequence value.</value>
-		public ulong? ModSeq {
-			get; internal set;
-		}
+		/// <value>The date.</value>
+		DateTimeOffset SortableDate { get; }
+
+		/// <summary>
+		/// Gets the From header value.
+		/// </summary>
+		/// <value>The From header value.</value>
+		string SortableFrom { get; }
+
+		/// <summary>
+		/// Gets the size of the message, in bytes.
+		/// </summary>
+		/// <value>The size of the message, in bytes.</value>
+		uint SortableSize { get; }
+
+		/// <summary>
+		/// Gets the Subject header value.
+		/// </summary>
+		/// <value>The Subject header value.</value>
+		string SortableSubject { get; }
+
+		/// <summary>
+		/// Gets the To header value.
+		/// </summary>
+		/// <value>The To header value.</value>
+		string SortableTo { get; }
 	}
 }

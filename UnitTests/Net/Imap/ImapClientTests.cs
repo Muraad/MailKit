@@ -130,7 +130,7 @@ namespace UnitTests.Net.Imap {
 				}
 			}
 
-			commands.Add (new ImapReplayCommand ("A00000059 UID SEARCH RETURN () CHARSET UTF-8 OR TO nsb CC nsb\r\n", "gmail.search.txt"));
+			commands.Add (new ImapReplayCommand ("A00000059 UID SEARCH RETURN () CHARSET US-ASCII OR TO nsb CC nsb\r\n", "gmail.search.txt"));
 			commands.Add (new ImapReplayCommand ("A00000060 UID FETCH 1:3,5,7:9,11:14,26:29,31,34,41:43,50 (UID FLAGS INTERNALDATE RFC822.SIZE ENVELOPE BODY)\r\n", "gmail.search-summary.txt"));
 			commands.Add (new ImapReplayCommand ("A00000061 UID FETCH 1 (BODY.PEEK[])\r\n", "gmail.fetch.1.txt"));
 			commands.Add (new ImapReplayCommand ("A00000062 UID FETCH 2 (BODY.PEEK[])\r\n", "gmail.fetch.2.txt"));
@@ -226,11 +226,11 @@ namespace UnitTests.Net.Imap {
 				var query = SearchQuery.ToContains ("nsb").Or (SearchQuery.CcContains ("nsb"));
 				var matches = created.Search (query, CancellationToken.None);
 
-				const MessageSummaryItems items = MessageSummaryItems.Full | MessageSummaryItems.Uid;
+				const MessageSummaryItems items = MessageSummaryItems.Full | MessageSummaryItems.UniqueId;
 				var summaries = created.Fetch (matches, items, CancellationToken.None);
 
 				foreach (var summary in summaries) {
-					var message = created.GetMessage (summary.Uid, CancellationToken.None);
+					var message = created.GetMessage (summary.UniqueId, CancellationToken.None);
 				}
 
 				created.SetFlags (matches, MessageFlags.Seen | MessageFlags.Answered, false, CancellationToken.None);
