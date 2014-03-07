@@ -1,5 +1,5 @@
 ﻿//
-// ImapResponseCode.cs
+// UriExtensions.cs
 //
 // Author: Jeffrey Stedfast <jeff@xamarin.com>
 //
@@ -25,55 +25,46 @@
 //
 
 using System;
+using System.Collections.Generic;
 
-namespace MailKit.Net.Imap {
-	enum ImapResponseCodeType : byte {
-		Alert,
-		BadCharset,
-		Capability,
-		NewName,
-		Parse,
-		PermanentFlags,
-		ReadOnly,
-		ReadWrite,
-		TryCreate,
-		UidNext,
-		UidValidity,
-		Unseen,
-
-		// RESP-CODES introduced in rfc4315:
-		AppendUid,
-		CopyUid,
-		UidNotSticky,
-
-		// RESP-CODES introduced in rfc4551:
-		HighestModSeq,
-		Modified,
-		NoModSeq,
-
-		// RESP-CODES introduced in rfc4978:
-		CompressionActive,
-
-		// RESP-CODES introduced in rfc5162:
-		Closed,
-
-		Unknown       = 255
-	}
-
-	class ImapResponseCode
+namespace MailKit {
+	static class UriExtensions
 	{
-		public readonly ImapResponseCodeType Type;
-		public UniqueId[] SrcUidSet, DestUidSet;
-		public UniqueId UidValidity;
-		public ulong HighestModSeq;
-		public MessageFlags Flags;
-		public string Message;
-		public UniqueId Uid;
-		public int Index;
-
-		public ImapResponseCode (ImapResponseCodeType type)
+		public static IDictionary<string, string> ParsedQuery (this Uri uri)
 		{
-			Type = type;
+			var properties = new Dictionary<string, string> (StringComparer.OrdinalIgnoreCase);
+			int index = 1;
+
+			if (string.IsNullOrEmpty (uri.Query))
+				return properties;
+
+			// Note: the query string begins with '?'
+			while (index < uri.Query.Length) {
+				int startIndex = index;
+
+				while (index < uri.Query.Length && uri.Query[index] != '=')
+					index++;
+
+				var name = uri.Query.Substring (startIndex, index - startIndex);
+
+				if (index >= uri.Query.Length) {
+					properties.Add (name, string.Empty);
+					break;
+				}
+
+				startIndex = ++index;
+
+				while (index < uri.Query.Length && uri.Query[index] != '&')
+					index++;
+
+				var value = uri.Query.Substring (startIndex, index - startIndex);
+
+				properties.Add (name, Uri.UnescapeDataString (value));
+
+				index++;
+			}
+
+			return properties;
 		}
 	}
 }

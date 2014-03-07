@@ -1,5 +1,5 @@
 ﻿//
-// ImapResponseCode.cs
+// UriExtensionTests.cs
 //
 // Author: Jeffrey Stedfast <jeff@xamarin.com>
 //
@@ -25,55 +25,44 @@
 //
 
 using System;
+using System.Collections.Generic;
 
-namespace MailKit.Net.Imap {
-	enum ImapResponseCodeType : byte {
-		Alert,
-		BadCharset,
-		Capability,
-		NewName,
-		Parse,
-		PermanentFlags,
-		ReadOnly,
-		ReadWrite,
-		TryCreate,
-		UidNext,
-		UidValidity,
-		Unseen,
+using NUnit.Framework;
 
-		// RESP-CODES introduced in rfc4315:
-		AppendUid,
-		CopyUid,
-		UidNotSticky,
+using MailKit;
 
-		// RESP-CODES introduced in rfc4551:
-		HighestModSeq,
-		Modified,
-		NoModSeq,
-
-		// RESP-CODES introduced in rfc4978:
-		CompressionActive,
-
-		// RESP-CODES introduced in rfc5162:
-		Closed,
-
-		Unknown       = 255
-	}
-
-	class ImapResponseCode
+namespace UnitTests {
+	[TestFixture]
+	public class UriExtensionTests
 	{
-		public readonly ImapResponseCodeType Type;
-		public UniqueId[] SrcUidSet, DestUidSet;
-		public UniqueId UidValidity;
-		public ulong HighestModSeq;
-		public MessageFlags Flags;
-		public string Message;
-		public UniqueId Uid;
-		public int Index;
-
-		public ImapResponseCode (ImapResponseCodeType type)
+		[Test]
+		public void TestNoQuery ()
 		{
-			Type = type;
+			var uri = new Uri ("imap://imap.gmail.com/");
+			var query = uri.ParsedQuery ();
+
+			Assert.AreEqual (0, query.Count, "Unexpected number of queries.");
+		}
+
+		[Test]
+		public void TestSimpleQuery ()
+		{
+			var uri = new Uri ("imap://imap.gmail.com/?starttls=false");
+			var query = uri.ParsedQuery ();
+
+			Assert.AreEqual (1, query.Count, "Unexpected number of queries.");
+			Assert.AreEqual ("false", query["starttls"], "Unexpected value for 'starttls'.");
+		}
+
+		[Test]
+		public void TestCompoundQuery ()
+		{
+			var uri = new Uri ("imap://imap.gmail.com/?starttls=false&compress=false");
+			var query = uri.ParsedQuery ();
+
+			Assert.AreEqual (2, query.Count, "Unexpected number of queries.");
+			Assert.AreEqual ("false", query["starttls"], "Unexpected value for 'starttls'.");
+			Assert.AreEqual ("false", query["compress"], "Unexpected value for 'compress'.");
 		}
 	}
 }
