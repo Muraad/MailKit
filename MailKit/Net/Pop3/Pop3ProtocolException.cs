@@ -25,7 +25,9 @@
 //
 
 using System;
+#if !NETFX_CORE
 using System.Runtime.Serialization;
+#endif
 
 namespace MailKit.Net.Pop3 {
 	/// <summary>
@@ -35,10 +37,13 @@ namespace MailKit.Net.Pop3 {
 	/// The exception that is thrown when there is an error communicating with a POP3 server. A
 	/// <see cref="Pop3ProtocolException"/> is typically fatal and requires the <see cref="Pop3Client"/>
 	/// to be reconnected.
-	/// </remarks>
+    /// </remarks>
+#if !NETFX_CORE
 	[Serializable]
+#endif
 	public class Pop3ProtocolException : ProtocolException
 	{
+#if !NETFX_CORE
 		/// <summary>
 		/// Initializes a new instance of the <see cref="MailKit.Net.Pop3.Pop3ProtocolException"/> class.
 		/// </summary>
@@ -47,6 +52,7 @@ namespace MailKit.Net.Pop3 {
 		protected Pop3ProtocolException (SerializationInfo info, StreamingContext context) : base (info, context)
 		{
 		}
+#endif
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="MailKit.Net.Pop3.Pop3ProtocolException"/> class.

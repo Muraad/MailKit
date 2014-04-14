@@ -30,6 +30,10 @@ using System.Text;
 using System.Threading;
 using System.Collections.Generic;
 
+#if NETFX_CORE
+using Encoding = Portable.Text.Encoding;
+#endif
+
 namespace MailKit.Net.Pop3 {
 	/// <summary>
 	/// The state of the <see cref="Pop3Engine"/>.
@@ -199,7 +203,7 @@ namespace MailKit.Net.Pop3 {
 
 			index = text.IndexOf ('>');
 			if (text.Length > 0 && text[0] == '<' && index != -1) {
-				ApopToken = text.Substring (1, index - 1);
+				ApopToken = text.Substring (0, index + 1);
 				Capabilities |= Pop3Capabilities.Apop;
 			}
 
@@ -252,7 +256,11 @@ namespace MailKit.Net.Pop3 {
 				memory.Write (buf, offset, count);
 
 				count = (int) memory.Length;
+#if !NETFX_CORE
 				buf = memory.GetBuffer ();
+#else
+				buf = memory.ToArray ();
+#endif
 
 				return Latin1.GetString (buf, 0, count);
 			}

@@ -31,6 +31,10 @@ using System.Threading;
 using System.Diagnostics;
 using System.Collections.Generic;
 
+#if NETFX_CORE
+using Encoding = Portable.Text.Encoding;
+#endif
+
 namespace MailKit.Net.Imap {
 	/// <summary>
 	/// The state of the <see cref="ImapEngine"/>.
@@ -161,7 +165,15 @@ namespace MailKit.Net.Imap {
 		/// </remarks>
 		/// <value>The capabilities.</value>
 		public ImapCapabilities Capabilities {
-			get; private set;
+			get; set;
+		}
+
+		/// <summary>
+		/// Indicates whether or not the engine is connected to a GMail server (used for various workarounds).
+		/// </summary>
+		/// <value><c>true</c> if the engine is connected to a GMail server; otherwise, <c>false</c>.</value>
+		internal bool IsGMail {
+			get { return (Capabilities & ImapCapabilities.GMailExt1) != 0; }
 		}
 
 		/// <summary>
@@ -464,6 +476,9 @@ namespace MailKit.Net.Imap {
 		/// <exception cref="System.IO.IOException">
 		/// An I/O error occurred.
 		/// </exception>
+		/// <exception cref="ImapProtocolException">
+		/// An IMAP protocol error occurred.
+		/// </exception>
 		public string ReadLine (CancellationToken cancellationToken)
 		{
 			if (stream == null)
@@ -483,7 +498,11 @@ namespace MailKit.Net.Imap {
 				memory.Write (buf, offset, count);
 
 				count = (int) memory.Length;
+#if !NETFX_CORE
 				buf = memory.GetBuffer ();
+#else
+				buf = memory.ToArray ();
+#endif
 
 				try {
 					return Encoding.UTF8.GetString (buf, 0, count);
@@ -507,6 +526,9 @@ namespace MailKit.Net.Imap {
 		/// <exception cref="System.IO.IOException">
 		/// An I/O error occurred.
 		/// </exception>
+		/// <exception cref="ImapProtocolException">
+		/// An IMAP protocol error occurred.
+		/// </exception>
 		public ImapToken ReadToken (CancellationToken cancellationToken)
 		{
 			return stream.ReadToken (cancellationToken);
@@ -525,6 +547,9 @@ namespace MailKit.Net.Imap {
 		/// </exception>
 		/// <exception cref="System.IO.IOException">
 		/// An I/O error occurred.
+		/// </exception>
+		/// <exception cref="ImapProtocolException">
+		/// An IMAP protocol error occurred.
 		/// </exception>
 		public ImapToken PeekToken (CancellationToken cancellationToken)
 		{
@@ -566,7 +591,11 @@ namespace MailKit.Net.Imap {
 				}
 
 				nread = (int) memory.Length;
+#if !NETFX_CORE
 				buf = memory.GetBuffer ();
+#else
+				buf = memory.ToArray ();
+#endif
 
 				return Latin1.GetString (buf, 0, nread);
 			}
@@ -688,7 +717,7 @@ namespace MailKit.Net.Imap {
 
 		void UpdateNamespaces (CancellationToken cancellationToken)
 		{
-			var namespaces = new List<FolderNamespaceCollection> () {
+			var namespaces = new List<FolderNamespaceCollection> {
 				PersonalNamespaces, SharedNamespaces, OtherNamespaces
 			};
 			ImapFolder folder;
@@ -934,12 +963,14 @@ namespace MailKit.Net.Imap {
 				token = stream.ReadToken (cancellationToken);
 				break;
 			case ImapResponseCodeType.Unseen:
-				if (token.Type != ImapTokenType.Atom || !uint.TryParse ((string) token.Value, out n32) || n32 == 0) {
+				// Note: we allow '0' here because some servers have been known to send "* OK [UNSEEN 0]" when the folder
+				// has no messages. See https://github.com/jstedfast/MailKit/issues/34 for details.
+				if (token.Type != ImapTokenType.Atom || !uint.TryParse ((string) token.Value, out n32)) {
 					Debug.WriteLine ("Expected nz-number argument to 'UNSEEN' RESP-CODE, but got: {0}", token);
 					throw UnexpectedToken (token, false);
 				}
 
-				code.Index = (int) (n32 - 1);
+				code.Index = n32 > 0 ? (int) (n32 - 1) : 0;
 
 				token = stream.ReadToken (cancellationToken);
 				break;
@@ -1078,6 +1109,7 @@ namespace MailKit.Net.Imap {
 			}
 
 			if (!FolderCache.TryGetValue (name, out folder)) {
+				// FIXME: what should we do in this situation?
 			}
 
 			token = stream.ReadToken (cancellationToken);

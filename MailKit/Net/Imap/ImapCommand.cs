@@ -35,6 +35,12 @@ using MimeKit;
 using MimeKit.IO;
 using MimeKit.Utils;
 
+#if NETFX_CORE
+using Encoding = Portable.Text.Encoding;
+
+using Windows.Storage.Streams;
+#endif
+
 namespace MailKit.Net.Imap {
 	/// <summary>
 	/// An IMAP continuation handler.
@@ -146,7 +152,7 @@ namespace MailKit.Net.Imap {
 		/// </summary>
 		/// <param name="stream">The stream.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
-		public void WriteTo (Stream stream, CancellationToken cancellationToken)
+		public void WriteTo (ImapStream stream, CancellationToken cancellationToken)
 		{
 			cancellationToken.ThrowIfCancellationRequested ();
 

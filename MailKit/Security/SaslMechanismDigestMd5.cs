@@ -29,7 +29,14 @@ using System.IO;
 using System.Net;
 using System.Text;
 using System.Collections.Generic;
+
+#if NETFX_CORE
+using Encoding = Portable.Text.Encoding;
+using MD5 = MimeKit.Cryptography.MD5;
+#else
+using MD5 = System.Security.Cryptography.MD5CryptoServiceProvider;
 using System.Security.Cryptography;
+#endif
 
 namespace MailKit.Security {
 	/// <summary>
@@ -50,6 +57,18 @@ namespace MailKit.Security {
 		DigestChallenge challenge;
 		DigestResponse response;
 		LoginState state;
+		string cnonce;
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="MailKit.Security.SaslMechanismDigestMd5"/> class.
+		/// </summary>
+		/// <param name="uri">The URI of the service.</param>
+		/// <param name="credentials">The user's credentials.</param>
+		/// <param name="entropy">Random characters to act as the cnonce token.</param>
+		internal SaslMechanismDigestMd5 (Uri uri, ICredentials credentials, string entropy) : base (uri, credentials)
+		{
+			cnonce = entropy;
+		}
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="MailKit.Security.SaslMechanismDigestMd5"/> class.
@@ -94,7 +113,17 @@ namespace MailKit.Security {
 					throw new SaslException (MechanismName, SaslErrorCode.ChallengeTooLong, "Server challenge too long.");
 
 				challenge = DigestChallenge.Parse (Encoding.UTF8.GetString (token));
-				response = new DigestResponse (challenge, Uri.Scheme, Uri.DnsSafeHost, cred.UserName, cred.Password);
+
+				if (string.IsNullOrEmpty (cnonce)) {
+					var entropy = new byte[15];
+
+					using (var rng = RandomNumberGenerator.Create ())
+						rng.GetBytes (entropy);
+
+					cnonce = Convert.ToBase64String (entropy);
+				}
+
+				response = new DigestResponse (challenge, Uri.Scheme, Uri.DnsSafeHost, cred.UserName, cred.Password, cnonce);
 				state = LoginState.Final;
 				return response.Encode ();
 			case LoginState.Final:
@@ -115,7 +144,7 @@ namespace MailKit.Security {
 				IsAuthenticated = true;
 				return new byte[0];
 			default:
-				throw new ArgumentOutOfRangeException ();
+				throw new IndexOutOfRangeException ("state");
 			}
 		}
 
@@ -127,6 +156,7 @@ namespace MailKit.Security {
 			state = LoginState.Auth;
 			challenge = null;
 			response = null;
+			cnonce = null;
 			base.Reset ();
 		}
 	}
@@ -320,11 +350,8 @@ namespace MailKit.Security {
 		public string Cipher { get; private set; }
 		public string AuthZid { get; private set; }
 
-		public DigestResponse (DigestChallenge challenge, string protocol, string hostName, string userName, string password)
+		public DigestResponse (DigestChallenge challenge, string protocol, string hostName, string userName, string password, string cnonce)
 		{
-			var cnonce = new byte[15];
-			new Random ().NextBytes (cnonce);
-
 			UserName = userName;
 
 			if (challenge.Realms.Length > 0)
@@ -333,13 +360,13 @@ namespace MailKit.Security {
 				Realm = string.Empty;
 
 			Nonce = challenge.Nonce;
-			CNonce = Convert.ToBase64String (cnonce);
+			CNonce = cnonce;
 			Nc = 1;
 
 			// FIXME: make sure this is supported
 			Qop = "auth";
 
-			DigestUri = string.Format ("{0}://{1}", protocol, hostName);
+			DigestUri = string.Format ("{0}/{1}", protocol, hostName);
 
 			if (!string.IsNullOrEmpty (challenge.Charset))
 				Charset = challenge.Charset;
@@ -363,42 +390,44 @@ namespace MailKit.Security {
 
 		public string ComputeHash (string password, bool client)
 		{
-			using (var checksum = HashAlgorithm.Create (Algorithm ?? "MD5")) {
-				byte[] buf, digest;
-				string text, a1, a2;
+			string text, a1, a2;
+			byte[] buf, digest;
 
-				// compute A1
-				text = string.Format ("{0}:{1}:{2}", UserName, Realm, password);
-				buf = Encoding.UTF8.GetBytes (text);
-				checksum.Initialize ();
-				digest = checksum.ComputeHash (buf);
+			// compute A1
+			text = string.Format ("{0}:{1}:{2}", UserName, Realm, password);
+			buf = Encoding.UTF8.GetBytes (text);
+			using (var md5 = new MD5 ())
+				digest = md5.ComputeHash (buf);
 
-				text = string.Format ("{0}:{1}:{2}", HexEncode (digest), Nonce, CNonce);
-				buf = Encoding.UTF8.GetBytes (text);
-				checksum.Initialize ();
-				digest = checksum.ComputeHash (buf);
-				a1 = HexEncode (digest);
-
-				// compute A2
-				text = client ? "AUTHENTICATE:" : ":";
-				text += DigestUri;
-
-				if (Qop == "auth-int" || Qop == "auth-conf")
-					text += ":00000000000000000000000000000000";
-
+			using (var md5 = new MD5 ()) {
+				md5.TransformBlock (digest, 0, digest.Length, null, 0);
+				text = string.Format (":{0}:{1}", Nonce, CNonce);
+				if (!string.IsNullOrEmpty (AuthZid))
+					text += ":" + AuthZid;
 				buf = Encoding.ASCII.GetBytes (text);
-				checksum.Initialize ();
-				digest = checksum.ComputeHash (buf);
-				a2 = HexEncode (digest);
-
-				// compute KD
-				text = string.Format ("{0}:{1}:{2:8X}:{3}:{4}:{5}", a1, Nonce, Nc, CNonce, Qop, a2);
-				buf = Encoding.ASCII.GetBytes (text);
-				checksum.Initialize ();
-				digest = checksum.ComputeHash (buf);
-
-				return HexEncode (digest);
+				md5.TransformFinalBlock (buf, 0, buf.Length);
+				a1 = HexEncode (md5.Hash);
 			}
+
+			// compute A2
+			text = client ? "AUTHENTICATE:" : ":";
+			text += DigestUri;
+
+			if (Qop == "auth-int" || Qop == "auth-conf")
+				text += ":00000000000000000000000000000000";
+
+			buf = Encoding.ASCII.GetBytes (text);
+			using (var md5 = new MD5 ())
+				digest = md5.ComputeHash (buf);
+			a2 = HexEncode (digest);
+
+			// compute KD
+			text = string.Format ("{0}:{1}:{2:x8}:{3}:{4}:{5}", a1, Nonce, Nc, CNonce, Qop, a2);
+			buf = Encoding.ASCII.GetBytes (text);
+			using (var md5 = new MD5 ())
+				digest = md5.ComputeHash (buf);
+
+			return HexEncode (digest);
 		}
 
 		public byte[] Encode ()
@@ -410,96 +439,27 @@ namespace MailKit.Security {
 			else
 				encoding = Encoding.UTF8;
 
-			using (var memory = new MemoryStream ()) {
-				byte[] buf;
+			var builder = new StringBuilder ();
+			builder.AppendFormat ("username=\"{0}\"", UserName);
+			builder.AppendFormat (",realm=\"{0}\"", Realm);
+			builder.AppendFormat (",nonce=\"{0}\"", Nonce);
+			builder.AppendFormat (",cnonce=\"{0}\"", CNonce);
+			builder.AppendFormat (",nc={0:x8}", Nc);
+			builder.AppendFormat (",qop=\"{0}\"", Qop);
+			builder.AppendFormat (",digest-uri=\"{0}\"", DigestUri);
+			builder.AppendFormat (",response=\"{0}\"", Response);
+			if (MaxBuf > 0)
+				builder.AppendFormat (",maxbuf={0}", MaxBuf);
+			if (!string.IsNullOrEmpty (Charset))
+				builder.AppendFormat (",charset=\"{0}\"", Charset);
+			if (!string.IsNullOrEmpty (Algorithm))
+				builder.AppendFormat (",algorithm=\"{0}\"", Algorithm);
+			if (!string.IsNullOrEmpty (Cipher))
+				builder.AppendFormat (",cipher=\"{0}\"", Cipher);
+			if (!string.IsNullOrEmpty (AuthZid))
+				builder.AppendFormat (",authzid=\"{0}\"", AuthZid);
 
-				buf = Encoding.ASCII.GetBytes ("username=\"");
-				memory.Write (buf, 0, buf.Length);
-				buf = encoding.GetBytes (UserName);
-				memory.Write (buf, 0, buf.Length);
-
-				buf = Encoding.ASCII.GetBytes ("\",realm=\"");
-				memory.Write (buf, 0, buf.Length);
-				buf = encoding.GetBytes (Realm);
-				memory.Write (buf, 0, buf.Length);
-
-				buf = Encoding.ASCII.GetBytes ("\",nonce=\"");
-				memory.Write (buf, 0, buf.Length);
-				buf = encoding.GetBytes (Nonce);
-				memory.Write (buf, 0, buf.Length);
-
-				buf = Encoding.ASCII.GetBytes ("\",cnonce=\"");
-				memory.Write (buf, 0, buf.Length);
-				buf = encoding.GetBytes (CNonce);
-				memory.Write (buf, 0, buf.Length);
-
-				buf = Encoding.ASCII.GetBytes ("\",nc=");
-				memory.Write (buf, 0, buf.Length);
-				buf = Encoding.ASCII.GetBytes (Nc.ToString ("X8"));
-				memory.Write (buf, 0, buf.Length);
-
-				buf = Encoding.ASCII.GetBytes (",qop=\"");
-				memory.Write (buf, 0, buf.Length);
-				buf = Encoding.ASCII.GetBytes (Qop);
-				memory.Write (buf, 0, buf.Length);
-
-				buf = Encoding.ASCII.GetBytes ("\",digest-uri=\"");
-				memory.Write (buf, 0, buf.Length);
-				buf = Encoding.ASCII.GetBytes (DigestUri.ToString ());
-				memory.Write (buf, 0, buf.Length);
-
-				buf = Encoding.ASCII.GetBytes ("\",response=\"");
-				memory.Write (buf, 0, buf.Length);
-				buf = Encoding.ASCII.GetBytes (Response);
-				memory.Write (buf, 0, buf.Length);
-				buf = new byte[] { (byte) '"' };
-				memory.Write (buf, 0, buf.Length);
-
-				if (MaxBuf > 0) {
-					buf = Encoding.ASCII.GetBytes (",maxbuf=");
-					memory.Write (buf, 0, buf.Length);
-					buf = Encoding.ASCII.GetBytes (MaxBuf.ToString ());
-					memory.Write (buf, 0, buf.Length);
-				}
-
-				if (!string.IsNullOrEmpty (Charset)) {
-					buf = Encoding.ASCII.GetBytes (",charset=\"");
-					memory.Write (buf, 0, buf.Length);
-					buf = Encoding.ASCII.GetBytes (Charset);
-					memory.Write (buf, 0, buf.Length);
-					buf = new byte[] { (byte) '"' };
-					memory.Write (buf, 0, buf.Length);
-				}
-
-				if (!string.IsNullOrEmpty (Algorithm)) {
-					buf = Encoding.ASCII.GetBytes (",algorithm=\"");
-					memory.Write (buf, 0, buf.Length);
-					buf = Encoding.ASCII.GetBytes (Algorithm);
-					memory.Write (buf, 0, buf.Length);
-					buf = new byte[] { (byte) '"' };
-					memory.Write (buf, 0, buf.Length);
-				}
-
-				if (!string.IsNullOrEmpty (Cipher)) {
-					buf = Encoding.ASCII.GetBytes (",cipher=\"");
-					memory.Write (buf, 0, buf.Length);
-					buf = Encoding.ASCII.GetBytes (Cipher);
-					memory.Write (buf, 0, buf.Length);
-					buf = new byte[] { (byte) '"' };
-					memory.Write (buf, 0, buf.Length);
-				}
-
-				if (!string.IsNullOrEmpty (AuthZid)) {
-					buf = Encoding.ASCII.GetBytes (",authzid=\"");
-					memory.Write (buf, 0, buf.Length);
-					buf = Encoding.ASCII.GetBytes (AuthZid);
-					memory.Write (buf, 0, buf.Length);
-					buf = new byte[] { (byte) '"' };
-					memory.Write (buf, 0, buf.Length);
-				}
-
-				return memory.ToArray ();
-			}
+			return encoding.GetBytes (builder.ToString ());
 		}
 	}
 }

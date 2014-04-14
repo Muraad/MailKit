@@ -47,7 +47,6 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Net\Imap\DuplexStream.cs" />
     <Compile Include="Net\Imap\ImapCapabilities.cs" />
     <Compile Include="Net\Imap\ImapClient.cs" />
     <Compile Include="Net\Imap\ImapCommand.cs" />
@@ -88,11 +87,24 @@
     <Compile Include="Search\SortOrder.cs" />
     <Compile Include="Search\TextSearchQuery.cs" />
     <Compile Include="Search\UnarySearchQuery.cs" />
+    <Compile Include="Security\Ntlm\BitConverterLE.cs" />
+    <Compile Include="Security\Ntlm\ChallengeResponse.cs" />
+    <Compile Include="Security\Ntlm\ChallengeResponse2.cs" />
+    <Compile Include="Security\Ntlm\MD4.cs" />
+    <Compile Include="Security\Ntlm\MessageBase.cs" />
+    <Compile Include="Security\Ntlm\NtlmAuthLevel.cs" />
+    <Compile Include="Security\Ntlm\NtlmFlags.cs" />
+    <Compile Include="Security\Ntlm\NtlmSettings.cs" />
+    <Compile Include="Security\Ntlm\Type1Message.cs" />
+    <Compile Include="Security\Ntlm\Type2Message.cs" />
+    <Compile Include="Security\Ntlm\Type3Message.cs" />
+    <Compile Include="Security\AuthenticationException.cs" />
     <Compile Include="Security\SaslException.cs" />
     <Compile Include="Security\SaslMechanism.cs" />
     <Compile Include="Security\SaslMechanismCramMd5.cs" />
     <Compile Include="Security\SaslMechanismDigestMd5.cs" />
     <Compile Include="Security\SaslMechanismLogin.cs" />
+    <Compile Include="Security\SaslMechanismNtlm.cs" />
     <Compile Include="Security\SaslMechanismOAuth2.cs" />
     <Compile Include="Security\SaslMechanismPlain.cs" />
     <Compile Include="AlertEventArgs.cs" />
@@ -102,6 +114,7 @@
     <Compile Include="BodyPartMessage.cs" />
     <Compile Include="BodyPartMultipart.cs" />
     <Compile Include="BodyPartText.cs" />
+    <Compile Include="DuplexStream.cs" />
     <Compile Include="Envelope.cs" />
     <Compile Include="FolderAccess.cs" />
     <Compile Include="FolderAttributes.cs" />
@@ -136,6 +149,15 @@
     <Compile Include="UriExtensions.cs" />
   </ItemGroup>
   <ItemGroup />
+  <ItemGroup>
+    <Folder Include="Net\" />
+    <Folder Include="Net\Imap\" />
+    <Folder Include="Net\Pop3\" />
+    <Folder Include="Net\Smtp\" />
+    <Folder Include="Search\" />
+    <Folder Include="Security\" />
+    <Folder Include="Security\Ntlm\" />
+  </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ProjectExtensions>
     <MonoDevelop>

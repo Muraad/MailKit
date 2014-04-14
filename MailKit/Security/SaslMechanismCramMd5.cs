@@ -27,7 +27,12 @@
 using System;
 using System.Net;
 using System.Text;
-using System.Security.Cryptography;
+
+#if NETFX_CORE
+using MD5 = MimeKit.Cryptography.MD5;
+#else
+using MD5 = System.Security.Cryptography.MD5CryptoServiceProvider;
+#endif
 
 namespace MailKit.Security {
 	/// <summary>
@@ -38,9 +43,9 @@ namespace MailKit.Security {
 	/// </remarks>
 	public class SaslMechanismCramMd5 : SaslMechanism
 	{
-		static readonly byte[] HexAlphabet = new byte[16] {
+		static readonly byte[] HexAlphabet = {
 			0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, // '0' -> '7'
-			0x38, 0x39, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, // '8' -> 'F'
+			0x38, 0x39, 0x61, 0x62, 0x63, 0x64, 0x65, 0x66, // '8' -> 'f'
 		};
 
 		/// <summary>
@@ -81,67 +86,56 @@ namespace MailKit.Security {
 			var cred = Credentials.GetCredential (Uri, MechanismName);
 			var userName = Encoding.UTF8.GetBytes (cred.UserName);
 			var password = Encoding.UTF8.GetBytes (cred.Password);
+			var ipad = new byte[64];
+			var opad = new byte[64];
+			byte[] digest;
 
-			using (var md5 = HashAlgorithm.Create ("MD5")) {
-				var ipad = new byte[64];
-				var opad = new byte[64];
-				byte[] buffer;
-				byte[] digest;
-				int offset;
+			if (password.Length > 64) {
+				byte[] checksum;
 
-				if (password.Length > 64) {
-					var checksum = md5.ComputeHash (password);
-					Array.Copy (checksum, ipad, checksum.Length);
-					Array.Copy (checksum, opad, checksum.Length);
-				} else {
-					Array.Copy (password, ipad, password.Length);
-					Array.Copy (password, opad, password.Length);
-				}
+				using (var md5 = new MD5 ())
+					checksum = md5.ComputeHash (password);
 
-				for (int i = 0; i < 64; i++) {
-					ipad[i] ^= 0x36;
-					opad[i] ^= 0x5c;
-				}
-
-				buffer = new byte[ipad.Length + length];
-				offset = 0;
-
-				for (int i = 0; i < ipad.Length; i++)
-					buffer[offset++] = ipad[i];
-				for (int i = 0; i < length; i++)
-					buffer[offset++] = token[startIndex + i];
-
-				md5.Initialize ();
-				digest = md5.ComputeHash (buffer);
-
-				buffer = new byte[opad.Length + digest.Length];
-				offset = 0;
-
-				for (int i = 0; i < opad.Length; i++)
-					buffer[offset++] = opad[i];
-				for (int i = 0; i < digest.Length; i++)
-					buffer[offset++] = digest[i];
-
-				md5.Initialize ();
-				digest = md5.ComputeHash (buffer);
-
-				buffer = new byte[userName.Length + 1 + (digest.Length * 2)];
-				offset = 0;
-
-				for (int i = 0; i < userName.Length; i++)
-					buffer[offset++] = userName[i];
-				buffer[offset++] = 0x20;
-				for (int i = 0; i < digest.Length; i++) {
-					byte c = digest[i];
-
-					buffer[offset++] = HexAlphabet[(c >> 4) & 0x0f];
-					buffer[offset++] = HexAlphabet[c & 0x0f];
-				}
-
-				IsAuthenticated = true;
-
-				return buffer;
+				Array.Copy (checksum, ipad, checksum.Length);
+				Array.Copy (checksum, opad, checksum.Length);
+			} else {
+				Array.Copy (password, ipad, password.Length);
+				Array.Copy (password, opad, password.Length);
 			}
+
+			for (int i = 0; i < 64; i++) {
+				ipad[i] ^= 0x36;
+				opad[i] ^= 0x5c;
+			}
+
+			using (var md5 = new MD5 ()) {
+				md5.TransformBlock (ipad, 0, ipad.Length, null, 0);
+				md5.TransformFinalBlock (token, startIndex, length);
+				digest = md5.Hash;
+			}
+
+			using (var md5 = new MD5 ()) {
+				md5.TransformBlock (opad, 0, opad.Length, null, 0);
+				md5.TransformFinalBlock (digest, 0, digest.Length);
+				digest = md5.Hash;
+			}
+
+			var buffer = new byte[userName.Length + 1 + (digest.Length * 2)];
+			int offset = 0;
+
+			for (int i = 0; i < userName.Length; i++)
+				buffer[offset++] = userName[i];
+			buffer[offset++] = 0x20;
+			for (int i = 0; i < digest.Length; i++) {
+				byte c = digest[i];
+
+				buffer[offset++] = HexAlphabet[(c >> 4) & 0x0f];
+				buffer[offset++] = HexAlphabet[c & 0x0f];
+			}
+
+			IsAuthenticated = true;
+
+			return buffer;
 		}
 	}
 }

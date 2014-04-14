@@ -25,15 +25,20 @@
 //
 
 using System;
+#if !NETFX_CORE
 using System.Runtime.Serialization;
+#endif
 
 namespace MailKit {
 	/// <summary>
 	/// The exception that is thrown when there is a protocol error.
 	/// </summary>
+#if !NETFX_CORE
 	[Serializable]
+#endif
 	public abstract class ProtocolException : Exception
 	{
+#if !NETFX_CORE
 		/// <summary>
 		/// Initializes a new instance of the <see cref="MailKit.ProtocolException"/> class.
 		/// </summary>
@@ -42,6 +47,7 @@ namespace MailKit {
 		protected ProtocolException (SerializationInfo info, StreamingContext context) : base (info, context)
 		{
 		}
+#endif
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="MailKit.ProtocolException"/> class.

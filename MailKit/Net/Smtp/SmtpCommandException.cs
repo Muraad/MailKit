@@ -25,7 +25,9 @@
 //
 
 using System;
+#if !NETFX_CORE
 using System.Runtime.Serialization;
+#endif
 
 using MimeKit;
 
@@ -69,9 +71,12 @@ namespace MailKit.Net.Smtp {
 	/// The exception that is thrown when an SMTP command fails. Unlike a <see cref="SmtpProtocolException"/>,
 	/// a <see cref="SmtpCommandException"/> does not require the <see cref="SmtpClient"/> to be reconnected.
 	/// </remarks>
+#if !NETFX_CORE
 	[Serializable]
+#endif
 	public class SmtpCommandException : ProtocolException
 	{
+#if !NETFX_CORE
 		/// <summary>
 		/// Initializes a new instance of the <see cref="MailKit.Net.Smtp.SmtpCommandException"/> class.
 		/// </summary>
@@ -94,6 +99,7 @@ namespace MailKit.Net.Smtp {
 			ErrorCode = (SmtpErrorCode) info.GetInt32 ("ErrorCode");
 			StatusCode = info.GetInt32 ("StatusCode");
 		}
+#endif
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="MailKit.Net.Smtp.SmtpCommandException"/> class.
@@ -121,6 +127,7 @@ namespace MailKit.Net.Smtp {
 			ErrorCode = code;
 		}
 
+#if !NETFX_CORE
 		/// <summary>
 		/// When overridden in a derived class, sets the <see cref="System.Runtime.Serialization.SerializationInfo"/>
 		/// with information about the exception.
@@ -141,6 +148,7 @@ namespace MailKit.Net.Smtp {
 
 			base.GetObjectData (info, context);
 		}
+#endif
 
 		/// <summary>
 		/// Gets the error code which may provide additional information.

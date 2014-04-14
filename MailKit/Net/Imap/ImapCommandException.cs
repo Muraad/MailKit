@@ -3,7 +3,7 @@
 //
 // Author: Jeffrey Stedfast <jeff@xamarin.com>
 //
-// Copyright (c) 2014 Xamarin Inc.
+// Copyright (c) 2014 Xamarin Inc. (www.xamarin.com)
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -25,7 +25,9 @@
 //
 
 using System;
+#if !NETFX_CORE
 using System.Runtime.Serialization;
+#endif
 
 namespace MailKit.Net.Imap {
 	/// <summary>
@@ -35,9 +37,12 @@ namespace MailKit.Net.Imap {
 	/// The exception that is thrown when an IMAP command fails. Unlike a <see cref="ImapProtocolException"/>,
 	/// a <see cref="ImapCommandException"/> does not require the <see cref="ImapClient"/> to be reconnected.
 	/// </remarks>
+#if !NETFX_CORE
 	[Serializable]
+#endif
 	public class ImapCommandException : ProtocolException
 	{
+#if !NETFX_CORE
 		/// <summary>
 		/// Initializes a new instance of the <see cref="MailKit.Net.Imap.ImapCommandException"/> class.
 		/// </summary>
@@ -46,6 +51,7 @@ namespace MailKit.Net.Imap {
 		protected ImapCommandException (SerializationInfo info, StreamingContext context) : base (info, context)
 		{
 		}
+#endif
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="MailKit.Net.Imap.ImapCommandException"/> class.

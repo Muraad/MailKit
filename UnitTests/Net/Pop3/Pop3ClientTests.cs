@@ -28,11 +28,11 @@ using System;
 using System.Net;
 using System.Threading;
 using System.Collections.Generic;
-using System.Security.Authentication;
 
 using NUnit.Framework;
 
 using MailKit.Net.Pop3;
+using MailKit.Security;
 using MimeKit;
 
 namespace UnitTests.Net.Pop3 {
@@ -357,6 +357,10 @@ namespace UnitTests.Net.Pop3 {
 				Assert.IsTrue (client.AuthenticationMechanisms.Contains ("GSSAPI"), "Expected SASL GSSAPI auth mechanism");
 				Assert.IsTrue (client.AuthenticationMechanisms.Contains ("NTLM"), "Expected SASL NTLM auth mechanism");
 				Assert.IsTrue (client.AuthenticationMechanisms.Contains ("PLAIN"), "Expected SASL PLAIN auth mechanism");
+
+				// Note: remove these auth mechanisms to force PLAIN auth
+				client.AuthenticationMechanisms.Remove ("GSSAPI");
+				client.AuthenticationMechanisms.Remove ("NTLM");
 
 				try {
 					var credentials = new NetworkCredential ("username", "password");

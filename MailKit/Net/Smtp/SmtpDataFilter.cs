@@ -24,8 +24,6 @@
 // THE SOFTWARE.
 //
 
-using System;
-
 using MimeKit.IO.Filters;
 
 namespace MailKit.Net.Smtp {
@@ -59,10 +57,8 @@ namespace MailKit.Net.Smtp {
 				if (c == (byte) '.' && escape) {
 					escape = false;
 					ndots++;
-				} else if (c == (byte) '\n') {
-					escape = true;
 				} else {
-					escape = false;
+					escape = c == (byte) '\n';
 				}
 			}
 
@@ -73,22 +69,19 @@ namespace MailKit.Net.Smtp {
 				byte c = input[i];
 
 				if (c == (byte) '.' && bol) {
-					output[index++] = (byte) '.';
-					output[index++] = (byte) '.';
+					OutputBuffer[index++] = (byte) '.';
 					bol = false;
-				} else if (c == (byte) '\n') {
-					output[index++] = (byte) '\n';
-					bol = true;
 				} else {
-					output[index++] = c;
-					bol = false;
+					bol = c == (byte) '\n';
 				}
+
+				OutputBuffer[index++] = c;
 			}
 
 			outputLength = index;
 			outputIndex = 0;
 
-			return output;
+			return OutputBuffer;
 		}
 
 		/// <summary>

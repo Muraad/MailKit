@@ -1,8 +1,8 @@
-<?xml version="1.0" encoding="utf-8"?>
-<package xmlns="http://schemas.microsoft.com/packaging/2013/01/nuspec.xsd">
-    <metadata minClientVersion="2.7">
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2011/08/nuspec.xsd">
+    <metadata>
         <id>MailKit</id>
-        <version>0.6.0.0</version>
+        <version>0.11.0.0</version>
         <title>MailKit</title>
         <authors>Jeffrey Stedfast</authors>
         <owners>Jeffrey Stedfast</owners>
@@ -13,24 +13,28 @@
         <description>MailKit is an Open Source cross-platform .NET mail-client library that is based on MimeKit and optimized for mobile devices.
 
 Features include:
-* SASL Authentication via DIGEST-MD5, CRAM-MD5, LOGIN, PLAIN, and XOAUTH2.
+* SASL Authentication via NTLM, DIGEST-MD5, CRAM-MD5, LOGIN, PLAIN, and XOAUTH2.
 * A fully-cancellable SmtpClient with support for STARTTLS, 8BITMIME, BINARYMIME and PIPELINING
 * A fully-cancellable Pop3Client with support for STLS, UIDL, and APOP.
 * A fully-cancellable ImapClient with support for LITERAL+, NAMESPACE, CHILDREN, LOGINDISABLED, STARTTLS, MULTIAPPEND, UNSELECT, UIDPLUS, CONDSTORE, ESEARCH, SASL-IR, COMPRESS, ENABLE, QRESYNC, SORT, THREAD, ESORT, SPECIAL-USE, MOVE, XLIST, and X-GM-EXT1.
 * Client-side sorting and threading of messages (the Ordinal Subject and the Jamie Zawinski threading algorithms are supported).
-* S/MIME and PGP support via MimeKit
-</description>
+* S/MIME and PGP support via MimeKit</description>
         <summary>An Open Source .NET mail-client library for Windows, Mac, Linux, and mobile platforms such as iOS and Android.</summary>
-        <releaseNotes>* Added an ImapClient.GetFolder() method that takes a folder path for convenience.
-* Added a way to disable use of STARTTLS by passing "starttls=false" as a URI parameter.
-* Added support for the IMAP COMPRESSIONACTIVE RESP-CODE.
-* Modified to handle rfc2231-encoded paremeter values in the BODY and BODYSTRUCTURE IMAP responses.
+        <releaseNotes>* Implemented the NTLM SASL authentication mechanism.
+* Fixed CRAM-MD5 and DIGEST-MD5 SASL mechanisms to work properly.
+* Modified the DIGEST-MD5 logic to use System.Security.Cryptography.RandomNumberGenerator instead of System.Random for generating the nonce. For the PCL version, it now uses Windows.Security.Cryptography.CryptographicBuffer.GenerateRandom().
+* Modified ImapFolder.Fetch (int min, int max, ...) to work for empty folders. (issue #35)
+* Added a work-around for IMAP servers that send "* OK [UNSEEN 0]". (issue #34)
+* Fixed ImapFolder.GetBodyPart(int ...) to use FETCH instead of UID FETCH.
+* Added a version of IFolder.GetBodyPart() that takes a bool headersOnly parameter.
+* Added a BodyPartBasic.IsAttachment convenience property.
+* Added new wrapper APIs so developers don't need to pass CancellationTokens.
 * Improved documentation</releaseNotes>
         <copyright>Xamarin Inc.</copyright>
         <language>en-US</language>
-        <tags>smtp pop3 imap mime security smime openpgp pgp mbox email parser xamarin android ios monodroid monotouch</tags>
+        <tags>smtp pop3 imap mime security smime openpgp pgp mbox email parser xamarin android ios monodroid monotouch win8 wp81 wpa81</tags>
         <dependencies>
-            <dependency id="MimeKit" version="0.27.0.0" />
+            <dependency id="MimeKit" version="0.32.0.0" />
         </dependencies>
         <frameworkAssemblies>
             <frameworkAssembly assemblyName="System" targetFramework=".NETFramework4.0" />
@@ -51,5 +55,7 @@ Features include:
         <file src="..\MailKit\bin\Release\lib\MonoTouch\MailKit.xml" target="lib\MonoTouch\MailKit.xml" />
         <file src="..\MailKit\bin\Release\lib\net40\MailKit.dll" target="lib\net40\MailKit.dll" />
         <file src="..\MailKit\bin\Release\lib\net40\MailKit.xml" target="lib\net40\MailKit.xml" />
+        <file src="..\MailKit\bin\Release\lib\wpa81\MailKit.dll" target="lib\portable-net45+wp81+win8\MailKit.dll" />
+        <file src="..\MailKit\bin\Release\lib\wpa81\MailKit.xml" target="lib\portable-net45+wp81+win8\MailKit.xml" />
     </files>
 </package>

@@ -7,9 +7,10 @@ MailKit is a cross-platform mail client library built on top of [MimeKit](https:
 ## Features
 
 * SASL Authentication
-  * DIGEST-MD5
   * CRAM-MD5
+  * DIGEST-MD5
   * LOGIN
+  * NTLM
   * PLAIN
   * XOAUTH2 (partial support - you need to fetch the auth tokens yourself)
 * SMTP Client
@@ -64,8 +65,7 @@ MailKit is a cross-platform mail client library built on top of [MimeKit](https:
   * Improve XOAUTH2
   * ANONYMOUS
   * GSSAPI
-  * KERBEROS_v4
-  * NTLM
+  * SCRAM-SHA-1
   * SCRAM-*
 * SMTP Client
   * CHUNKING (hmmm, doesn't really seem all that useful...)
@@ -140,11 +140,12 @@ simply enter the following command:
 
 ## Building
 
-First, you'll need to clone MailKit, MimeKit and Bouncy Castle from my GitHub repository:
+First, you'll need to clone MailKit, MimeKit, Bouncy Castle, and Portable.Text.Encoding from my GitHub repository:
 
     git clone https://github.com/jstedfast/MailKit.git
     git clone https://github.com/jstedfast/MimeKit.git
     git clone https://github.com/jstedfast/bc-csharp.git
+    git clone https://github.com/jstedfast/Portable.Text.Encoding.git
 
 Currently, MailKit (through its use of MimeKit) depends on the visual-studio-2010 branch of bc-csharp for
 the Visual Studio 2010 project files that I've added (to replace the Visual Studio 2003 project files).
@@ -209,7 +210,11 @@ I just wanted to let you know that Monica and I were going to go play some paint
 				using (var cancel = new CancellationTokenSource ()) {
 					client.Connect (uri, cancel.Token);
 
-					// only needed if the SMTP server requires authentication
+					// Note: since we don't have an OAuth2 token, disable
+					// the XOAUTH2 authentication mechanism.
+					client.AuthenticationMechanisms.Remove ("XOAUTH2");
+
+					// Note: only needed if the SMTP server requires authentication
 					client.Authenticate (credentials, cancel.Token);
 
 					client.Send (message, cancel.Token);
@@ -247,6 +252,11 @@ namespace TestClient {
 
 				using (var cancel = new CancellationTokenSource ()) {
 					client.Connect (uri, cancel.Token);
+
+					// Note: since we don't have an OAuth2 token, disable
+					// the XOAUTH2 authentication mechanism.
+					client.AuthenticationMechanisms.Remove ("XOAUTH2");
+
 					client.Authenticate (credentials, cancel.Token);
 
 					int count = client.GetMessageCount (cancel.Token);
@@ -288,6 +298,11 @@ namespace TestClient {
 
 				using (var cancel = new CancellationTokenSource ()) {
 					client.Connect (uri, cancel.Token);
+
+					// Note: since we don't have an OAuth2 token, disable
+					// the XOAUTH2 authentication mechanism.
+					client.AuthenticationMechanisms.Remove ("XOAUTH");
+
 					client.Authenticate (credentials, cancel.Token);
 
 					// The Inbox folder is always available on all IMAP servers...
@@ -299,7 +314,7 @@ namespace TestClient {
 
 					for (int i = 0; i < inbox.Count; i++) {
 						var message = inbox.GetMessage (i, cancel.Token);
-						Console.WriteLine ("Subject: {0}", i, message.Subject);
+						Console.WriteLine ("Subject: {0}", message.Subject);
 					}
 
 					client.Disconnect (true, cancel.Token);

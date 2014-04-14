@@ -386,7 +386,51 @@ namespace MailKit.Net.Imap {
 		/// <remarks>
 		/// <para>This variant of the <see cref="Open(FolderAccess,System.Threading.CancellationToken)"/>
 		/// method is meant for quick resynchronization of the folder. Before calling this method,
-		/// the <see cref="ImapClient.EnableQuickResync"/> method MUST be called.</para>
+		/// the <see cref="ImapClient.EnableQuickResync(CancellationToken)"/> method MUST be called.</para>
+		/// <para>You should also make sure to add listeners to the <see cref="Vanished"/> and
+		/// <see cref="MessageFlagsChanged"/> events to get notifications of changes since
+		/// the last time the folder was opened.</para>
+		/// </remarks>
+		/// <returns>The <see cref="FolderAccess"/> state of the folder.</returns>
+		/// <param name="access">The requested folder access.</param>
+		/// <param name="uidValidity">The last known <see cref="UidValidity"/> value.</param>
+		/// <param name="highestModSeq">The last known <see cref="HighestModSeq"/> value.</param>
+		/// <param name="uids">The last known list of unique message identifiers.</param>
+		/// <exception cref="System.ArgumentOutOfRangeException">
+		/// <paramref name="access"/> is not a valid value.
+		/// </exception>
+		/// <exception cref="System.ObjectDisposedException">
+		/// The <see cref="ImapClient"/> has been disposed.
+		/// </exception>
+		/// <exception cref="System.InvalidOperationException">
+		/// <para>The <see cref="ImapClient"/> is either not connected or not authenticated.</para>
+		/// <para>-or-</para>
+		/// <para>The QRESYNC feature has not been enabled.</para>
+		/// </exception>
+		/// <exception cref="System.NotSupportedException">
+		/// The IMAP server does not support the QRESYNC extension.
+		/// </exception>
+		/// <exception cref="System.IO.IOException">
+		/// An I/O error occurred.
+		/// </exception>
+		/// <exception cref="ImapProtocolException">
+		/// The server's response contained unexpected tokens.
+		/// </exception>
+		/// <exception cref="ImapCommandException">
+		/// The server replied with a NO or BAD response.
+		/// </exception>
+		public FolderAccess Open (FolderAccess access, UniqueId uidValidity, ulong highestModSeq, UniqueId[] uids)
+		{
+			return Open (access, uidValidity, highestModSeq, uids, CancellationToken.None);
+		}
+
+		/// <summary>
+		/// Opens the folder using the requested folder access.
+		/// </summary>
+		/// <remarks>
+		/// <para>This variant of the <see cref="Open(FolderAccess,System.Threading.CancellationToken)"/>
+		/// method is meant for quick resynchronization of the folder. Before calling this method,
+		/// the <see cref="ImapClient.EnableQuickResync(CancellationToken)"/> method MUST be called.</para>
 		/// <para>You should also make sure to add listeners to the <see cref="Vanished"/> and
 		/// <see cref="MessageFlagsChanged"/> events to get notifications of changes since
 		/// the last time the folder was opened.</para>
@@ -474,6 +518,34 @@ namespace MailKit.Net.Imap {
 		/// </summary>
 		/// <returns>The <see cref="FolderAccess"/> state of the folder.</returns>
 		/// <param name="access">The requested folder access.</param>
+		/// <exception cref="System.ArgumentOutOfRangeException">
+		/// <paramref name="access"/> is not a valid value.
+		/// </exception>
+		/// <exception cref="System.ObjectDisposedException">
+		/// The <see cref="ImapClient"/> has been disposed.
+		/// </exception>
+		/// <exception cref="System.InvalidOperationException">
+		/// The <see cref="ImapClient"/> is either not connected or not authenticated.
+		/// </exception>
+		/// <exception cref="System.IO.IOException">
+		/// An I/O error occurred.
+		/// </exception>
+		/// <exception cref="ImapProtocolException">
+		/// The server's response contained unexpected tokens.
+		/// </exception>
+		/// <exception cref="ImapCommandException">
+		/// The server replied with a NO or BAD response.
+		/// </exception>
+		public FolderAccess Open (FolderAccess access)
+		{
+			return Open (access, CancellationToken.None);
+		}
+
+		/// <summary>
+		/// Opens the folder using the requested folder access.
+		/// </summary>
+		/// <returns>The <see cref="FolderAccess"/> state of the folder.</returns>
+		/// <param name="access">The requested folder access.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <exception cref="System.ArgumentOutOfRangeException">
 		/// <paramref name="access"/> is not a valid value.
@@ -524,6 +596,34 @@ namespace MailKit.Net.Imap {
 			Engine.Selected = this;
 
 			return Access;
+		}
+
+		/// <summary>
+		/// Closes the folder, optionally expunging the messages marked for deletion.
+		/// </summary>
+		/// <param name="expunge">If set to <c>true</c>, expunge.</param>
+		/// <exception cref="System.ObjectDisposedException">
+		/// The <see cref="ImapClient"/> has been disposed.
+		/// </exception>
+		/// <exception cref="System.InvalidOperationException">
+		/// <para>The <see cref="ImapClient"/> is not connected.</para>
+		/// <para>-or-</para>
+		/// <para>The <see cref="ImapClient"/> is not authenticated.</para>
+		/// <para>-or-</para>
+		/// <para>The folder is not currently open.</para>
+		/// </exception>
+		/// <exception cref="System.IO.IOException">
+		/// An I/O error occurred.
+		/// </exception>
+		/// <exception cref="ImapProtocolException">
+		/// The server's response contained unexpected tokens.
+		/// </exception>
+		/// <exception cref="ImapCommandException">
+		/// The server replied with a NO or BAD response.
+		/// </exception>
+		public void Close (bool expunge)
+		{
+			Close (expunge, CancellationToken.None);
 		}
 
 		/// <summary>
@@ -585,6 +685,40 @@ namespace MailKit.Net.Imap {
 		/// <returns>The created folder.</returns>
 		/// <param name="name">The name of the folder to create.</param>
 		/// <param name="isMessageFolder"><c>true</c> if the folder will be used to contain messages; otherwise <c>false</c>.</param>
+		/// <exception cref="System.ArgumentNullException">
+		/// <paramref name="name"/> is <c>null</c>.
+		/// </exception>
+		/// <exception cref="System.ArgumentException">
+		/// <paramref name="name"/> is empty.
+		/// </exception>
+		/// <exception cref="System.ObjectDisposedException">
+		/// The <see cref="ImapClient"/> has been disposed.
+		/// </exception>
+		/// <exception cref="System.InvalidOperationException">
+		/// <para>The <see cref="ImapClient"/> is either not connected or not authenticated.</para>
+		/// <para>-or-</para>
+		/// <para>The <see cref="DirectorySeparator"/> is nil, and thus child folders cannot be created.</para>
+		/// </exception>
+		/// <exception cref="System.IO.IOException">
+		/// An I/O error occurred.
+		/// </exception>
+		/// <exception cref="ImapProtocolException">
+		/// The server's response contained unexpected tokens.
+		/// </exception>
+		/// <exception cref="ImapCommandException">
+		/// The server replied with a NO or BAD response.
+		/// </exception>
+		public IFolder Create (string name, bool isMessageFolder)
+		{
+			return Create (name, isMessageFolder, CancellationToken.None);
+		}
+
+		/// <summary>
+		/// Creates a new subfolder with the given name.
+		/// </summary>
+		/// <returns>The created folder.</returns>
+		/// <param name="name">The name of the folder to create.</param>
+		/// <param name="isMessageFolder"><c>true</c> if the folder will be used to contain messages; otherwise <c>false</c>.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <exception cref="System.ArgumentNullException">
 		/// <paramref name="name"/> is <c>null</c>.
@@ -629,6 +763,7 @@ namespace MailKit.Net.Imap {
 			var encodedName = ImapEncoding.Encode (fullName);
 			var list = new List<ImapFolder> ();
 			var createName = encodedName;
+			ImapFolder folder;
 
 			if (!isMessageFolder)
 				createName += DirectorySeparator;
@@ -654,7 +789,49 @@ namespace MailKit.Net.Imap {
 			if (ic.Result != ImapCommandResult.Ok)
 				throw new ImapCommandException ("LIST", ic.Result);
 
-			return list.Count > 0 ? list[0] : null;
+			folder = list.FirstOrDefault ();
+
+			if (folder != null)
+				folder.ParentFolder = this;
+
+			return folder;
+		}
+
+		/// <summary>
+		/// Renames the folder to exist with a new name under a new parent folder.
+		/// </summary>
+		/// <param name="parent">The new parent folder.</param>
+		/// <param name="name">The new name of the folder.</param>
+		/// <exception cref="System.ArgumentNullException">
+		/// <para><paramref name="parent"/> is <c>null</c>.</para>
+		/// <para>-or-</para>
+		/// <para><paramref name="name"/> is <c>null</c>.</para>
+		/// </exception>
+		/// <exception cref="System.ArgumentException">
+		/// <para><paramref name="parent"/> does not belong to the <see cref="ImapClient"/>.</para>
+		/// <para>-or-</para>
+		/// <para><paramref name="name"/> is not a legal folder name.</para>
+		/// </exception>
+		/// <exception cref="System.ObjectDisposedException">
+		/// The <see cref="ImapClient"/> has been disposed.
+		/// </exception>
+		/// <exception cref="System.InvalidOperationException">
+		/// <para>The <see cref="ImapClient"/> is either not connected or not authenticated.</para>
+		/// <para>-or-</para>
+		/// <para>The folder cannot be renamed (it is either a namespace or the Inbox).</para>
+		/// </exception>
+		/// <exception cref="System.IO.IOException">
+		/// An I/O error occurred.
+		/// </exception>
+		/// <exception cref="ImapProtocolException">
+		/// The server's response contained unexpected tokens.
+		/// </exception>
+		/// <exception cref="ImapCommandException">
+		/// The server replied with a NO or BAD response.
+		/// </exception>
+		public void Rename (IFolder parent, string name)
+		{
+			Rename (parent, name, CancellationToken.None);
 		}
 
 		/// <summary>
@@ -745,6 +922,31 @@ namespace MailKit.Net.Imap {
 		/// <summary>
 		/// Deletes the folder on the IMAP server.
 		/// </summary>
+		/// <exception cref="System.ObjectDisposedException">
+		/// The <see cref="ImapClient"/> has been disposed.
+		/// </exception>
+		/// <exception cref="System.InvalidOperationException">
+		/// <para>The <see cref="ImapClient"/> is either not connected or not authenticated.</para>
+		/// <para>-or-</para>
+		/// <para>The folder cannot be deleted (it is either a namespace or the Inbox).</para>
+		/// </exception>
+		/// <exception cref="System.IO.IOException">
+		/// An I/O error occurred.
+		/// </exception>
+		/// <exception cref="ImapProtocolException">
+		/// The server's response contained unexpected tokens.
+		/// </exception>
+		/// <exception cref="ImapCommandException">
+		/// The server replied with a NO or BAD response.
+		/// </exception>
+		public void Delete ()
+		{
+			Delete (CancellationToken.None);
+		}
+
+		/// <summary>
+		/// Deletes the folder on the IMAP server.
+		/// </summary>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <exception cref="System.ObjectDisposedException">
 		/// The <see cref="ImapClient"/> has been disposed.
@@ -796,6 +998,29 @@ namespace MailKit.Net.Imap {
 		/// <summary>
 		/// Subscribes the folder.
 		/// </summary>
+		/// <exception cref="System.ObjectDisposedException">
+		/// The <see cref="ImapClient"/> has been disposed.
+		/// </exception>
+		/// <exception cref="System.InvalidOperationException">
+		/// The <see cref="ImapClient"/> is either not connected or not authenticated.
+		/// </exception>
+		/// <exception cref="System.IO.IOException">
+		/// An I/O error occurred.
+		/// </exception>
+		/// <exception cref="ImapProtocolException">
+		/// The server's response contained unexpected tokens.
+		/// </exception>
+		/// <exception cref="ImapCommandException">
+		/// The server replied with a NO or BAD response.
+		/// </exception>
+		public void Subscribe ()
+		{
+			Subscribe (CancellationToken.None);
+		}
+
+		/// <summary>
+		/// Subscribes the folder.
+		/// </summary>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <exception cref="System.ObjectDisposedException">
 		/// The <see cref="ImapClient"/> has been disposed.
@@ -835,6 +1060,29 @@ namespace MailKit.Net.Imap {
 		/// <summary>
 		/// Unsubscribes the folder.
 		/// </summary>
+		/// <exception cref="System.ObjectDisposedException">
+		/// The <see cref="ImapClient"/> has been disposed.
+		/// </exception>
+		/// <exception cref="System.InvalidOperationException">
+		/// The <see cref="ImapClient"/> is either not connected or not authenticated.
+		/// </exception>
+		/// <exception cref="System.IO.IOException">
+		/// An I/O error occurred.
+		/// </exception>
+		/// <exception cref="ImapProtocolException">
+		/// The server's response contained unexpected tokens.
+		/// </exception>
+		/// <exception cref="ImapCommandException">
+		/// The server replied with a NO or BAD response.
+		/// </exception>
+		public void Unsubscribe ()
+		{
+			Unsubscribe (CancellationToken.None);
+		}
+
+		/// <summary>
+		/// Unsubscribes the folder.
+		/// </summary>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <exception cref="System.ObjectDisposedException">
 		/// The <see cref="ImapClient"/> has been disposed.
@@ -869,6 +1117,31 @@ namespace MailKit.Net.Imap {
 
 			IsSubscribed = false;
 			OnUnsubscribed ();
+		}
+
+		/// <summary>
+		/// Gets the subfolders.
+		/// </summary>
+		/// <returns>The subfolders.</returns>
+		/// <param name="subscribedOnly">If set to <c>true</c>, only subscribed folders will be listed.</param>
+		/// <exception cref="System.ObjectDisposedException">
+		/// The <see cref="ImapClient"/> has been disposed.
+		/// </exception>
+		/// <exception cref="System.InvalidOperationException">
+		/// The <see cref="ImapClient"/> is either not connected or not authenticated.
+		/// </exception>
+		/// <exception cref="System.IO.IOException">
+		/// An I/O error occurred.
+		/// </exception>
+		/// <exception cref="ImapProtocolException">
+		/// The server's response contained unexpected tokens.
+		/// </exception>
+		/// <exception cref="ImapCommandException">
+		/// The server replied with a NO or BAD response.
+		/// </exception>
+		public IEnumerable<IFolder> GetSubfolders (bool subscribedOnly)
+		{
+			return GetSubfolders (subscribedOnly, CancellationToken.None);
 		}
 
 		/// <summary>
@@ -916,6 +1189,40 @@ namespace MailKit.Net.Imap {
 				throw new ImapCommandException (subscribedOnly ? "LSUB" : "LIST", ic.Result);
 
 			return list;
+		}
+
+		/// <summary>
+		/// Gets the specified subfolder.
+		/// </summary>
+		/// <returns>The subfolder, if available; otherwise, <c>null</c>.</returns>
+		/// <param name="name">The name of the subfolder.</param>
+		/// <exception cref="System.ArgumentNullException">
+		/// <paramref name="name"/> is <c>null</c>.
+		/// </exception>
+		/// <exception cref="System.ArgumentException">
+		/// <paramref name="name"/> is either an empty string or contains the <see cref="DirectorySeparator"/>.
+		/// </exception>
+		/// <exception cref="System.ObjectDisposedException">
+		/// The <see cref="ImapClient"/> has been disposed.
+		/// </exception>
+		/// <exception cref="System.InvalidOperationException">
+		/// The <see cref="ImapClient"/> is either not connected or not authenticated.
+		/// </exception>
+		/// <exception cref="System.IO.IOException">
+		/// An I/O error occurred.
+		/// </exception>
+		/// <exception cref="FolderNotFoundException">
+		/// The requested folder could not be found.
+		/// </exception>
+		/// <exception cref="ImapProtocolException">
+		/// The server's response contained unexpected tokens.
+		/// </exception>
+		/// <exception cref="ImapCommandException">
+		/// The server replied with a NO or BAD response.
+		/// </exception>
+		public IFolder GetSubfolder (string name)
+		{
+			return GetSubfolder (name, CancellationToken.None);
 		}
 
 		/// <summary>
@@ -990,6 +1297,33 @@ namespace MailKit.Net.Imap {
 		/// <summary>
 		/// Forces the server to flush its state for the folder.
 		/// </summary>
+		/// <exception cref="System.ObjectDisposedException">
+		/// The <see cref="ImapClient"/> has been disposed.
+		/// </exception>
+		/// <exception cref="System.InvalidOperationException">
+		/// <para>The <see cref="ImapClient"/> is not connected.</para>
+		/// <para>-or-</para>
+		/// <para>The <see cref="ImapClient"/> is not authenticated.</para>
+		/// <para>-or-</para>
+		/// <para>The folder is not currently open.</para>
+		/// </exception>
+		/// <exception cref="System.IO.IOException">
+		/// An I/O error occurred.
+		/// </exception>
+		/// <exception cref="ImapProtocolException">
+		/// The server's response contained unexpected tokens.
+		/// </exception>
+		/// <exception cref="ImapCommandException">
+		/// The server replied with a NO or BAD response.
+		/// </exception>
+		public void Check ()
+		{
+			Check (CancellationToken.None);
+		}
+
+		/// <summary>
+		/// Forces the server to flush its state for the folder.
+		/// </summary>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <exception cref="System.ObjectDisposedException">
 		/// The <see cref="ImapClient"/> has been disposed.
@@ -1025,6 +1359,37 @@ namespace MailKit.Net.Imap {
 
 			if (ic.Result != ImapCommandResult.Ok)
 				throw new ImapCommandException ("CHECK", ic.Result);
+		}
+
+		/// <summary>
+		/// Updates the values of the specified items.
+		/// </summary>
+		/// <param name="items">The items to update.</param>
+		/// <exception cref="System.ObjectDisposedException">
+		/// The <see cref="ImapClient"/> has been disposed.
+		/// </exception>
+		/// <exception cref="System.InvalidOperationException">
+		/// <para>The <see cref="ImapClient"/> is not connected.</para>
+		/// <para>-or-</para>
+		/// <para>The <see cref="ImapClient"/> is not authenticated.</para>
+		/// <para>-or-</para>
+		/// <para>The folder is not currently open.</para>
+		/// </exception>
+		/// <exception cref="System.NotSupportedException">
+		/// The IMAP server does not support the STATUS command.
+		/// </exception>
+		/// <exception cref="System.IO.IOException">
+		/// An I/O error occurred.
+		/// </exception>
+		/// <exception cref="ImapProtocolException">
+		/// The server's response contained unexpected tokens.
+		/// </exception>
+		/// <exception cref="ImapCommandException">
+		/// The server replied with a NO or BAD response.
+		/// </exception>
+		public void Status (StatusItems items)
+		{
+			Status (items, CancellationToken.None);
 		}
 
 		/// <summary>
@@ -1099,8 +1464,44 @@ namespace MailKit.Net.Imap {
 		/// <remarks>
 		/// <para>Normally, an <see cref="Expunged"/> event will be emitted for each
 		/// message that is expunged. However, if the IMAP server supports the QRESYNC
-		/// extension and it has been enabled via the <see cref="ImapClient.EnableQuickResync"/>
-		/// method, then the <see cref="Vanished"/> event will be emitted rather than the
+		/// extension and it has been enabled via the
+		/// <see cref="ImapClient.EnableQuickResync(CancellationToken)"/> method, then
+		/// the <see cref="Vanished"/> event will be emitted rather than the
+		/// <see cref="Expunged"/> event.</para>
+		/// </remarks>
+		/// <exception cref="System.ObjectDisposedException">
+		/// The <see cref="ImapClient"/> has been disposed.
+		/// </exception>
+		/// <exception cref="System.InvalidOperationException">
+		/// <para>The <see cref="ImapClient"/> is not connected.</para>
+		/// <para>-or-</para>
+		/// <para>The <see cref="ImapClient"/> is not authenticated.</para>
+		/// <para>-or-</para>
+		/// <para>The folder is not currently open in read-write mode.</para>
+		/// </exception>
+		/// <exception cref="System.IO.IOException">
+		/// An I/O error occurred.
+		/// </exception>
+		/// <exception cref="ImapProtocolException">
+		/// The server's response contained unexpected tokens.
+		/// </exception>
+		/// <exception cref="ImapCommandException">
+		/// The server replied with a NO or BAD response.
+		/// </exception>
+		public void Expunge ()
+		{
+			Expunge (CancellationToken.None);
+		}
+
+		/// <summary>
+		/// Expunges the folder, permanently removing all messages marked for deletion.
+		/// </summary>
+		/// <remarks>
+		/// <para>Normally, an <see cref="Expunged"/> event will be emitted for each
+		/// message that is expunged. However, if the IMAP server supports the QRESYNC
+		/// extension and it has been enabled via the
+		/// <see cref="ImapClient.EnableQuickResync(CancellationToken)"/> method, then
+		/// the <see cref="Vanished"/> event will be emitted rather than the
 		/// <see cref="Expunged"/> event.</para>
 		/// </remarks>
 		/// <param name="cancellationToken">The cancellation token.</param>
@@ -1146,8 +1547,51 @@ namespace MailKit.Net.Imap {
 		/// <remarks>
 		/// <para>Normally, an <see cref="Expunged"/> event will be emitted for each
 		/// message that is expunged. However, if the IMAP server supports the QRESYNC
-		/// extension and it has been enabled via the <see cref="ImapClient.EnableQuickResync"/>
-		/// method, then the <see cref="Vanished"/> event will be emitted rather than the
+		/// extension and it has been enabled via the
+		/// <see cref="ImapClient.EnableQuickResync(CancellationToken)"/> method, then
+		/// the <see cref="Vanished"/> event will be emitted rather than the
+		/// <see cref="Expunged"/> event.</para>
+		/// </remarks>
+		/// <param name="uids">The message uids.</param>
+		/// <exception cref="System.ArgumentNullException">
+		/// <paramref name="uids"/> is <c>null</c>.
+		/// </exception>
+		/// <exception cref="System.ArgumentException">
+		/// The list of uids contained one or more invalid values.
+		/// </exception>
+		/// <exception cref="System.ObjectDisposedException">
+		/// The <see cref="ImapClient"/> has been disposed.
+		/// </exception>
+		/// <exception cref="System.InvalidOperationException">
+		/// <para>The <see cref="ImapClient"/> is not connected.</para>
+		/// <para>-or-</para>
+		/// <para>The <see cref="ImapClient"/> is not authenticated.</para>
+		/// <para>-or-</para>
+		/// <para>The folder is not currently open in read-write mode.</para>
+		/// </exception>
+		/// <exception cref="System.IO.IOException">
+		/// An I/O error occurred.
+		/// </exception>
+		/// <exception cref="ImapProtocolException">
+		/// The server's response contained unexpected tokens.
+		/// </exception>
+		/// <exception cref="ImapCommandException">
+		/// The server replied with a NO or BAD response.
+		/// </exception>
+		public void Expunge (UniqueId[] uids)
+		{
+			Expunge (uids, CancellationToken.None);
+		}
+
+		/// <summary>
+		/// Expunges the specified uids, permanently removing them from the folder.
+		/// </summary>
+		/// <remarks>
+		/// <para>Normally, an <see cref="Expunged"/> event will be emitted for each
+		/// message that is expunged. However, if the IMAP server supports the QRESYNC
+		/// extension and it has been enabled via the
+		/// <see cref="ImapClient.EnableQuickResync(CancellationToken)"/> method, then
+		/// the <see cref="Vanished"/> event will be emitted rather than the
 		/// <see cref="Expunged"/> event.</para>
 		/// </remarks>
 		/// <param name="uids">The message uids.</param>
@@ -1204,7 +1648,7 @@ namespace MailKit.Net.Imap {
 			string format = string.Empty;
 
 			// Note: GMail claims to support UIDPLUS, but does not accept "UID APPEND"
-			if ((Engine.Capabilities & ImapCapabilities.GMailExt1) == 0) {
+			if (!Engine.IsGMail) {
 				if ((Engine.Capabilities & ImapCapabilities.UidPlus) != 0)
 					format = "UID ";
 			}
@@ -1220,6 +1664,35 @@ namespace MailKit.Net.Imap {
 			format += " %L\r\n";
 
 			return Engine.QueueCommand (cancellationToken, null, format, this, message);
+		}
+
+		/// <summary>
+		/// Appends the specified message to the folder.
+		/// </summary>
+		/// <returns>The UID of the appended message, if available; otherwise, <c>null</c>.</returns>
+		/// <param name="message">The message.</param>
+		/// <param name="flags">The message flags.</param>
+		/// <exception cref="System.ArgumentNullException">
+		/// <paramref name="message"/> is <c>null</c>.
+		/// </exception>
+		/// <exception cref="System.ObjectDisposedException">
+		/// The <see cref="ImapClient"/> has been disposed.
+		/// </exception>
+		/// <exception cref="System.InvalidOperationException">
+		/// The <see cref="ImapClient"/> is either not connected or not authenticated.
+		/// </exception>
+		/// <exception cref="System.IO.IOException">
+		/// An I/O error occurred.
+		/// </exception>
+		/// <exception cref="ImapProtocolException">
+		/// The server's response contained unexpected tokens.
+		/// </exception>
+		/// <exception cref="ImapCommandException">
+		/// The server replied with a NO or BAD response.
+		/// </exception>
+		public UniqueId? Append (MimeMessage message, MessageFlags flags)
+		{
+			return Append (message, flags, CancellationToken.None);
 		}
 
 		/// <summary>
@@ -1281,6 +1754,36 @@ namespace MailKit.Net.Imap {
 		/// <param name="message">The message.</param>
 		/// <param name="flags">The message flags.</param>
 		/// <param name="date">The received date of the message.</param>
+		/// <exception cref="System.ArgumentNullException">
+		/// <paramref name="message"/> is <c>null</c>.
+		/// </exception>
+		/// <exception cref="System.ObjectDisposedException">
+		/// The <see cref="ImapClient"/> has been disposed.
+		/// </exception>
+		/// <exception cref="System.InvalidOperationException">
+		/// The <see cref="ImapClient"/> is either not connected or not authenticated.
+		/// </exception>
+		/// <exception cref="System.IO.IOException">
+		/// An I/O error occurred.
+		/// </exception>
+		/// <exception cref="ImapProtocolException">
+		/// The server's response contained unexpected tokens.
+		/// </exception>
+		/// <exception cref="ImapCommandException">
+		/// The server replied with a NO or BAD response.
+		/// </exception>
+		public UniqueId? Append (MimeMessage message, MessageFlags flags, DateTimeOffset date)
+		{
+			return Append (message, flags, date, CancellationToken.None);
+		}
+
+		/// <summary>
+		/// Appends the specified message to the folder.
+		/// </summary>
+		/// <returns>The UID of the appended message, if available; otherwise, <c>null</c>.</returns>
+		/// <param name="message">The message.</param>
+		/// <param name="flags">The message flags.</param>
+		/// <param name="date">The received date of the message.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <exception cref="System.ArgumentNullException">
 		/// <paramref name="message"/> is <c>null</c>.
@@ -1333,7 +1836,7 @@ namespace MailKit.Net.Imap {
 			string format = string.Empty;
 
 			// Note: GMail claims to support UIDPLUS, but does not accept "UID APPEND"
-			if ((Engine.Capabilities & ImapCapabilities.GMailExt1) == 0) {
+			if (!Engine.IsGMail) {
 				if ((Engine.Capabilities & ImapCapabilities.UidPlus) != 0)
 					format = "UID ";
 			}
@@ -1356,6 +1859,42 @@ namespace MailKit.Net.Imap {
 			format += "\r\n";
 
 			return Engine.QueueCommand (cancellationToken, null, format, args.ToArray ());
+		}
+
+		/// <summary>
+		/// Appends the specified messages to the folder.
+		/// </summary>
+		/// <returns>The UIDs of the appended messages, if available; otherwise, <c>null</c>.</returns>
+		/// <param name="messages">The array of messages to append to the folder.</param>
+		/// <param name="flags">The message flags to use for each message.</param>
+		/// <exception cref="System.ArgumentNullException">
+		/// <para><paramref name="messages"/> is <c>null</c>.</para>
+		/// <para>-or-</para>
+		/// <para><paramref name="flags"/> is <c>null</c>.</para>
+		/// </exception>
+		/// <exception cref="System.ArgumentException">
+		/// <para>One or more of the <paramref name="messages"/> is null.</para>
+		/// <para>-or-</para>
+		/// <para>The number of messages does not match the number of flags.</para>
+		/// </exception>
+		/// <exception cref="System.ObjectDisposedException">
+		/// The <see cref="ImapClient"/> has been disposed.
+		/// </exception>
+		/// <exception cref="System.InvalidOperationException">
+		/// The <see cref="ImapClient"/> is either not connected or not authenticated.
+		/// </exception>
+		/// <exception cref="System.IO.IOException">
+		/// An I/O error occurred.
+		/// </exception>
+		/// <exception cref="ImapProtocolException">
+		/// The server's response contained unexpected tokens.
+		/// </exception>
+		/// <exception cref="ImapCommandException">
+		/// The server replied with a NO or BAD response.
+		/// </exception>
+		public UniqueId[] Append (MimeMessage[] messages, MessageFlags[] flags)
+		{
+			return Append (messages, flags, CancellationToken.None);
 		}
 
 		/// <summary>
@@ -1443,6 +1982,45 @@ namespace MailKit.Net.Imap {
 			}
 
 			return uids != null ? uids.ToArray () : new UniqueId[0];
+		}
+
+		/// <summary>
+		/// Appends the specified messages to the folder.
+		/// </summary>
+		/// <returns>The UIDs of the appended messages, if available; otherwise, <c>null</c>.</returns>
+		/// <param name="messages">The array of messages to append to the folder.</param>
+		/// <param name="flags">The message flags to use for each of the messages.</param>
+		/// <param name="dates">The received dates to use for each of the messages.</param>
+		/// <exception cref="System.ArgumentNullException">
+		/// <para><paramref name="messages"/> is <c>null</c>.</para>
+		/// <para>-or-</para>
+		/// <para><paramref name="flags"/> is <c>null</c>.</para>
+		/// <para>-or-</para>
+		/// <para><paramref name="dates"/> is <c>null</c>.</para>
+		/// </exception>
+		/// <exception cref="System.ArgumentException">
+		/// <para>One or more of the <paramref name="messages"/> is null.</para>
+		/// <para>-or-</para>
+		/// <para>The number of messages, flags, and dates do not match.</para>
+		/// </exception>
+		/// <exception cref="System.ObjectDisposedException">
+		/// The <see cref="ImapClient"/> has been disposed.
+		/// </exception>
+		/// <exception cref="System.InvalidOperationException">
+		/// The <see cref="ImapClient"/> is either not connected or not authenticated.
+		/// </exception>
+		/// <exception cref="System.IO.IOException">
+		/// An I/O error occurred.
+		/// </exception>
+		/// <exception cref="ImapProtocolException">
+		/// The server's response contained unexpected tokens.
+		/// </exception>
+		/// <exception cref="ImapCommandException">
+		/// The server replied with a NO or BAD response.
+		/// </exception>
+		public UniqueId[] Append (MimeMessage[] messages, MessageFlags[] flags, DateTimeOffset[] dates)
+		{
+			return Append (messages, flags, dates, CancellationToken.None);
 		}
 
 		/// <summary>
@@ -1544,6 +2122,49 @@ namespace MailKit.Net.Imap {
 		/// <returns>The UIDs of the messages in the destination folder, if available; otherwise, <c>null</c>.</returns>
 		/// <param name="uids">The UIDs of the messages to copy.</param>
 		/// <param name="destination">The destination folder.</param>
+		/// <exception cref="System.ArgumentNullException">
+		/// <para><paramref name="uids"/> is <c>null</c>.</para>
+		/// <para>-or-</para>
+		/// <para><paramref name="destination"/> is <c>null</c>.</para>
+		/// </exception>
+		/// <exception cref="System.ArgumentException">
+		/// <para>One or more of the <paramref name="uids"/> is invalid.</para>
+		/// <para>-or-</para>
+		/// <para>The destination folder does not belong to the <see cref="ImapClient"/>.</para>
+		/// </exception>
+		/// <exception cref="System.ObjectDisposedException">
+		/// The <see cref="ImapClient"/> has been disposed.
+		/// </exception>
+		/// <exception cref="System.InvalidOperationException">
+		/// <para>The <see cref="ImapClient"/> is not connected.</para>
+		/// <para>-or-</para>
+		/// <para>The <see cref="ImapClient"/> is not authenticated.</para>
+		/// <para>-or-</para>
+		/// <para>The folder is not currently open.</para>
+		/// </exception>
+		/// <exception cref="System.NotSupportedException">
+		/// The IMAP server does not support the UIDPLUS extension.
+		/// </exception>
+		/// <exception cref="System.IO.IOException">
+		/// An I/O error occurred.
+		/// </exception>
+		/// <exception cref="ImapProtocolException">
+		/// The server's response contained unexpected tokens.
+		/// </exception>
+		/// <exception cref="ImapCommandException">
+		/// The server replied with a NO or BAD response.
+		/// </exception>
+		public UniqueId[] CopyTo (UniqueId[] uids, IFolder destination)
+		{
+			return CopyTo (uids, destination, CancellationToken.None);
+		}
+
+		/// <summary>
+		/// Copies the specified messages to the destination folder.
+		/// </summary>
+		/// <returns>The UIDs of the messages in the destination folder, if available; otherwise, <c>null</c>.</returns>
+		/// <param name="uids">The UIDs of the messages to copy.</param>
+		/// <param name="destination">The destination folder.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <exception cref="System.ArgumentNullException">
 		/// <para><paramref name="uids"/> is <c>null</c>.</para>
@@ -1613,6 +2234,56 @@ namespace MailKit.Net.Imap {
 			}
 
 			return new UniqueId[0];
+		}
+
+		/// <summary>
+		/// Moves the specified messages to the destination folder.
+		/// </summary>
+		/// <remarks>
+		/// <para>If the IMAP server supports the MOVE command, then the MOVE command will be used. Otherwise,
+		/// the messages will first be copied to the destination folder, then marked as \Deleted in the
+		/// originating folder, and finally expunged. Since the server could disconnect at any point between
+		/// those 3 operations, it may be advisable to implement your own logic for moving messages in this
+		/// case in order to better handle spontanious server disconnects and other error conditions.</para>
+		/// </remarks>
+		/// <returns>The UIDs of the messages in the destination folder, if available; otherwise, <c>null</c>.</returns>
+		/// <param name="uids">The UIDs of the messages to copy.</param>
+		/// <param name="destination">The destination folder.</param>
+		/// <exception cref="System.ArgumentNullException">
+		/// <para><paramref name="uids"/> is <c>null</c>.</para>
+		/// <para>-or-</para>
+		/// <para><paramref name="destination"/> is <c>null</c>.</para>
+		/// </exception>
+		/// <exception cref="System.ArgumentException">
+		/// <para>One or more of the <paramref name="uids"/> is invalid.</para>
+		/// <para>-or-</para>
+		/// <para>The destination folder does not belong to the <see cref="ImapClient"/>.</para>
+		/// </exception>
+		/// <exception cref="System.ObjectDisposedException">
+		/// The <see cref="ImapClient"/> has been disposed.
+		/// </exception>
+		/// <exception cref="System.InvalidOperationException">
+		/// <para>The <see cref="ImapClient"/> is not connected.</para>
+		/// <para>-or-</para>
+		/// <para>The <see cref="ImapClient"/> is not authenticated.</para>
+		/// <para>-or-</para>
+		/// <para>The folder is not currently open in read-write mode.</para>
+		/// </exception>
+		/// <exception cref="System.NotSupportedException">
+		/// The IMAP server does not support the UIDPLUS extension.
+		/// </exception>
+		/// <exception cref="System.IO.IOException">
+		/// An I/O error occurred.
+		/// </exception>
+		/// <exception cref="ImapProtocolException">
+		/// The server's response contained unexpected tokens.
+		/// </exception>
+		/// <exception cref="ImapCommandException">
+		/// The server replied with a NO or BAD response.
+		/// </exception>
+		public UniqueId[] MoveTo (UniqueId[] uids, IFolder destination)
+		{
+			return MoveTo (uids, destination, CancellationToken.None);
 		}
 
 		/// <summary>
@@ -1711,6 +2382,45 @@ namespace MailKit.Net.Imap {
 		/// </summary>
 		/// <param name="indexes">The indexes of the messages to copy.</param>
 		/// <param name="destination">The destination folder.</param>
+		/// <exception cref="System.ArgumentNullException">
+		/// <para><paramref name="indexes"/> is <c>null</c>.</para>
+		/// <para>-or-</para>
+		/// <para><paramref name="destination"/> is <c>null</c>.</para>
+		/// </exception>
+		/// <exception cref="System.ArgumentException">
+		/// <para>One or more of the <paramref name="indexes"/> is invalid.</para>
+		/// <para>-or-</para>
+		/// <para>The destination folder does not belong to the <see cref="ImapClient"/>.</para>
+		/// </exception>
+		/// <exception cref="System.ObjectDisposedException">
+		/// The <see cref="ImapClient"/> has been disposed.
+		/// </exception>
+		/// <exception cref="System.InvalidOperationException">
+		/// <para>The <see cref="ImapClient"/> is not connected.</para>
+		/// <para>-or-</para>
+		/// <para>The <see cref="ImapClient"/> is not authenticated.</para>
+		/// <para>-or-</para>
+		/// <para>The folder is not currently open.</para>
+		/// </exception>
+		/// <exception cref="System.IO.IOException">
+		/// An I/O error occurred.
+		/// </exception>
+		/// <exception cref="ImapProtocolException">
+		/// The server's response contained unexpected tokens.
+		/// </exception>
+		/// <exception cref="ImapCommandException">
+		/// The server replied with a NO or BAD response.
+		/// </exception>
+		public void CopyTo (int[] indexes, IFolder destination)
+		{
+			CopyTo (indexes, destination, CancellationToken.None);
+		}
+
+		/// <summary>
+		/// Copies the specified messages to the destination folder.
+		/// </summary>
+		/// <param name="indexes">The indexes of the messages to copy.</param>
+		/// <param name="destination">The destination folder.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <exception cref="System.ArgumentNullException">
 		/// <para><paramref name="indexes"/> is <c>null</c>.</para>
@@ -1767,6 +2477,52 @@ namespace MailKit.Net.Imap {
 
 			if (ic.Result != ImapCommandResult.Ok)
 				throw new ImapCommandException ("COPY", ic.Result);
+		}
+
+		/// <summary>
+		/// Moves the specified messages to the destination folder.
+		/// </summary>
+		/// <remarks>
+		/// <para>If the IMAP server supports the MOVE command, then the MOVE command will be used. Otherwise,
+		/// the messages will first be copied to the destination folder and then marked as \Deleted in the
+		/// originating folder. Since the server could disconnect at any point between those 2 operations, it
+		/// may be advisable to implement your own logic for moving messages in this case in order to better
+		/// handle spontanious server disconnects and other error conditions.</para>
+		/// </remarks>
+		/// <param name="indexes">The indexes of the messages to copy.</param>
+		/// <param name="destination">The destination folder.</param>
+		/// <exception cref="System.ArgumentNullException">
+		/// <para><paramref name="indexes"/> is <c>null</c>.</para>
+		/// <para>-or-</para>
+		/// <para><paramref name="destination"/> is <c>null</c>.</para>
+		/// </exception>
+		/// <exception cref="System.ArgumentException">
+		/// <para>One or more of the <paramref name="indexes"/> is invalid.</para>
+		/// <para>-or-</para>
+		/// <para>The destination folder does not belong to the <see cref="ImapClient"/>.</para>
+		/// </exception>
+		/// <exception cref="System.ObjectDisposedException">
+		/// The <see cref="ImapClient"/> has been disposed.
+		/// </exception>
+		/// <exception cref="System.InvalidOperationException">
+		/// <para>The <see cref="ImapClient"/> is not connected.</para>
+		/// <para>-or-</para>
+		/// <para>The <see cref="ImapClient"/> is not authenticated.</para>
+		/// <para>-or-</para>
+		/// <para>The folder is not currently open in read-write mode.</para>
+		/// </exception>
+		/// <exception cref="System.IO.IOException">
+		/// An I/O error occurred.
+		/// </exception>
+		/// <exception cref="ImapProtocolException">
+		/// The server's response contained unexpected tokens.
+		/// </exception>
+		/// <exception cref="ImapCommandException">
+		/// The server replied with a NO or BAD response.
+		/// </exception>
+		public void MoveTo (int[] indexes, IFolder destination)
+		{
+			MoveTo (indexes, destination, CancellationToken.None);
 		}
 
 		/// <summary>
@@ -2015,7 +2771,7 @@ namespace MailKit.Net.Imap {
 			}
 
 			// Note: GMail doesn't properly handle aliases (or at least it doesn't handle "FULL")...
-			if ((Engine.Capabilities & ImapCapabilities.GMailExt1) == 0) {
+			if (!Engine.IsGMail) {
 				// first, eliminate the aliases...
 				if ((items & MessageSummaryItems.Full) == MessageSummaryItems.Full) {
 					items &= ~MessageSummaryItems.Full;
@@ -2066,6 +2822,45 @@ namespace MailKit.Net.Imap {
 				query += "BODY.PEEK[HEADER.FIELDS (REFERENCES)]";
 
 			return query.TrimEnd ();
+		}
+
+		/// <summary>
+		/// Fetches the message summaries for the specified message UIDs.
+		/// </summary>
+		/// <returns>An enumeration of summaries for the requested messages.</returns>
+		/// <param name="uids">The UIDs.</param>
+		/// <param name="items">The message summary items to fetch.</param>
+		/// <exception cref="System.ArgumentNullException">
+		/// <paramref name="uids"/> is <c>null</c>.
+		/// </exception>
+		/// <exception cref="System.ArgumentOutOfRangeException">
+		/// <paramref name="items"/> is empty.
+		/// </exception>
+		/// <exception cref="System.ArgumentException">
+		/// One or more of the <paramref name="uids"/> is invalid.
+		/// </exception>
+		/// <exception cref="System.ObjectDisposedException">
+		/// The <see cref="ImapClient"/> has been disposed.
+		/// </exception>
+		/// <exception cref="System.InvalidOperationException">
+		/// <para>The <see cref="ImapClient"/> is not connected.</para>
+		/// <para>-or-</para>
+		/// <para>The <see cref="ImapClient"/> is not authenticated.</para>
+		/// <para>-or-</para>
+		/// <para>The folder is not currently open.</para>
+		/// </exception>
+		/// <exception cref="System.IO.IOException">
+		/// An I/O error occurred.
+		/// </exception>
+		/// <exception cref="ImapProtocolException">
+		/// The server's response contained unexpected tokens.
+		/// </exception>
+		/// <exception cref="ImapCommandException">
+		/// The server replied with a NO or BAD response.
+		/// </exception>
+		public IEnumerable<MessageSummary> Fetch (UniqueId[] uids, MessageSummaryItems items)
+		{
+			return Fetch (uids, items, CancellationToken.None);
 		}
 
 		/// <summary>
@@ -2141,11 +2936,64 @@ namespace MailKit.Net.Imap {
 		/// </summary>
 		/// <remarks>
 		/// <para>If the IMAP server supports the QRESYNC extension and the application has
-		/// enabled this feature via <see cref="ImapClient.EnableQuickResync"/>, then this
-		/// method will emit <see cref="Vanished"/> events for messages that have vanished
+		/// enabled this feature via <see cref="ImapClient.EnableQuickResync(CancellationToken)"/>,
+		/// then this method will emit <see cref="Vanished"/> events for messages that have vanished
 		/// since the specified mod-sequence value.</para>
 		/// </remarks>
 		/// <returns>An enumeration of summaries for the requested messages.</returns>
+		/// <param name="uids">The UIDs.</param>
+		/// <param name="modseq">The mod-sequence value.</param>
+		/// <param name="items">The message summary items to fetch.</param>
+		/// <exception cref="System.ArgumentNullException">
+		/// <paramref name="uids"/> is <c>null</c>.
+		/// </exception>
+		/// <exception cref="System.ArgumentOutOfRangeException">
+		/// <paramref name="items"/> is empty.
+		/// </exception>
+		/// <exception cref="System.ArgumentException">
+		/// One or more of the <paramref name="uids"/> is invalid.
+		/// </exception>
+		/// <exception cref="System.ObjectDisposedException">
+		/// The <see cref="ImapClient"/> has been disposed.
+		/// </exception>
+		/// <exception cref="System.InvalidOperationException">
+		/// <para>The <see cref="ImapClient"/> is not connected.</para>
+		/// <para>-or-</para>
+		/// <para>The <see cref="ImapClient"/> is not authenticated.</para>
+		/// <para>-or-</para>
+		/// <para>The folder is not currently open.</para>
+		/// </exception>
+		/// <exception cref="System.NotSupportedException">
+		/// The <see cref="ImapFolder"/> does not support mod-sequences.
+		/// </exception>
+		/// <exception cref="System.IO.IOException">
+		/// An I/O error occurred.
+		/// </exception>
+		/// <exception cref="ImapProtocolException">
+		/// The server's response contained unexpected tokens.
+		/// </exception>
+		/// <exception cref="ImapCommandException">
+		/// The server replied with a NO or BAD response.
+		/// </exception>
+		public IEnumerable<MessageSummary> Fetch (UniqueId[] uids, ulong modseq, MessageSummaryItems items)
+		{
+			return Fetch (uids, modseq, items, CancellationToken.None);
+		}
+
+		/// <summary>
+		/// Fetches the message summaries for the specified message UIDs that have a higher mod-sequence value than the one specified.
+		/// </summary>
+		/// <remarks>
+		/// <para>If the IMAP server supports the QRESYNC extension and the application has
+		/// enabled this feature via <see cref="ImapClient.EnableQuickResync(CancellationToken)"/>,
+		/// then this method will emit <see cref="Vanished"/> events for messages that have vanished
+		/// since the specified mod-sequence value.</para>
+		/// </remarks>
+		/// <returns>An enumeration of summaries for the requested messages.</returns>
+		/// <param name="uids">The UIDs.</param>
+		/// <param name="modseq">The mod-sequence value.</param>
+		/// <param name="items">The message summary items to fetch.</param>
+		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <exception cref="System.ArgumentNullException">
 		/// <paramref name="uids"/> is <c>null</c>.
 		/// </exception>
@@ -2221,6 +3069,43 @@ namespace MailKit.Net.Imap {
 		/// <param name="min">The minimum UID.</param>
 		/// <param name="max">The maximum UID, or <c>null</c> to specify no upper bound.</param>
 		/// <param name="items">The message summary items to fetch.</param>
+		/// <exception cref="System.ArgumentException">
+		/// <paramref name="min"/> is invalid.
+		/// </exception>
+		/// <exception cref="System.ArgumentOutOfRangeException">
+		/// <paramref name="items"/> is empty.
+		/// </exception>
+		/// <exception cref="System.ObjectDisposedException">
+		/// The <see cref="ImapClient"/> has been disposed.
+		/// </exception>
+		/// <exception cref="System.InvalidOperationException">
+		/// <para>The <see cref="ImapClient"/> is not connected.</para>
+		/// <para>-or-</para>
+		/// <para>The <see cref="ImapClient"/> is not authenticated.</para>
+		/// <para>-or-</para>
+		/// <para>The folder is not currently open.</para>
+		/// </exception>
+		/// <exception cref="System.IO.IOException">
+		/// An I/O error occurred.
+		/// </exception>
+		/// <exception cref="ImapProtocolException">
+		/// The server's response contained unexpected tokens.
+		/// </exception>
+		/// <exception cref="ImapCommandException">
+		/// The server replied with a NO or BAD response.
+		/// </exception>
+		public IEnumerable<MessageSummary> Fetch (UniqueId min, UniqueId? max, MessageSummaryItems items)
+		{
+			return Fetch (min, max, items, CancellationToken.None);
+		}
+
+		/// <summary>
+		/// Fetches the message summaries for the messages between the two UIDs, inclusive.
+		/// </summary>
+		/// <returns>An enumeration of summaries for the requested messages.</returns>
+		/// <param name="min">The minimum UID.</param>
+		/// <param name="max">The maximum UID, or <c>null</c> to specify no upper bound.</param>
+		/// <param name="items">The message summary items to fetch.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <exception cref="System.ArgumentException">
 		/// <paramref name="min"/> is invalid.
@@ -2285,8 +3170,55 @@ namespace MailKit.Net.Imap {
 		/// </summary>
 		/// <remarks>
 		/// <para>If the IMAP server supports the QRESYNC extension and the application has
-		/// enabled this feature via <see cref="ImapClient.EnableQuickResync"/>, then this
-		/// method will emit <see cref="Vanished"/> events for messages that have vanished
+		/// enabled this feature via <see cref="ImapClient.EnableQuickResync(CancellationToken)"/>,
+		/// then this method will emit <see cref="Vanished"/> events for messages that have vanished
+		/// since the specified mod-sequence value.</para>
+		/// </remarks>
+		/// <returns>An enumeration of summaries for the requested messages.</returns>
+		/// <param name="min">The minimum UID.</param>
+		/// <param name="max">The maximum UID.</param>
+		/// <param name="modseq">The mod-sequence value.</param>
+		/// <param name="items">The message summary items to fetch.</param>
+		/// <exception cref="System.ArgumentException">
+		/// <paramref name="min"/> is invalid.
+		/// </exception>
+		/// <exception cref="System.ArgumentOutOfRangeException">
+		/// <paramref name="items"/> is empty.
+		/// </exception>
+		/// <exception cref="System.ObjectDisposedException">
+		/// The <see cref="ImapClient"/> has been disposed.
+		/// </exception>
+		/// <exception cref="System.InvalidOperationException">
+		/// <para>The <see cref="ImapClient"/> is not connected.</para>
+		/// <para>-or-</para>
+		/// <para>The <see cref="ImapClient"/> is not authenticated.</para>
+		/// <para>-or-</para>
+		/// <para>The folder is not currently open.</para>
+		/// </exception>
+		/// <exception cref="System.NotSupportedException">
+		/// The <see cref="ImapFolder"/> does not support mod-sequences.
+		/// </exception>
+		/// <exception cref="System.IO.IOException">
+		/// An I/O error occurred.
+		/// </exception>
+		/// <exception cref="ImapProtocolException">
+		/// The server's response contained unexpected tokens.
+		/// </exception>
+		/// <exception cref="ImapCommandException">
+		/// The server replied with a NO or BAD response.
+		/// </exception>
+		public IEnumerable<MessageSummary> Fetch (UniqueId min, UniqueId? max, ulong modseq, MessageSummaryItems items)
+		{
+			return Fetch (min, max, modseq, items, CancellationToken.None);
+		}
+
+		/// <summary>
+		/// Fetches the message summaries for the messages between the two UIDs (inclusive) that have a higher mod-sequence value than the one specified.
+		/// </summary>
+		/// <remarks>
+		/// <para>If the IMAP server supports the QRESYNC extension and the application has
+		/// enabled this feature via <see cref="ImapClient.EnableQuickResync(CancellationToken)"/>,
+		/// then this method will emit <see cref="Vanished"/> events for messages that have vanished
 		/// since the specified mod-sequence value.</para>
 		/// </remarks>
 		/// <returns>An enumeration of summaries for the requested messages.</returns>
@@ -2365,6 +3297,45 @@ namespace MailKit.Net.Imap {
 		/// <returns>An enumeration of summaries for the requested messages.</returns>
 		/// <param name="indexes">The indexes.</param>
 		/// <param name="items">The message summary items to fetch.</param>
+		/// <exception cref="System.ArgumentNullException">
+		/// <paramref name="indexes"/> is <c>null</c>.
+		/// </exception>
+		/// <exception cref="System.ArgumentOutOfRangeException">
+		/// <paramref name="items"/> is empty.
+		/// </exception>
+		/// <exception cref="System.ArgumentException">
+		/// One or more of the <paramref name="indexes"/> is invalid.
+		/// </exception>
+		/// <exception cref="System.ObjectDisposedException">
+		/// The <see cref="ImapClient"/> has been disposed.
+		/// </exception>
+		/// <exception cref="System.InvalidOperationException">
+		/// <para>The <see cref="ImapClient"/> is not connected.</para>
+		/// <para>-or-</para>
+		/// <para>The <see cref="ImapClient"/> is not authenticated.</para>
+		/// <para>-or-</para>
+		/// <para>The folder is not currently open.</para>
+		/// </exception>
+		/// <exception cref="System.IO.IOException">
+		/// An I/O error occurred.
+		/// </exception>
+		/// <exception cref="ImapProtocolException">
+		/// The server's response contained unexpected tokens.
+		/// </exception>
+		/// <exception cref="ImapCommandException">
+		/// The server replied with a NO or BAD response.
+		/// </exception>
+		public IEnumerable<MessageSummary> Fetch (int[] indexes, MessageSummaryItems items)
+		{
+			return Fetch (indexes, items, CancellationToken.None);
+		}
+
+		/// <summary>
+		/// Fetches the message summaries for the specified message indexes.
+		/// </summary>
+		/// <returns>An enumeration of summaries for the requested messages.</returns>
+		/// <param name="indexes">The indexes.</param>
+		/// <param name="items">The message summary items to fetch.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <exception cref="System.ArgumentNullException">
 		/// <paramref name="indexes"/> is <c>null</c>.
@@ -2425,6 +3396,49 @@ namespace MailKit.Net.Imap {
 				throw new ImapCommandException ("FETCH", ic.Result);
 
 			return results.Values;
+		}
+
+		/// <summary>
+		/// Fetches the message summaries for the specified message indexes that have a higher mod-sequence value than the one specified.
+		/// </summary>
+		/// <returns>An enumeration of summaries for the requested messages.</returns>
+		/// <param name="indexes">The indexes.</param>
+		/// <param name="modseq">The mod-sequence value.</param>
+		/// <param name="items">The message summary items to fetch.</param>
+		/// <exception cref="System.ArgumentNullException">
+		/// <paramref name="indexes"/> is <c>null</c>.
+		/// </exception>
+		/// <exception cref="System.ArgumentOutOfRangeException">
+		/// <paramref name="items"/> is empty.
+		/// </exception>
+		/// <exception cref="System.ArgumentException">
+		/// One or more of the <paramref name="indexes"/> is invalid.
+		/// </exception>
+		/// <exception cref="System.ObjectDisposedException">
+		/// The <see cref="ImapClient"/> has been disposed.
+		/// </exception>
+		/// <exception cref="System.InvalidOperationException">
+		/// <para>The <see cref="ImapClient"/> is not connected.</para>
+		/// <para>-or-</para>
+		/// <para>The <see cref="ImapClient"/> is not authenticated.</para>
+		/// <para>-or-</para>
+		/// <para>The folder is not currently open.</para>
+		/// </exception>
+		/// <exception cref="System.NotSupportedException">
+		/// The <see cref="ImapFolder"/> does not support mod-sequences.
+		/// </exception>
+		/// <exception cref="System.IO.IOException">
+		/// An I/O error occurred.
+		/// </exception>
+		/// <exception cref="ImapProtocolException">
+		/// The server's response contained unexpected tokens.
+		/// </exception>
+		/// <exception cref="ImapCommandException">
+		/// The server replied with a NO or BAD response.
+		/// </exception>
+		public IEnumerable<MessageSummary> Fetch (int[] indexes, ulong modseq, MessageSummaryItems items)
+		{
+			return Fetch (indexes, modseq, items, CancellationToken.None);
 		}
 
 		/// <summary>
@@ -2509,6 +3523,44 @@ namespace MailKit.Net.Imap {
 		/// <param name="min">The minimum index.</param>
 		/// <param name="max">The maximum index, or <c>-1</c> to specify no upper bound.</param>
 		/// <param name="items">The message summary items to fetch.</param>
+		/// <exception cref="System.ArgumentOutOfRangeException">
+		/// <para><paramref name="min"/> is out of range.</para>
+		/// <para>-or-</para>
+		/// <para><paramref name="max"/> is out of range.</para>
+		/// <para>-or-</para>
+		/// <para><paramref name="items"/> is empty.</para>
+		/// </exception>
+		/// <exception cref="System.ObjectDisposedException">
+		/// The <see cref="ImapClient"/> has been disposed.
+		/// </exception>
+		/// <exception cref="System.InvalidOperationException">
+		/// <para>The <see cref="ImapClient"/> is not connected.</para>
+		/// <para>-or-</para>
+		/// <para>The <see cref="ImapClient"/> is not authenticated.</para>
+		/// <para>-or-</para>
+		/// <para>The folder is not currently open.</para>
+		/// </exception>
+		/// <exception cref="System.IO.IOException">
+		/// An I/O error occurred.
+		/// </exception>
+		/// <exception cref="ImapProtocolException">
+		/// The server's response contained unexpected tokens.
+		/// </exception>
+		/// <exception cref="ImapCommandException">
+		/// The server replied with a NO or BAD response.
+		/// </exception>
+		public IEnumerable<MessageSummary> Fetch (int min, int max, MessageSummaryItems items)
+		{
+			return Fetch (min, max, items, CancellationToken.None);
+		}
+
+		/// <summary>
+		/// Fetches the message summaries for the messages between the two indexes, inclusive.
+		/// </summary>
+		/// <returns>An enumeration of summaries for the requested messages.</returns>
+		/// <param name="min">The minimum index.</param>
+		/// <param name="max">The maximum index, or <c>-1</c> to specify no upper bound.</param>
+		/// <param name="items">The message summary items to fetch.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <exception cref="System.ArgumentOutOfRangeException">
 		/// <para><paramref name="min"/> is out of range.</para>
@@ -2541,10 +3593,10 @@ namespace MailKit.Net.Imap {
 		/// </exception>
 		public IEnumerable<MessageSummary> Fetch (int min, int max, MessageSummaryItems items, CancellationToken cancellationToken)
 		{
-			if (min < 0 || min >= Count)
+			if (min < 0)
 				throw new ArgumentOutOfRangeException ("min");
 
-			if ((max != -1 && max < min) || max >= Count)
+			if (max != -1 && max < min)
 				throw new ArgumentOutOfRangeException ("max");
 
 			if (items == MessageSummaryItems.None)
@@ -2569,6 +3621,48 @@ namespace MailKit.Net.Imap {
 				throw new ImapCommandException ("FETCH", ic.Result);
 
 			return results.Values;
+		}
+
+		/// <summary>
+		/// Fetches the message summaries for the messages between the two indexes (inclusive) that have a higher mod-sequence value than the one specified.
+		/// </summary>
+		/// <returns>An enumeration of summaries for the requested messages.</returns>
+		/// <param name="min">The minimum index.</param>
+		/// <param name="max">The maximum index, or <c>-1</c> to specify no upper bound.</param>
+		/// <param name="modseq">The mod-sequence value.</param>
+		/// <param name="items">The message summary items to fetch.</param>
+		/// <exception cref="System.ArgumentOutOfRangeException">
+		/// <para><paramref name="min"/> is out of range.</para>
+		/// <para>-or-</para>
+		/// <para><paramref name="max"/> is out of range.</para>
+		/// <para>-or-</para>
+		/// <para><paramref name="items"/> is empty.</para>
+		/// </exception>
+		/// <exception cref="System.ObjectDisposedException">
+		/// The <see cref="ImapClient"/> has been disposed.
+		/// </exception>
+		/// <exception cref="System.InvalidOperationException">
+		/// <para>The <see cref="ImapClient"/> is not connected.</para>
+		/// <para>-or-</para>
+		/// <para>The <see cref="ImapClient"/> is not authenticated.</para>
+		/// <para>-or-</para>
+		/// <para>The folder is not currently open.</para>
+		/// </exception>
+		/// <exception cref="System.NotSupportedException">
+		/// The <see cref="ImapFolder"/> does not support mod-sequences.
+		/// </exception>
+		/// <exception cref="System.IO.IOException">
+		/// An I/O error occurred.
+		/// </exception>
+		/// <exception cref="ImapProtocolException">
+		/// The server's response contained unexpected tokens.
+		/// </exception>
+		/// <exception cref="ImapCommandException">
+		/// The server replied with a NO or BAD response.
+		/// </exception>
+		public IEnumerable<MessageSummary> Fetch (int min, int max, ulong modseq, MessageSummaryItems items)
+		{
+			return Fetch (min, max, modseq, items, CancellationToken.None);
 		}
 
 		/// <summary>
@@ -2614,10 +3708,10 @@ namespace MailKit.Net.Imap {
 		/// </exception>
 		public IEnumerable<MessageSummary> Fetch (int min, int max, ulong modseq, MessageSummaryItems items, CancellationToken cancellationToken)
 		{
-			if (min < 0 || min >= Count)
+			if (min < 0)
 				throw new ArgumentOutOfRangeException ("min");
 
-			if ((max != -1 && max < min) || max >= Count)
+			if (max != -1 && max < min)
 				throw new ArgumentOutOfRangeException ("max");
 
 			if (items == MessageSummaryItems.None)
@@ -2647,18 +3741,16 @@ namespace MailKit.Net.Imap {
 			return results.Values;
 		}
 
-		enum FetchReturnType {
-			MimeMessage,
-			MimeEntity,
-			Stream
-		}
-
 		static void FetchMessageBody (ImapEngine engine, ImapCommand ic, int index, ImapToken tok)
 		{
+			var streams = (Dictionary<string, Stream>) ic.UserData;
 			var token = engine.ReadToken (ic.CancellationToken);
 			var args = new MessageFlagsChangedEventArgs (index);
-			var type = FetchReturnType.MimeMessage;
+			var buf = new byte[4096];
 			bool emit = false;
+			string specifier;
+			Stream stream;
+			int nread;
 
 			if (token.Type != ImapTokenType.OpenParen)
 				throw ImapEngine.UnexpectedToken (token, false);
@@ -2683,6 +3775,8 @@ namespace MailKit.Net.Imap {
 					if (token.Type != ImapTokenType.OpenBracket)
 						throw ImapEngine.UnexpectedToken (token, false);
 
+					specifier = string.Empty;
+
 					do {
 						token = engine.ReadToken (ic.CancellationToken);
 
@@ -2690,8 +3784,6 @@ namespace MailKit.Net.Imap {
 							break;
 
 						if (token.Type == ImapTokenType.OpenParen) {
-							type = FetchReturnType.Stream;
-
 							do {
 								token = engine.ReadToken (ic.CancellationToken);
 
@@ -2704,7 +3796,7 @@ namespace MailKit.Net.Imap {
 						} else if (token.Type != ImapTokenType.Atom) {
 							throw ImapEngine.UnexpectedToken (token, false);
 						} else {
-							type = FetchReturnType.MimeEntity;
+							specifier += (string) token.Value;
 						}
 					} while (true);
 
@@ -2720,35 +3812,21 @@ namespace MailKit.Net.Imap {
 							throw ImapEngine.UnexpectedToken (token, false);
 
 						token = engine.ReadToken (ic.CancellationToken);
-
-						type = FetchReturnType.Stream;
 					}
 
 					if (token.Type != ImapTokenType.Literal)
 						throw ImapEngine.UnexpectedToken (token, false);
 
-					switch (type) {
-					case FetchReturnType.MimeMessage:
-						ic.UserData = MimeMessage.Load (engine.Stream, ic.CancellationToken);
-						break;
-					case FetchReturnType.MimeEntity:
-						ic.UserData = MimeEntity.Load (engine.Stream, ic.CancellationToken);
-						break;
-					default:
-						var stream = new MemoryBlockStream ();
-						var buf = new byte[4096];
-						int nread;
+					stream = new MemoryBlockStream ();
 
+					ic.CancellationToken.ThrowIfCancellationRequested ();
+					while ((nread = engine.Stream.Read (buf, 0, buf.Length)) > 0) {
 						ic.CancellationToken.ThrowIfCancellationRequested ();
-						while ((nread = engine.Stream.Read (buf, 0, buf.Length)) > 0) {
-							ic.CancellationToken.ThrowIfCancellationRequested ();
-							stream.Write (buf, 0, nread);
-						}
-
-						ic.UserData = stream;
-						break;
+						stream.Write (buf, 0, nread);
 					}
 
+					streams[specifier] = stream;
+					stream.Position = 0;
 					break;
 				case "UID":
 					token = engine.ReadToken (ic.CancellationToken);
@@ -2799,6 +3877,38 @@ namespace MailKit.Net.Imap {
 		/// </summary>
 		/// <returns>The message.</returns>
 		/// <param name="uid">The UID of the message.</param>
+		/// <exception cref="System.ArgumentException">
+		/// <paramref name="uid"/> is invalid.
+		/// </exception>
+		/// <exception cref="System.ObjectDisposedException">
+		/// The <see cref="ImapClient"/> has been disposed.
+		/// </exception>
+		/// <exception cref="System.InvalidOperationException">
+		/// <para>The <see cref="ImapClient"/> is not connected.</para>
+		/// <para>-or-</para>
+		/// <para>The <see cref="ImapClient"/> is not authenticated.</para>
+		/// <para>-or-</para>
+		/// <para>The folder is not currently open.</para>
+		/// </exception>
+		/// <exception cref="System.IO.IOException">
+		/// An I/O error occurred.
+		/// </exception>
+		/// <exception cref="ImapProtocolException">
+		/// The server's response contained unexpected tokens.
+		/// </exception>
+		/// <exception cref="ImapCommandException">
+		/// The server replied with a NO or BAD response.
+		/// </exception>
+		public MimeMessage GetMessage (UniqueId uid)
+		{
+			return GetMessage (uid, CancellationToken.None);
+		}
+
+		/// <summary>
+		/// Gets the specified message.
+		/// </summary>
+		/// <returns>The message.</returns>
+		/// <param name="uid">The UID of the message.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <exception cref="System.ArgumentException">
 		/// <paramref name="uid"/> is invalid.
@@ -2833,7 +3943,11 @@ namespace MailKit.Net.Imap {
 			CheckState (true, false);
 
 			var ic = new ImapCommand (Engine, cancellationToken, this, "UID FETCH %u (BODY.PEEK[])\r\n", uid.Id);
+			var streams = new Dictionary<string, Stream> ();
+			Stream stream;
+
 			ic.RegisterUntaggedHandler ("FETCH", FetchMessageBody);
+			ic.UserData = streams;
 
 			Engine.QueueCommand (ic);
 			Engine.Wait (ic);
@@ -2843,7 +3957,42 @@ namespace MailKit.Net.Imap {
 			if (ic.Result != ImapCommandResult.Ok)
 				throw new ImapCommandException ("FETCH", ic.Result);
 
-			return (MimeMessage) ic.UserData;
+			if (!streams.TryGetValue (string.Empty, out stream))
+				return null;
+
+			return MimeMessage.Load (stream, cancellationToken);
+		}
+
+		/// <summary>
+		/// Gets the specified message.
+		/// </summary>
+		/// <returns>The message.</returns>
+		/// <param name="index">The index of the message.</param>
+		/// <exception cref="System.ArgumentOutOfRangeException">
+		/// <paramref name="index"/> is out of range.
+		/// </exception>
+		/// <exception cref="System.ObjectDisposedException">
+		/// The <see cref="ImapClient"/> has been disposed.
+		/// </exception>
+		/// <exception cref="System.InvalidOperationException">
+		/// <para>The <see cref="ImapClient"/> is not connected.</para>
+		/// <para>-or-</para>
+		/// <para>The <see cref="ImapClient"/> is not authenticated.</para>
+		/// <para>-or-</para>
+		/// <para>The folder is not currently open.</para>
+		/// </exception>
+		/// <exception cref="System.IO.IOException">
+		/// An I/O error occurred.
+		/// </exception>
+		/// <exception cref="ImapProtocolException">
+		/// The server's response contained unexpected tokens.
+		/// </exception>
+		/// <exception cref="ImapCommandException">
+		/// The server replied with a NO or BAD response.
+		/// </exception>
+		public MimeMessage GetMessage (int index)
+		{
+			return GetMessage (index, CancellationToken.None);
 		}
 
 		/// <summary>
@@ -2885,7 +4034,11 @@ namespace MailKit.Net.Imap {
 			CheckState (true, false);
 
 			var ic = new ImapCommand (Engine, cancellationToken, this, "FETCH %d (BODY.PEEK[])\r\n", index + 1);
+			var streams = new Dictionary<string, Stream> ();
+			Stream stream;
+
 			ic.RegisterUntaggedHandler ("FETCH", FetchMessageBody);
+			ic.UserData = streams;
 
 			Engine.QueueCommand (ic);
 			Engine.Wait (ic);
@@ -2895,7 +4048,78 @@ namespace MailKit.Net.Imap {
 			if (ic.Result != ImapCommandResult.Ok)
 				throw new ImapCommandException ("FETCH", ic.Result);
 
-			return (MimeMessage) ic.UserData;
+			if (!streams.TryGetValue (string.Empty, out stream))
+				return null;
+
+			return MimeMessage.Load (stream, cancellationToken);
+		}
+
+		static string GetBodyPartQuery (BodyPart part, bool headersOnly, out string[] tags)
+		{
+			string query;
+
+			if (headersOnly) {
+				tags = new string[1];
+
+				if (part.PartSpecifier.Length > 0) {
+					query = string.Format ("BODY.PEEK[{0}.MIME]", part.PartSpecifier);
+					tags[0] = part.PartSpecifier + ".MIME";
+				} else {
+					query = "BODY.PEEK[HEADER]";
+					tags[0] = "HEADER";
+				}
+			} else {
+				tags = new string[2];
+
+				if (part.PartSpecifier.Length > 0) {
+					tags[0] = part.PartSpecifier + ".MIME";
+					tags[1] = part.PartSpecifier;
+				} else {
+					tags[0] = "HEADER";
+					tags[1] = "TEXT";
+				}
+
+				query = string.Format ("BODY.PEEK[{0}] BODY.PEEK[{1}]", tags[0], tags[1]);
+			}
+
+			return query;
+		}
+
+		/// <summary>
+		/// Gets the specified body part.
+		/// </summary>
+		/// <returns>The body part.</returns>
+		/// <param name="uid">The UID of the message.</param>
+		/// <param name="part">The body part.</param>
+		/// <param name="headersOnly"><c>true</c> if only the headers should be downloaded; otherwise, <c>false</c>></param>
+		/// <exception cref="System.ArgumentNullException">
+		/// <paramref name="part"/> is <c>null</c>.
+		/// </exception>
+		/// <exception cref="System.ArgumentException">
+		/// <paramref name="uid"/> is invalid.
+		/// </exception>
+		/// <exception cref="System.ObjectDisposedException">
+		/// The <see cref="ImapClient"/> has been disposed.
+		/// </exception>
+		/// <exception cref="System.InvalidOperationException">
+		/// <para>The <see cref="ImapClient"/> is not connected.</para>
+		/// <para>-or-</para>
+		/// <para>The <see cref="ImapClient"/> is not authenticated.</para>
+		/// <para>-or-</para>
+		/// <para>The folder is not currently open.</para>
+		/// </exception>
+		/// <exception cref="System.IO.IOException">
+		/// An I/O error occurred.
+		/// </exception>
+		/// <exception cref="ImapProtocolException">
+		/// The server's response contained unexpected tokens.
+		/// </exception>
+		/// <exception cref="ImapCommandException">
+		/// The server replied with a NO or BAD response.
+		/// </exception>
+		public MimeEntity GetBodyPart (UniqueId uid, BodyPart part, bool headersOnly = false)
+		{
+			return GetBodyPart (uid, part, headersOnly, CancellationToken.None);
 		}
 
 		/// <summary>
@@ -2935,6 +4159,47 @@ namespace MailKit.Net.Imap {
 		/// </exception>
 		public MimeEntity GetBodyPart (UniqueId uid, BodyPart part, CancellationToken cancellationToken)
 		{
+			return GetBodyPart (uid, part, false, cancellationToken);
+		}
+
+		/// <summary>
+		/// Gets the specified body part.
+		/// </summary>
+		/// <returns>The body part.</returns>
+		/// <param name="uid">The UID of the message.</param>
+		/// <param name="part">The body part.</param>
+		/// <param name="headersOnly"><c>true</c> if only the headers should be downloaded; otherwise, <c>false</c>></param>
+		/// <param name="cancellationToken">The cancellation token.</param>
+		/// <exception cref="System.ArgumentNullException">
+		/// <paramref name="part"/> is <c>null</c>.
+		/// </exception>
+		/// <exception cref="System.ArgumentException">
+		/// <paramref name="uid"/> is invalid.
+		/// </exception>
+		/// <exception cref="System.ObjectDisposedException">
+		/// The <see cref="ImapClient"/> has been disposed.
+		/// </exception>
+		/// <exception cref="System.InvalidOperationException">
+		/// <para>The <see cref="ImapClient"/> is not connected.</para>
+		/// <para>-or-</para>
+		/// <para>The <see cref="ImapClient"/> is not authenticated.</para>
+		/// <para>-or-</para>
+		/// <para>The folder is not currently open.</para>
+		/// </exception>
+		/// <exception cref="System.OperationCanceledException">
+		/// The operation was canceled via the cancellation token.
+		/// </exception>
+		/// <exception cref="System.IO.IOException">
+		/// An I/O error occurred.
+		/// </exception>
+		/// <exception cref="ImapProtocolException">
+		/// The server's response contained unexpected tokens.
+		/// </exception>
+		/// <exception cref="ImapCommandException">
+		/// The server replied with a NO or BAD response.
+		/// </exception>
+		public MimeEntity GetBodyPart (UniqueId uid, BodyPart part, bool headersOnly, CancellationToken cancellationToken)
+		{
 			if (uid.Id == 0)
 				throw new ArgumentException ("The uid is invalid.", "uid");
 
@@ -2943,8 +4208,15 @@ namespace MailKit.Net.Imap {
 
 			CheckState (true, false);
 
-			var ic = new ImapCommand (Engine, cancellationToken, this, "UID FETCH %u (BODY.PEEK[%s])\r\n", uid.Id, part.PartSpecifier);
+			string[] tags;
+
+			var command = string.Format ("UID FETCH {0} ({1})\r\n", uid.Id, GetBodyPartQuery (part, headersOnly, out tags));
+			var ic = new ImapCommand (Engine, cancellationToken, this, command);
+			var streams = new Dictionary<string, Stream> ();
+			Stream stream;
+
 			ic.RegisterUntaggedHandler ("FETCH", FetchMessageBody);
+			ic.UserData = streams;
 
 			Engine.QueueCommand (ic);
 			Engine.Wait (ic);
@@ -2954,7 +4226,64 @@ namespace MailKit.Net.Imap {
 			if (ic.Result != ImapCommandResult.Ok)
 				throw new ImapCommandException ("FETCH", ic.Result);
 
-			return (MimeEntity) ic.UserData;
+			var chained = new ChainedStream ();
+
+			foreach (var tag in tags) {
+				if (!streams.TryGetValue (tag, out stream))
+					return null;
+
+				chained.Add (stream);
+			}
+
+			var entity = MimeEntity.Load (chained, cancellationToken);
+
+			if (part.PartSpecifier.Length == 0) {
+				for (int i = entity.Headers.Count; i > 0; i--) {
+					var header = entity.Headers[i - 1];
+
+					if (!header.Field.StartsWith ("Content-", StringComparison.OrdinalIgnoreCase))
+						entity.Headers.RemoveAt (i - 1);
+				}
+			}
+
+			return entity;
+		}
+
+		/// <summary>
+		/// Gets the specified body part.
+		/// </summary>
+		/// <returns>The body part.</returns>
+		/// <param name="index">The index of the message.</param>
+		/// <param name="part">The body part.</param>
+		/// <param name="headersOnly"><c>true</c> if only the headers should be downloaded; otherwise, <c>false</c>></param>
+		/// <exception cref="System.ArgumentNullException">
+		/// <paramref name="part"/> is <c>null</c>.
+		/// </exception>
+		/// <exception cref="System.ArgumentOutOfRangeException">
+		/// <paramref name="index"/> is out of range.
+		/// </exception>
+		/// <exception cref="System.ObjectDisposedException">
+		/// The <see cref="ImapClient"/> has been disposed.
+		/// </exception>
+		/// <exception cref="System.InvalidOperationException">
+		/// <para>The <see cref="ImapClient"/> is not connected.</para>
+		/// <para>-or-</para>
+		/// <para>The <see cref="ImapClient"/> is not authenticated.</para>
+		/// <para>-or-</para>
+		/// <para>The folder is not currently open.</para>
+		/// </exception>
+		/// <exception cref="System.IO.IOException">
+		/// An I/O error occurred.
+		/// </exception>
+		/// <exception cref="ImapProtocolException">
+		/// The server's response contained unexpected tokens.
+		/// </exception>
+		/// <exception cref="ImapCommandException">
+		/// The server replied with a NO or BAD response.
+		/// </exception>
+		public MimeEntity GetBodyPart (int index, BodyPart part, bool headersOnly = false)
+		{
+			return GetBodyPart (index, part, headersOnly, CancellationToken.None);
 		}
 
 		/// <summary>
@@ -2994,6 +4323,47 @@ namespace MailKit.Net.Imap {
 		/// </exception>
 		public MimeEntity GetBodyPart (int index, BodyPart part, CancellationToken cancellationToken)
 		{
+			return GetBodyPart (index, part, false, cancellationToken);
+		}
+
+		/// <summary>
+		/// Gets the specified body part.
+		/// </summary>
+		/// <returns>The body part.</returns>
+		/// <param name="index">The index of the message.</param>
+		/// <param name="part">The body part.</param>
+		/// <param name="headersOnly"><c>true</c> if only the headers should be downloaded; otherwise, <c>false</c>></param>
+		/// <param name="cancellationToken">The cancellation token.</param>
+		/// <exception cref="System.ArgumentNullException">
+		/// <paramref name="part"/> is <c>null</c>.
+		/// </exception>
+		/// <exception cref="System.ArgumentOutOfRangeException">
+		/// <paramref name="index"/> is out of range.
+		/// </exception>
+		/// <exception cref="System.ObjectDisposedException">
+		/// The <see cref="ImapClient"/> has been disposed.
+		/// </exception>
+		/// <exception cref="System.InvalidOperationException">
+		/// <para>The <see cref="ImapClient"/> is not connected.</para>
+		/// <para>-or-</para>
+		/// <para>The <see cref="ImapClient"/> is not authenticated.</para>
+		/// <para>-or-</para>
+		/// <para>The folder is not currently open.</para>
+		/// </exception>
+		/// <exception cref="System.OperationCanceledException">
+		/// The operation was canceled via the cancellation token.
+		/// </exception>
+		/// <exception cref="System.IO.IOException">
+		/// An I/O error occurred.
+		/// </exception>
+		/// <exception cref="ImapProtocolException">
+		/// The server's response contained unexpected tokens.
+		/// </exception>
+		/// <exception cref="ImapCommandException">
+		/// The server replied with a NO or BAD response.
+		/// </exception>
+		public MimeEntity GetBodyPart (int index, BodyPart part, bool headersOnly, CancellationToken cancellationToken)
+		{
 			if (index < 0 || index >= Count)
 				throw new ArgumentOutOfRangeException ("index");
 
@@ -3002,8 +4372,15 @@ namespace MailKit.Net.Imap {
 
 			CheckState (true, false);
 
-			var ic = new ImapCommand (Engine, cancellationToken, this, "FETCH %d (BODY.PEEK[%s])\r\n", index + 1, part.PartSpecifier);
+			string[] tags;
+
+			var command = string.Format ("FETCH {0} ({1})\r\n", index + 1, GetBodyPartQuery (part, headersOnly, out tags));
+			var ic = new ImapCommand (Engine, cancellationToken, this, command);
+			var streams = new Dictionary<string, Stream> ();
+			Stream stream;
+
 			ic.RegisterUntaggedHandler ("FETCH", FetchMessageBody);
+			ic.UserData = streams;
 
 			Engine.QueueCommand (ic);
 			Engine.Wait (ic);
@@ -3013,7 +4390,72 @@ namespace MailKit.Net.Imap {
 			if (ic.Result != ImapCommandResult.Ok)
 				throw new ImapCommandException ("FETCH", ic.Result);
 
-			return (MimeEntity) ic.UserData;
+			var chained = new ChainedStream ();
+
+			foreach (var tag in tags) {
+				if (!streams.TryGetValue (tag, out stream))
+					return null;
+
+				chained.Add (stream);
+			}
+
+			var entity = MimeEntity.Load (chained, cancellationToken);
+
+			if (part.PartSpecifier.Length == 0) {
+				for (int i = entity.Headers.Count; i > 0; i--) {
+					var header = entity.Headers[i - 1];
+
+					if (!header.Field.StartsWith ("Content-", StringComparison.OrdinalIgnoreCase))
+						entity.Headers.RemoveAt (i - 1);
+				}
+			}
+
+			return entity;
+		}
+
+		/// <summary>
+		/// Gets a substream of the specified message.
+		/// </summary>
+		/// <remarks>
+		/// Fetches a substream of the message. If the starting offset is beyond
+		/// the end of the message, an empty stream is returned. If the number of
+		/// bytes desired extends beyond the end of the message, a truncated stream
+		/// will be returned.
+		/// </remarks>
+		/// <returns>The stream.</returns>
+		/// <param name="uid">The UID of the message.</param>
+		/// <param name="offset">The starting offset of the first desired byte.</param>
+		/// <param name="count">The number of bytes desired.</param>
+		/// <exception cref="System.ArgumentException">
+		/// <paramref name="uid"/> is invalid.
+		/// </exception>
+		/// <exception cref="System.ArgumentOutOfRangeException">
+		/// <para><paramref name="offset"/> is negative.</para>
+		/// <para>-or-</para>
+		/// <para><paramref name="count"/> is negative.</para>
+		/// </exception>
+		/// <exception cref="System.ObjectDisposedException">
+		/// The <see cref="ImapClient"/> has been disposed.
+		/// </exception>
+		/// <exception cref="System.InvalidOperationException">
+		/// <para>The <see cref="ImapClient"/> is not connected.</para>
+		/// <para>-or-</para>
+		/// <para>The <see cref="ImapClient"/> is not authenticated.</para>
+		/// <para>-or-</para>
+		/// <para>The folder is not currently open.</para>
+		/// </exception>
+		/// <exception cref="System.IO.IOException">
+		/// An I/O error occurred.
+		/// </exception>
+		/// <exception cref="ImapProtocolException">
+		/// The server's response contained unexpected tokens.
+		/// </exception>
+		/// <exception cref="ImapCommandException">
+		/// The server replied with a NO or BAD response.
+		/// </exception>
+		public Stream GetStream (UniqueId uid, int offset, int count)
+		{
+			return GetStream (uid, offset, count, CancellationToken.None);
 		}
 
 		/// <summary>
@@ -3077,7 +4519,11 @@ namespace MailKit.Net.Imap {
 				return new MemoryStream ();
 
 			var ic = new ImapCommand (Engine, cancellationToken, this, "UID FETCH %u (BODY.PEEK[]<%d.%d>)\r\n", uid.Id, offset, count);
+			var streams = new Dictionary<string, Stream> ();
+			Stream stream;
+
 			ic.RegisterUntaggedHandler ("FETCH", FetchMessageBody);
+			ic.UserData = streams;
 
 			Engine.QueueCommand (ic);
 			Engine.Wait (ic);
@@ -3087,7 +4533,54 @@ namespace MailKit.Net.Imap {
 			if (ic.Result != ImapCommandResult.Ok)
 				throw new ImapCommandException ("FETCH", ic.Result);
 
-			return (Stream) ic.UserData;
+			if (!streams.TryGetValue (string.Empty, out stream))
+				return null;
+
+			return stream;
+		}
+
+		/// <summary>
+		/// Gets a substream of the specified message.
+		/// </summary>
+		/// <remarks>
+		/// Fetches a substream of the message. If the starting offset is beyond
+		/// the end of the message, an empty stream is returned. If the number of
+		/// bytes desired extends beyond the end of the message, a truncated stream
+		/// will be returned.
+		/// </remarks>
+		/// <returns>The stream.</returns>
+		/// <param name="index">The index of the message.</param>
+		/// <param name="offset">The starting offset of the first desired byte.</param>
+		/// <param name="count">The number of bytes desired.</param>
+		/// <exception cref="System.ArgumentOutOfRangeException">
+		/// <para><paramref name="index"/> is out of range.</para>
+		/// <para>-or-</para>
+		/// <para><paramref name="offset"/> is negative.</para>
+		/// <para>-or-</para>
+		/// <para><paramref name="count"/> is negative.</para>
+		/// </exception>
+		/// <exception cref="System.ObjectDisposedException">
+		/// The <see cref="ImapClient"/> has been disposed.
+		/// </exception>
+		/// <exception cref="System.InvalidOperationException">
+		/// <para>The <see cref="ImapClient"/> is not connected.</para>
+		/// <para>-or-</para>
+		/// <para>The <see cref="ImapClient"/> is not authenticated.</para>
+		/// <para>-or-</para>
+		/// <para>The folder is not currently open.</para>
+		/// </exception>
+		/// <exception cref="System.IO.IOException">
+		/// An I/O error occurred.
+		/// </exception>
+		/// <exception cref="ImapProtocolException">
+		/// The server's response contained unexpected tokens.
+		/// </exception>
+		/// <exception cref="ImapCommandException">
+		/// The server replied with a NO or BAD response.
+		/// </exception>
+		public Stream GetStream (int index, int offset, int count)
+		{
+			return GetStream (index, offset, count, CancellationToken.None);
 		}
 
 		/// <summary>
@@ -3150,7 +4643,11 @@ namespace MailKit.Net.Imap {
 				return new MemoryStream ();
 
 			var ic = new ImapCommand (Engine, cancellationToken, this, "FETCH %d (BODY.PEEK[]<%d.%d>)\r\n", index + 1, offset, count);
+			var streams = new Dictionary<string, Stream> ();
+			Stream stream;
+
 			ic.RegisterUntaggedHandler ("FETCH", FetchMessageBody);
+			ic.UserData = streams;
 
 			Engine.QueueCommand (ic);
 			Engine.Wait (ic);
@@ -3160,7 +4657,59 @@ namespace MailKit.Net.Imap {
 			if (ic.Result != ImapCommandResult.Ok)
 				throw new ImapCommandException ("FETCH", ic.Result);
 
-			return (Stream) ic.UserData;
+			if (!streams.TryGetValue (string.Empty, out stream))
+				return null;
+
+			return stream;
+		}
+
+		/// <summary>
+		/// Gets a substream of the specified body part.
+		/// </summary>
+		/// <remarks>
+		/// Fetches a substream of the body part. If the starting offset is beyond
+		/// the end of the body part, an empty stream is returned. If the number of
+		/// bytes desired extends beyond the end of the body part, a truncated stream
+		/// will be returned.
+		/// </remarks>
+		/// <returns>The stream.</returns>
+		/// <param name="uid">The UID of the message.</param>
+		/// <param name="part">The desired body part.</param>
+		/// <param name="offset">The starting offset of the first desired byte.</param>
+		/// <param name="count">The number of bytes desired.</param>
+		/// <exception cref="System.ArgumentException">
+		/// <paramref name="uid"/> is invalid.
+		/// </exception>
+		/// <exception cref="System.ArgumentNullException">
+		/// <paramref name="part"/> is <c>null</c>.
+		/// </exception>
+		/// <exception cref="System.ArgumentOutOfRangeException">
+		/// <para><paramref name="offset"/> is negative.</para>
+		/// <para>-or-</para>
+		/// <para><paramref name="count"/> is negative.</para>
+		/// </exception>
+		/// <exception cref="System.ObjectDisposedException">
+		/// The <see cref="ImapClient"/> has been disposed.
+		/// </exception>
+		/// <exception cref="System.InvalidOperationException">
+		/// <para>The <see cref="ImapClient"/> is not connected.</para>
+		/// <para>-or-</para>
+		/// <para>The <see cref="ImapClient"/> is not authenticated.</para>
+		/// <para>-or-</para>
+		/// <para>The folder is not currently open.</para>
+		/// </exception>
+		/// <exception cref="System.IO.IOException">
+		/// An I/O error occurred.
+		/// </exception>
+		/// <exception cref="ImapProtocolException">
+		/// The server's response contained unexpected tokens.
+		/// </exception>
+		/// <exception cref="ImapCommandException">
+		/// The server replied with a NO or BAD response.
+		/// </exception>
+		public Stream GetStream (UniqueId uid, BodyPart part, int offset, int count)
+		{
+			return GetStream (uid, part, offset, count, CancellationToken.None);
 		}
 
 		/// <summary>
@@ -3230,8 +4779,12 @@ namespace MailKit.Net.Imap {
 			if (count == 0)
 				return new MemoryStream ();
 
-			var ic = new ImapCommand (Engine, cancellationToken, this, "UID FETCH %u (BODY.PEEK[]<%d.%d>)\r\n", uid.Id, offset, count);
+			var ic = new ImapCommand (Engine, cancellationToken, this, "UID FETCH %u (BODY.PEEK[%s]<%d.%d>)\r\n", uid.Id, part.PartSpecifier, offset, count);
+			var streams = new Dictionary<string, Stream> ();
+			Stream stream;
+
 			ic.RegisterUntaggedHandler ("FETCH", FetchMessageBody);
+			ic.UserData = streams;
 
 			Engine.QueueCommand (ic);
 			Engine.Wait (ic);
@@ -3241,7 +4794,58 @@ namespace MailKit.Net.Imap {
 			if (ic.Result != ImapCommandResult.Ok)
 				throw new ImapCommandException ("FETCH", ic.Result);
 
-			return (Stream) ic.UserData;
+			if (!streams.TryGetValue (part.PartSpecifier, out stream))
+				return null;
+
+			return stream;
+		}
+
+		/// <summary>
+		/// Gets a substream of the specified body part.
+		/// </summary>
+		/// <remarks>
+		/// Fetches a substream of the body part. If the starting offset is beyond
+		/// the end of the body part, an empty stream is returned. If the number of
+		/// bytes desired extends beyond the end of the body part, a truncated stream
+		/// will be returned.
+		/// </remarks>
+		/// <returns>The stream.</returns>
+		/// <param name="index">The index of the message.</param>
+		/// <param name="part">The desired body part.</param>
+		/// <param name="offset">The starting offset of the first desired byte.</param>
+		/// <param name="count">The number of bytes desired.</param>
+		/// <exception cref="System.ArgumentNullException">
+		/// <paramref name="part"/> is <c>null</c>.
+		/// </exception>
+		/// <exception cref="System.ArgumentOutOfRangeException">
+		/// <para><paramref name="index"/> is out of range.</para>
+		/// <para>-or-</para>
+		/// <para><paramref name="offset"/> is negative.</para>
+		/// <para>-or-</para>
+		/// <para><paramref name="count"/> is negative.</para>
+		/// </exception>
+		/// <exception cref="System.ObjectDisposedException">
+		/// The <see cref="ImapClient"/> has been disposed.
+		/// </exception>
+		/// <exception cref="System.InvalidOperationException">
+		/// <para>The <see cref="ImapClient"/> is not connected.</para>
+		/// <para>-or-</para>
+		/// <para>The <see cref="ImapClient"/> is not authenticated.</para>
+		/// <para>-or-</para>
+		/// <para>The folder is not currently open.</para>
+		/// </exception>
+		/// <exception cref="System.IO.IOException">
+		/// An I/O error occurred.
+		/// </exception>
+		/// <exception cref="ImapProtocolException">
+		/// The server's response contained unexpected tokens.
+		/// </exception>
+		/// <exception cref="ImapCommandException">
+		/// The server replied with a NO or BAD response.
+		/// </exception>
+		public Stream GetStream (int index, BodyPart part, int offset, int count)
+		{
+			return GetStream (index, part, offset, count, CancellationToken.None);
 		}
 
 		/// <summary>
@@ -3311,7 +4915,11 @@ namespace MailKit.Net.Imap {
 				return new MemoryStream ();
 
 			var ic = new ImapCommand (Engine, cancellationToken, this, "FETCH %d (BODY.PEEK[%s]<%d.%d>)\r\n", index + 1, part.PartSpecifier, offset, count);
+			var streams = new Dictionary<string, Stream> ();
+			Stream stream;
+
 			ic.RegisterUntaggedHandler ("FETCH", FetchMessageBody);
+			ic.UserData = streams;
 
 			Engine.QueueCommand (ic);
 			Engine.Wait (ic);
@@ -3321,7 +4929,10 @@ namespace MailKit.Net.Imap {
 			if (ic.Result != ImapCommandResult.Ok)
 				throw new ImapCommandException ("FETCH", ic.Result);
 
-			return (Stream) ic.UserData;
+			if (!streams.TryGetValue (string.Empty, out stream))
+				return null;
+
+			return stream;
 		}
 
 		UniqueId[] ModifyFlags (UniqueId[] uids, ulong? modseq, MessageFlags flags, string action, CancellationToken cancellationToken)
@@ -3361,6 +4972,42 @@ namespace MailKit.Net.Imap {
 			}
 
 			return new UniqueId[0];
+		}
+
+		/// <summary>
+		/// Adds a set of flags to the specified messages.
+		/// </summary>
+		/// <param name="uids">The UIDs of the messages.</param>
+		/// <param name="flags">The message flags to add.</param>
+		/// <param name="silent">If set to <c>true</c>, no <see cref="MessageFlagsChanged"/> events will be emitted.</param>
+		/// <exception cref="System.ArgumentNullException">
+		/// <paramref name="uids"/> is <c>null</c>.
+		/// </exception>
+		/// <exception cref="System.ArgumentException">
+		/// <paramref name="uids"/> contains at least one invalid uid.
+		/// </exception>
+		/// <exception cref="System.ObjectDisposedException">
+		/// The <see cref="ImapClient"/> has been disposed.
+		/// </exception>
+		/// <exception cref="System.InvalidOperationException">
+		/// <para>The <see cref="ImapClient"/> is not connected.</para>
+		/// <para>-or-</para>
+		/// <para>The <see cref="ImapClient"/> is not authenticated.</para>
+		/// <para>-or-</para>
+		/// <para>The folder is not currently open in read-write mode.</para>
+		/// </exception>
+		/// <exception cref="System.IO.IOException">
+		/// An I/O error occurred.
+		/// </exception>
+		/// <exception cref="ImapProtocolException">
+		/// The server's response contained unexpected tokens.
+		/// </exception>
+		/// <exception cref="ImapCommandException">
+		/// The server replied with a NO or BAD response.
+		/// </exception>
+		public void AddFlags (UniqueId[] uids, MessageFlags flags, bool silent)
+		{
+			AddFlags (uids, flags, silent, CancellationToken.None);
 		}
 
 		/// <summary>
@@ -3409,6 +5056,42 @@ namespace MailKit.Net.Imap {
 		/// <param name="uids">The UIDs of the messages.</param>
 		/// <param name="flags">The message flags to remove.</param>
 		/// <param name="silent">If set to <c>true</c>, no <see cref="MessageFlagsChanged"/> events will be emitted.</param>
+		/// <exception cref="System.ArgumentNullException">
+		/// <paramref name="uids"/> is <c>null</c>.
+		/// </exception>
+		/// <exception cref="System.ArgumentException">
+		/// <paramref name="uids"/> contains at least one invalid uid.
+		/// </exception>
+		/// <exception cref="System.ObjectDisposedException">
+		/// The <see cref="ImapClient"/> has been disposed.
+		/// </exception>
+		/// <exception cref="System.InvalidOperationException">
+		/// <para>The <see cref="ImapClient"/> is not connected.</para>
+		/// <para>-or-</para>
+		/// <para>The <see cref="ImapClient"/> is not authenticated.</para>
+		/// <para>-or-</para>
+		/// <para>The folder is not currently open in read-write mode.</para>
+		/// </exception>
+		/// <exception cref="System.IO.IOException">
+		/// An I/O error occurred.
+		/// </exception>
+		/// <exception cref="ImapProtocolException">
+		/// The server's response contained unexpected tokens.
+		/// </exception>
+		/// <exception cref="ImapCommandException">
+		/// The server replied with a NO or BAD response.
+		/// </exception>
+		public void RemoveFlags (UniqueId[] uids, MessageFlags flags, bool silent)
+		{
+			RemoveFlags (uids, flags, silent, CancellationToken.None);
+		}
+
+		/// <summary>
+		/// Removes a set of flags from the specified messages.
+		/// </summary>
+		/// <param name="uids">The UIDs of the messages.</param>
+		/// <param name="flags">The message flags to remove.</param>
+		/// <param name="silent">If set to <c>true</c>, no <see cref="MessageFlagsChanged"/> events will be emitted.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <exception cref="System.ArgumentNullException">
 		/// <paramref name="uids"/> is <c>null</c>.
@@ -3449,6 +5132,42 @@ namespace MailKit.Net.Imap {
 		/// <param name="uids">The UIDs of the messages.</param>
 		/// <param name="flags">The message flags to set.</param>
 		/// <param name="silent">If set to <c>true</c>, no <see cref="MessageFlagsChanged"/> events will be emitted.</param>
+		/// <exception cref="System.ArgumentNullException">
+		/// <paramref name="uids"/> is <c>null</c>.
+		/// </exception>
+		/// <exception cref="System.ArgumentException">
+		/// <paramref name="uids"/> contains at least one invalid uid.
+		/// </exception>
+		/// <exception cref="System.ObjectDisposedException">
+		/// The <see cref="ImapClient"/> has been disposed.
+		/// </exception>
+		/// <exception cref="System.InvalidOperationException">
+		/// <para>The <see cref="ImapClient"/> is not connected.</para>
+		/// <para>-or-</para>
+		/// <para>The <see cref="ImapClient"/> is not authenticated.</para>
+		/// <para>-or-</para>
+		/// <para>The folder is not currently open in read-write mode.</para>
+		/// </exception>
+		/// <exception cref="System.IO.IOException">
+		/// An I/O error occurred.
+		/// </exception>
+		/// <exception cref="ImapProtocolException">
+		/// The server's response contained unexpected tokens.
+		/// </exception>
+		/// <exception cref="ImapCommandException">
+		/// The server replied with a NO or BAD response.
+		/// </exception>
+		public void SetFlags (UniqueId[] uids, MessageFlags flags, bool silent)
+		{
+			SetFlags (uids, flags, silent, CancellationToken.None);
+		}
+
+		/// <summary>
+		/// Sets the flags of the specified messages.
+		/// </summary>
+		/// <param name="uids">The UIDs of the messages.</param>
+		/// <param name="flags">The message flags to set.</param>
+		/// <param name="silent">If set to <c>true</c>, no <see cref="MessageFlagsChanged"/> events will be emitted.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <exception cref="System.ArgumentNullException">
 		/// <paramref name="uids"/> is <c>null</c>.
@@ -3481,6 +5200,47 @@ namespace MailKit.Net.Imap {
 		public void SetFlags (UniqueId[] uids, MessageFlags flags, bool silent, CancellationToken cancellationToken)
 		{
 			ModifyFlags (uids, null, flags, silent ? "FLAGS.SILENT" : "FLAGS", cancellationToken);
+		}
+
+		/// <summary>
+		/// Adds a set of flags to the specified messages only if their mod-sequence value is less than the specified value.
+		/// </summary>
+		/// <returns>The unique IDs of the messages that were not updated.</returns>
+		/// <param name="uids">The UIDs of the messages.</param>
+		/// <param name="modseq">The mod-sequence value.</param>
+		/// <param name="flags">The message flags to add.</param>
+		/// <param name="silent">If set to <c>true</c>, no <see cref="MessageFlagsChanged"/> events will be emitted.</param>
+		/// <exception cref="System.ArgumentNullException">
+		/// <paramref name="uids"/> is <c>null</c>.
+		/// </exception>
+		/// <exception cref="System.ArgumentException">
+		/// <paramref name="uids"/> contains at least one invalid uid.
+		/// </exception>
+		/// <exception cref="System.ObjectDisposedException">
+		/// The <see cref="ImapClient"/> has been disposed.
+		/// </exception>
+		/// <exception cref="System.InvalidOperationException">
+		/// <para>The <see cref="ImapClient"/> is not connected.</para>
+		/// <para>-or-</para>
+		/// <para>The <see cref="ImapClient"/> is not authenticated.</para>
+		/// <para>-or-</para>
+		/// <para>The folder is not currently open in read-write mode.</para>
+		/// </exception>
+		/// <exception cref="System.NotSupportedException">
+		/// The <see cref="ImapFolder"/> does not support mod-sequences.
+		/// </exception>
+		/// <exception cref="System.IO.IOException">
+		/// An I/O error occurred.
+		/// </exception>
+		/// <exception cref="ImapProtocolException">
+		/// The server's response contained unexpected tokens.
+		/// </exception>
+		/// <exception cref="ImapCommandException">
+		/// The server replied with a NO or BAD response.
+		/// </exception>
+		public UniqueId[] AddFlags (UniqueId[] uids, ulong modseq, MessageFlags flags, bool silent)
+		{
+			return AddFlags (uids, modseq, flags, silent, CancellationToken.None);
 		}
 
 		/// <summary>
@@ -3536,6 +5296,47 @@ namespace MailKit.Net.Imap {
 		/// <param name="modseq">The mod-sequence value.</param>
 		/// <param name="flags">The message flags to remove.</param>
 		/// <param name="silent">If set to <c>true</c>, no <see cref="MessageFlagsChanged"/> events will be emitted.</param>
+		/// <exception cref="System.ArgumentNullException">
+		/// <paramref name="uids"/> is <c>null</c>.
+		/// </exception>
+		/// <exception cref="System.ArgumentException">
+		/// <paramref name="uids"/> contains at least one invalid uid.
+		/// </exception>
+		/// <exception cref="System.ObjectDisposedException">
+		/// The <see cref="ImapClient"/> has been disposed.
+		/// </exception>
+		/// <exception cref="System.InvalidOperationException">
+		/// <para>The <see cref="ImapClient"/> is not connected.</para>
+		/// <para>-or-</para>
+		/// <para>The <see cref="ImapClient"/> is not authenticated.</para>
+		/// <para>-or-</para>
+		/// <para>The folder is not currently open in read-write mode.</para>
+		/// </exception>
+		/// <exception cref="System.NotSupportedException">
+		/// The <see cref="ImapFolder"/> does not support mod-sequences.
+		/// </exception>
+		/// <exception cref="System.IO.IOException">
+		/// An I/O error occurred.
+		/// </exception>
+		/// <exception cref="ImapProtocolException">
+		/// The server's response contained unexpected tokens.
+		/// </exception>
+		/// <exception cref="ImapCommandException">
+		/// The server replied with a NO or BAD response.
+		/// </exception>
+		public UniqueId[] RemoveFlags (UniqueId[] uids, ulong modseq, MessageFlags flags, bool silent)
+		{
+			return RemoveFlags (uids, modseq, flags, silent, CancellationToken.None);
+		}
+
+		/// <summary>
+		/// Removes a set of flags from the specified messages only if their mod-sequence value is less than the specified value.
+		/// </summary>
+		/// <returns>The unique IDs of the messages that were not updated.</returns>
+		/// <param name="uids">The UIDs of the messages.</param>
+		/// <param name="modseq">The mod-sequence value.</param>
+		/// <param name="flags">The message flags to remove.</param>
+		/// <param name="silent">If set to <c>true</c>, no <see cref="MessageFlagsChanged"/> events will be emitted.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <exception cref="System.ArgumentNullException">
 		/// <paramref name="uids"/> is <c>null</c>.
@@ -3571,6 +5372,47 @@ namespace MailKit.Net.Imap {
 		public UniqueId[] RemoveFlags (UniqueId[] uids, ulong modseq, MessageFlags flags, bool silent, CancellationToken cancellationToken)
 		{
 			return ModifyFlags (uids, modseq, flags, silent ? "-FLAGS.SILENT" : "-FLAGS", cancellationToken);
+		}
+
+		/// <summary>
+		/// Sets the flags of the specified messages only if their mod-sequence value is less than the specified value.
+		/// </summary>
+		/// <returns>The unique IDs of the messages that were not updated.</returns>
+		/// <param name="uids">The UIDs of the messages.</param>
+		/// <param name="modseq">The mod-sequence value.</param>
+		/// <param name="flags">The message flags to set.</param>
+		/// <param name="silent">If set to <c>true</c>, no <see cref="MessageFlagsChanged"/> events will be emitted.</param>
+		/// <exception cref="System.ArgumentNullException">
+		/// <paramref name="uids"/> is <c>null</c>.
+		/// </exception>
+		/// <exception cref="System.ArgumentException">
+		/// <paramref name="uids"/> contains at least one invalid uid.
+		/// </exception>
+		/// <exception cref="System.ObjectDisposedException">
+		/// The <see cref="ImapClient"/> has been disposed.
+		/// </exception>
+		/// <exception cref="System.InvalidOperationException">
+		/// <para>The <see cref="ImapClient"/> is not connected.</para>
+		/// <para>-or-</para>
+		/// <para>The <see cref="ImapClient"/> is not authenticated.</para>
+		/// <para>-or-</para>
+		/// <para>The folder is not currently open in read-write mode.</para>
+		/// </exception>
+		/// <exception cref="System.NotSupportedException">
+		/// The <see cref="ImapFolder"/> does not support mod-sequences.
+		/// </exception>
+		/// <exception cref="System.IO.IOException">
+		/// An I/O error occurred.
+		/// </exception>
+		/// <exception cref="ImapProtocolException">
+		/// The server's response contained unexpected tokens.
+		/// </exception>
+		/// <exception cref="ImapCommandException">
+		/// The server replied with a NO or BAD response.
+		/// </exception>
+		public UniqueId[] SetFlags (UniqueId[] uids, ulong modseq, MessageFlags flags, bool silent)
+		{
+			return SetFlags (uids, modseq, flags, silent, CancellationToken.None);
 		}
 
 		/// <summary>
@@ -3667,6 +5509,42 @@ namespace MailKit.Net.Imap {
 		/// <param name="indexes">The indexes of the messages.</param>
 		/// <param name="flags">The message flags to add.</param>
 		/// <param name="silent">If set to <c>true</c>, no <see cref="MessageFlagsChanged"/> events will be emitted.</param>
+		/// <exception cref="System.ArgumentNullException">
+		/// <paramref name="indexes"/> is <c>null</c>.
+		/// </exception>
+		/// <exception cref="System.ArgumentException">
+		/// <paramref name="indexes"/> contains at least one invalid index.
+		/// </exception>
+		/// <exception cref="System.ObjectDisposedException">
+		/// The <see cref="ImapClient"/> has been disposed.
+		/// </exception>
+		/// <exception cref="System.InvalidOperationException">
+		/// <para>The <see cref="ImapClient"/> is not connected.</para>
+		/// <para>-or-</para>
+		/// <para>The <see cref="ImapClient"/> is not authenticated.</para>
+		/// <para>-or-</para>
+		/// <para>The folder is not currently open in read-write mode.</para>
+		/// </exception>
+		/// <exception cref="System.IO.IOException">
+		/// An I/O error occurred.
+		/// </exception>
+		/// <exception cref="ImapProtocolException">
+		/// The server's response contained unexpected tokens.
+		/// </exception>
+		/// <exception cref="ImapCommandException">
+		/// The server replied with a NO or BAD response.
+		/// </exception>
+		public void AddFlags (int[] indexes, MessageFlags flags, bool silent)
+		{
+			AddFlags (indexes, flags, silent, CancellationToken.None);
+		}
+
+		/// <summary>
+		/// Adds a set of flags to the specified messages.
+		/// </summary>
+		/// <param name="indexes">The indexes of the messages.</param>
+		/// <param name="flags">The message flags to add.</param>
+		/// <param name="silent">If set to <c>true</c>, no <see cref="MessageFlagsChanged"/> events will be emitted.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <exception cref="System.ArgumentNullException">
 		/// <paramref name="indexes"/> is <c>null</c>.
@@ -3699,6 +5577,42 @@ namespace MailKit.Net.Imap {
 		public void AddFlags (int[] indexes, MessageFlags flags, bool silent, CancellationToken cancellationToken)
 		{
 			ModifyFlags (indexes, null, flags, silent ? "+FLAGS.SILENT" : "+FLAGS", cancellationToken);
+		}
+
+		/// <summary>
+		/// Removes a set of flags from the specified messages.
+		/// </summary>
+		/// <param name="indexes">The indexes of the messages.</param>
+		/// <param name="flags">The message flags to remove.</param>
+		/// <param name="silent">If set to <c>true</c>, no <see cref="MessageFlagsChanged"/> events will be emitted.</param>
+		/// <exception cref="System.ArgumentNullException">
+		/// <paramref name="indexes"/> is <c>null</c>.
+		/// </exception>
+		/// <exception cref="System.ArgumentException">
+		/// <paramref name="indexes"/> contains at least one invalid index.
+		/// </exception>
+		/// <exception cref="System.ObjectDisposedException">
+		/// The <see cref="ImapClient"/> has been disposed.
+		/// </exception>
+		/// <exception cref="System.InvalidOperationException">
+		/// <para>The <see cref="ImapClient"/> is not connected.</para>
+		/// <para>-or-</para>
+		/// <para>The <see cref="ImapClient"/> is not authenticated.</para>
+		/// <para>-or-</para>
+		/// <para>The folder is not currently open in read-write mode.</para>
+		/// </exception>
+		/// <exception cref="System.IO.IOException">
+		/// An I/O error occurred.
+		/// </exception>
+		/// <exception cref="ImapProtocolException">
+		/// The server's response contained unexpected tokens.
+		/// </exception>
+		/// <exception cref="ImapCommandException">
+		/// The server replied with a NO or BAD response.
+		/// </exception>
+		public void RemoveFlags (int[] indexes, MessageFlags flags, bool silent)
+		{
+			RemoveFlags (indexes, flags, silent, CancellationToken.None);
 		}
 
 		/// <summary>
@@ -3747,6 +5661,42 @@ namespace MailKit.Net.Imap {
 		/// <param name="indexes">The indexes of the messages.</param>
 		/// <param name="flags">The message flags to set.</param>
 		/// <param name="silent">If set to <c>true</c>, no <see cref="MessageFlagsChanged"/> events will be emitted.</param>
+		/// <exception cref="System.ArgumentNullException">
+		/// <paramref name="indexes"/> is <c>null</c>.
+		/// </exception>
+		/// <exception cref="System.ArgumentException">
+		/// <paramref name="indexes"/> contains at least one invalid index.
+		/// </exception>
+		/// <exception cref="System.ObjectDisposedException">
+		/// The <see cref="ImapClient"/> has been disposed.
+		/// </exception>
+		/// <exception cref="System.InvalidOperationException">
+		/// <para>The <see cref="ImapClient"/> is not connected.</para>
+		/// <para>-or-</para>
+		/// <para>The <see cref="ImapClient"/> is not authenticated.</para>
+		/// <para>-or-</para>
+		/// <para>The folder is not currently open in read-write mode.</para>
+		/// </exception>
+		/// <exception cref="System.IO.IOException">
+		/// An I/O error occurred.
+		/// </exception>
+		/// <exception cref="ImapProtocolException">
+		/// The server's response contained unexpected tokens.
+		/// </exception>
+		/// <exception cref="ImapCommandException">
+		/// The server replied with a NO or BAD response.
+		/// </exception>
+		public void SetFlags (int[] indexes, MessageFlags flags, bool silent)
+		{
+			SetFlags (indexes, flags, silent, CancellationToken.None);
+		}
+
+		/// <summary>
+		/// Sets the flags of the specified messages.
+		/// </summary>
+		/// <param name="indexes">The indexes of the messages.</param>
+		/// <param name="flags">The message flags to set.</param>
+		/// <param name="silent">If set to <c>true</c>, no <see cref="MessageFlagsChanged"/> events will be emitted.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <exception cref="System.ArgumentNullException">
 		/// <paramref name="indexes"/> is <c>null</c>.
@@ -3779,6 +5729,46 @@ namespace MailKit.Net.Imap {
 		public void SetFlags (int[] indexes, MessageFlags flags, bool silent, CancellationToken cancellationToken)
 		{
 			ModifyFlags (indexes, null, flags, silent ? "FLAGS.SILENT" : "FLAGS", cancellationToken);
+		}
+
+		/// <summary>
+		/// Adds a set of flags to the specified messages only if their mod-sequence value is less than the specified value.
+		/// </summary>
+		/// <param name="indexes">The indexes of the messages.</param>
+		/// <param name="modseq">The mod-sequence value.</param>
+		/// <param name="flags">The message flags to add.</param>
+		/// <param name="silent">If set to <c>true</c>, no <see cref="MessageFlagsChanged"/> events will be emitted.</param>
+		/// <exception cref="System.ArgumentNullException">
+		/// <paramref name="indexes"/> is <c>null</c>.
+		/// </exception>
+		/// <exception cref="System.ArgumentException">
+		/// <paramref name="indexes"/> contains at least one invalid index.
+		/// </exception>
+		/// <exception cref="System.ObjectDisposedException">
+		/// The <see cref="ImapClient"/> has been disposed.
+		/// </exception>
+		/// <exception cref="System.InvalidOperationException">
+		/// <para>The <see cref="ImapClient"/> is not connected.</para>
+		/// <para>-or-</para>
+		/// <para>The <see cref="ImapClient"/> is not authenticated.</para>
+		/// <para>-or-</para>
+		/// <para>The folder is not currently open in read-write mode.</para>
+		/// </exception>
+		/// <exception cref="System.NotSupportedException">
+		/// The <see cref="ImapFolder"/> does not support mod-sequences.
+		/// </exception>
+		/// <exception cref="System.IO.IOException">
+		/// An I/O error occurred.
+		/// </exception>
+		/// <exception cref="ImapProtocolException">
+		/// The server's response contained unexpected tokens.
+		/// </exception>
+		/// <exception cref="ImapCommandException">
+		/// The server replied with a NO or BAD response.
+		/// </exception>
+		public int[] AddFlags (int[] indexes, ulong modseq, MessageFlags flags, bool silent)
+		{
+			return AddFlags (indexes, modseq, flags, silent, CancellationToken.None);
 		}
 
 		/// <summary>
@@ -3833,6 +5823,47 @@ namespace MailKit.Net.Imap {
 		/// <param name="modseq">The mod-sequence value.</param>
 		/// <param name="flags">The message flags to remove.</param>
 		/// <param name="silent">If set to <c>true</c>, no <see cref="MessageFlagsChanged"/> events will be emitted.</param>
+		/// <exception cref="System.ArgumentNullException">
+		/// <paramref name="indexes"/> is <c>null</c>.
+		/// </exception>
+		/// <exception cref="System.ArgumentException">
+		/// <paramref name="indexes"/> contains at least one invalid index.
+		/// </exception>
+		/// <exception cref="System.ObjectDisposedException">
+		/// The <see cref="ImapClient"/> has been disposed.
+		/// </exception>
+		/// <exception cref="System.InvalidOperationException">
+		/// <para>The <see cref="ImapClient"/> is not connected.</para>
+		/// <para>-or-</para>
+		/// <para>The <see cref="ImapClient"/> is not authenticated.</para>
+		/// <para>-or-</para>
+		/// <para>The folder is not currently open in read-write mode.</para>
+		/// </exception>
+		/// <exception cref="System.NotSupportedException">
+		/// The <see cref="ImapFolder"/> does not support mod-sequences.
+		/// </exception>
+		/// <exception cref="System.IO.IOException">
+		/// An I/O error occurred.
+		/// </exception>
+		/// <exception cref="ImapProtocolException">
+		/// The server's response contained unexpected tokens.
+		/// </exception>
+		/// <exception cref="ImapCommandException">
+		/// The server replied with a NO or BAD response.
+		/// </exception>
+		public int[] RemoveFlags (int[] indexes, ulong modseq, MessageFlags flags, bool silent)
+		{
+			return RemoveFlags (indexes, modseq, flags, silent, CancellationToken.None);
+		}
+
+		/// <summary>
+		/// Removes a set of flags from the specified messages only if their mod-sequence value is less than the specified value.
+		/// </summary>
+		/// <returns>The indexes of the messages that were not updated.</returns>
+		/// <param name="indexes">The indexes of the messages.</param>
+		/// <param name="modseq">The mod-sequence value.</param>
+		/// <param name="flags">The message flags to remove.</param>
+		/// <param name="silent">If set to <c>true</c>, no <see cref="MessageFlagsChanged"/> events will be emitted.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <exception cref="System.ArgumentNullException">
 		/// <paramref name="indexes"/> is <c>null</c>.
@@ -3868,6 +5899,47 @@ namespace MailKit.Net.Imap {
 		public int[] RemoveFlags (int[] indexes, ulong modseq, MessageFlags flags, bool silent, CancellationToken cancellationToken)
 		{
 			return ModifyFlags (indexes, modseq, flags, silent ? "-FLAGS.SILENT" : "-FLAGS", cancellationToken);
+		}
+
+		/// <summary>
+		/// Sets the flags of the specified messages only if their mod-sequence value is less than the specified value.
+		/// </summary>
+		/// <returns>The indexes of the messages that were not updated.</returns>
+		/// <param name="indexes">The indexes of the messages.</param>
+		/// <param name="modseq">The mod-sequence value.</param>
+		/// <param name="flags">The message flags to set.</param>
+		/// <param name="silent">If set to <c>true</c>, no <see cref="MessageFlagsChanged"/> events will be emitted.</param>
+		/// <exception cref="System.ArgumentNullException">
+		/// <paramref name="indexes"/> is <c>null</c>.
+		/// </exception>
+		/// <exception cref="System.ArgumentException">
+		/// <paramref name="indexes"/> contains at least one invalid index.
+		/// </exception>
+		/// <exception cref="System.ObjectDisposedException">
+		/// The <see cref="ImapClient"/> has been disposed.
+		/// </exception>
+		/// <exception cref="System.InvalidOperationException">
+		/// <para>The <see cref="ImapClient"/> is not connected.</para>
+		/// <para>-or-</para>
+		/// <para>The <see cref="ImapClient"/> is not authenticated.</para>
+		/// <para>-or-</para>
+		/// <para>The folder is not currently open in read-write mode.</para>
+		/// </exception>
+		/// <exception cref="System.NotSupportedException">
+		/// The <see cref="ImapFolder"/> does not support mod-sequences.
+		/// </exception>
+		/// <exception cref="System.IO.IOException">
+		/// An I/O error occurred.
+		/// </exception>
+		/// <exception cref="ImapProtocolException">
+		/// The server's response contained unexpected tokens.
+		/// </exception>
+		/// <exception cref="ImapCommandException">
+		/// The server replied with a NO or BAD response.
+		/// </exception>
+		public int[] SetFlags (int[] indexes, ulong modseq, MessageFlags flags, bool silent)
+		{
+			return SetFlags (indexes, modseq, flags, silent, CancellationToken.None);
 		}
 
 		/// <summary>
@@ -4229,6 +6301,12 @@ namespace MailKit.Net.Imap {
 			}
 
 			do {
+				if (token.Type == ImapTokenType.Eoln) {
+					// unget the eoln token
+					engine.Stream.UngetToken (token);
+					break;
+				}
+
 				if (token.Type != ImapTokenType.Atom)
 					throw ImapEngine.UnexpectedToken (token, false);
 
@@ -4261,12 +6339,6 @@ namespace MailKit.Net.Imap {
 				}
 
 				token = engine.ReadToken (ic.CancellationToken);
-
-				if (token.Type == ImapTokenType.Eoln) {
-					// unget the eoln token
-					engine.Stream.UngetToken (token);
-					break;
-				}
 			} while (true);
 
 			if (!uid && uids != null) {
@@ -4276,8 +6348,46 @@ namespace MailKit.Net.Imap {
 
 				ic.UserData = indexes;
 			} else {
-				ic.UserData = uids;
+				ic.UserData = uids ?? new UniqueId[0];
 			}
+		}
+
+		/// <summary>
+		/// Searches the folder for messages matching the specified query.
+		/// </summary>
+		/// <remarks>
+		/// The returned array of unique identifiers can be used with <see cref="IFolder.GetMessage(UniqueId,CancellationToken)"/>.
+		/// </remarks>
+		/// <returns>An array of matching UIDs.</returns>
+		/// <param name="query">The search query.</param>
+		/// <exception cref="System.ArgumentNullException">
+		/// <paramref name="query"/> is <c>null</c>.
+		/// </exception>
+		/// <exception cref="System.NotSupportedException">
+		/// One or more search terms in the <paramref name="query"/> are not supported by the IMAP server.
+		/// </exception>
+		/// <exception cref="System.ObjectDisposedException">
+		/// The <see cref="ImapClient"/> has been disposed.
+		/// </exception>
+		/// <exception cref="System.InvalidOperationException">
+		/// <para>The <see cref="ImapClient"/> is not connected.</para>
+		/// <para>-or-</para>
+		/// <para>The <see cref="ImapClient"/> is not authenticated.</para>
+		/// <para>-or-</para>
+		/// <para>The folder is not currently open.</para>
+		/// </exception>
+		/// <exception cref="System.IO.IOException">
+		/// An I/O error occurred.
+		/// </exception>
+		/// <exception cref="ImapProtocolException">
+		/// The server's response contained unexpected tokens.
+		/// </exception>
+		/// <exception cref="ImapCommandException">
+		/// The server replied with a NO or BAD response.
+		/// </exception>
+		public UniqueId[] Search (SearchQuery query)
+		{
+			return Search (query, CancellationToken.None);
 		}
 
 		/// <summary>
@@ -4354,6 +6464,54 @@ namespace MailKit.Net.Imap {
 				throw new ImapCommandException ("SEARCH", ic.Result);
 
 			return (UniqueId[]) ic.UserData;
+		}
+
+		/// <summary>
+		/// Searches the folder for messages matching the specified query,
+		/// returning them in the preferred sort order.
+		/// </summary>
+		/// <remarks>
+		/// The returned array of unique identifiers will be sorted in the preferred order and
+		/// can be used with <see cref="IFolder.GetMessage(UniqueId,CancellationToken)"/>.
+		/// </remarks>
+		/// <returns>An array of matching UIDs in the specified sort order.</returns>
+		/// <param name="query">The search query.</param>
+		/// <param name="orderBy">The sort order.</param>
+		/// <exception cref="System.ArgumentNullException">
+		/// <para><paramref name="query"/> is <c>null</c>.</para>
+		/// <para>-or-</para>
+		/// <para><paramref name="orderBy"/> is <c>null</c>.</para>
+		/// </exception>
+		/// <exception cref="System.ArgumentException">
+		/// <paramref name="orderBy"/> is empty.
+		/// </exception>
+		/// <exception cref="System.NotSupportedException">
+		/// <para>One or more search terms in the <paramref name="query"/> are not supported by the IMAP server.</para>
+		/// <para>-or-</para>
+		/// <para>The server does not support the SORT extension.</para>
+		/// </exception>
+		/// <exception cref="System.ObjectDisposedException">
+		/// The <see cref="ImapClient"/> has been disposed.
+		/// </exception>
+		/// <exception cref="System.InvalidOperationException">
+		/// <para>The <see cref="ImapClient"/> is not connected.</para>
+		/// <para>-or-</para>
+		/// <para>The <see cref="ImapClient"/> is not authenticated.</para>
+		/// <para>-or-</para>
+		/// <para>The folder is not currently open.</para>
+		/// </exception>
+		/// <exception cref="System.IO.IOException">
+		/// An I/O error occurred.
+		/// </exception>
+		/// <exception cref="ImapProtocolException">
+		/// The server's response contained unexpected tokens.
+		/// </exception>
+		/// <exception cref="ImapCommandException">
+		/// The server replied with a NO or BAD response.
+		/// </exception>
+		public UniqueId[] Search (SearchQuery query, OrderBy[] orderBy)
+		{
+			return Search (query, orderBy, CancellationToken.None);
 		}
 
 		/// <summary>
@@ -4460,6 +6618,50 @@ namespace MailKit.Net.Imap {
 		/// <returns>An array of matching UIDs.</returns>
 		/// <param name="uids">The subset of UIDs</param>
 		/// <param name="query">The search query.</param>
+		/// <exception cref="System.ArgumentNullException">
+		/// <para><paramref name="uids"/> is <c>null</c>.</para>
+		/// <para>-or-</para>
+		/// <para><paramref name="query"/> is <c>null</c>.</para>
+		/// </exception>
+		/// <exception cref="System.ArgumentException">
+		/// <paramref name="uids"/> contains one or more invalid UIDs.
+		/// </exception>
+		/// <exception cref="System.NotSupportedException">
+		/// One or more search terms in the <paramref name="query"/> are not supported by the IMAP server.
+		/// </exception>
+		/// <exception cref="System.ObjectDisposedException">
+		/// The <see cref="ImapClient"/> has been disposed.
+		/// </exception>
+		/// <exception cref="System.InvalidOperationException">
+		/// <para>The <see cref="ImapClient"/> is not connected.</para>
+		/// <para>-or-</para>
+		/// <para>The <see cref="ImapClient"/> is not authenticated.</para>
+		/// <para>-or-</para>
+		/// <para>The folder is not currently open.</para>
+		/// </exception>
+		/// <exception cref="System.IO.IOException">
+		/// An I/O error occurred.
+		/// </exception>
+		/// <exception cref="ImapProtocolException">
+		/// The server's response contained unexpected tokens.
+		/// </exception>
+		/// <exception cref="ImapCommandException">
+		/// The server replied with a NO or BAD response.
+		/// </exception>
+		public UniqueId[] Search (UniqueId[] uids, SearchQuery query)
+		{
+			return Search (uids, query, CancellationToken.None);
+		}
+
+		/// <summary>
+		/// Searches the subset of UIDs in the folder for messages matching the specified query.
+		/// </summary>
+		/// <remarks>
+		/// The returned array of unique identifiers can be used with <see cref="IFolder.GetMessage(UniqueId,CancellationToken)"/>.
+		/// </remarks>
+		/// <returns>An array of matching UIDs.</returns>
+		/// <param name="uids">The subset of UIDs</param>
+		/// <param name="query">The search query.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <exception cref="System.ArgumentNullException">
 		/// <para><paramref name="uids"/> is <c>null</c>.</para>
@@ -4535,6 +6737,59 @@ namespace MailKit.Net.Imap {
 				throw new ImapCommandException ("SEARCH", ic.Result);
 
 			return (UniqueId[]) ic.UserData;
+		}
+
+		/// <summary>
+		/// Searches the subset of UIDs in the folder for messages matching the specified query,
+		/// returning them in the preferred sort order.
+		/// </summary>
+		/// <remarks>
+		/// The returned array of unique identifiers will be sorted in the preferred order and
+		/// can be used with <see cref="IFolder.GetMessage(UniqueId,CancellationToken)"/>.
+		/// </remarks>
+		/// <returns>An array of matching UIDs.</returns>
+		/// <param name="uids">The subset of UIDs</param>
+		/// <param name="query">The search query.</param>
+		/// <param name="orderBy">The sort order.</param>
+		/// <exception cref="System.ArgumentNullException">
+		/// <para><paramref name="uids"/> is <c>null</c>.</para>
+		/// <para>-or-</para>
+		/// <para><paramref name="query"/> is <c>null</c>.</para>
+		/// <para>-or-</para>
+		/// <para><paramref name="orderBy"/> is <c>null</c>.</para>
+		/// </exception>
+		/// <exception cref="System.ArgumentException">
+		/// <para><paramref name="uids"/> contains one or more invalid UIDs.</para>
+		/// <para>-or-</para>
+		/// <para><paramref name="orderBy"/> is empty.</para>
+		/// </exception>
+		/// <exception cref="System.NotSupportedException">
+		/// <para>One or more search terms in the <paramref name="query"/> are not supported by the IMAP server.</para>
+		/// <para>-or-</para>
+		/// <para>The server does not support the SORT extension.</para>
+		/// </exception>
+		/// <exception cref="System.ObjectDisposedException">
+		/// The <see cref="ImapClient"/> has been disposed.
+		/// </exception>
+		/// <exception cref="System.InvalidOperationException">
+		/// <para>The <see cref="ImapClient"/> is not connected.</para>
+		/// <para>-or-</para>
+		/// <para>The <see cref="ImapClient"/> is not authenticated.</para>
+		/// <para>-or-</para>
+		/// <para>The folder is not currently open.</para>
+		/// </exception>
+		/// <exception cref="System.IO.IOException">
+		/// An I/O error occurred.
+		/// </exception>
+		/// <exception cref="ImapProtocolException">
+		/// The server's response contained unexpected tokens.
+		/// </exception>
+		/// <exception cref="ImapCommandException">
+		/// The server replied with a NO or BAD response.
+		/// </exception>
+		public UniqueId[] Search (UniqueId[] uids, SearchQuery query, OrderBy[] orderBy)
+		{
+			return Search (uids, query, orderBy, CancellationToken.None);
 		}
 
 		/// <summary>
@@ -4653,6 +6908,50 @@ namespace MailKit.Net.Imap {
 		/// <returns>An array of message threads.</returns>
 		/// <param name="algorithm">The threading algorithm to use.</param>
 		/// <param name="query">The search query.</param>
+		/// <exception cref="System.ArgumentOutOfRangeException">
+		/// <paramref name="algorithm"/> is not supported.
+		/// </exception>
+		/// <exception cref="System.ArgumentNullException">
+		/// <paramref name="query"/> is <c>null</c>.
+		/// </exception>
+		/// <exception cref="System.NotSupportedException">
+		/// <para>One or more search terms in the <paramref name="query"/> are not supported by the IMAP server.</para>
+		/// <para>-or-</para>
+		/// <para>The server does not support the THREAD extension.</para>
+		/// </exception>
+		/// <exception cref="System.ObjectDisposedException">
+		/// The <see cref="ImapClient"/> has been disposed.
+		/// </exception>
+		/// <exception cref="System.InvalidOperationException">
+		/// <para>The <see cref="ImapClient"/> is not connected.</para>
+		/// <para>-or-</para>
+		/// <para>The <see cref="ImapClient"/> is not authenticated.</para>
+		/// <para>-or-</para>
+		/// <para>The folder is not currently open.</para>
+		/// </exception>
+		/// <exception cref="System.IO.IOException">
+		/// An I/O error occurred.
+		/// </exception>
+		/// <exception cref="ImapProtocolException">
+		/// The server's response contained unexpected tokens.
+		/// </exception>
+		/// <exception cref="ImapCommandException">
+		/// The server replied with a NO or BAD response.
+		/// </exception>
+		public MessageThread[] Thread (ThreadingAlgorithm algorithm, SearchQuery query)
+		{
+			return Thread (algorithm, query, CancellationToken.None);
+		}
+
+		/// <summary>
+		/// Threads the messages in the folder that match the search query using the specified threading algorithm.
+		/// </summary>
+		/// <remarks>
+		/// The <see cref="MessageThread.UniqueId"/> can be used with <see cref="IFolder.GetMessage(UniqueId,CancellationToken)"/>.
+		/// </remarks>
+		/// <returns>An array of message threads.</returns>
+		/// <param name="algorithm">The threading algorithm to use.</param>
+		/// <param name="query">The search query.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <exception cref="System.ArgumentOutOfRangeException">
 		/// <paramref name="algorithm"/> is not supported.
@@ -4722,6 +7021,56 @@ namespace MailKit.Net.Imap {
 				throw new ImapCommandException ("THREAD", ic.Result);
 
 			return (MessageThread[]) ic.UserData;
+		}
+
+		/// <summary>
+		/// Threads the messages in the folder that match the search query using the specified threading algorithm.
+		/// </summary>
+		/// <remarks>
+		/// The <see cref="MessageThread.UniqueId"/> can be used with <see cref="IFolder.GetMessage(UniqueId,CancellationToken)"/>.
+		/// </remarks>
+		/// <returns>An array of message threads.</returns>
+		/// <param name="uids">The subset of UIDs</param>
+		/// <param name="algorithm">The threading algorithm to use.</param>
+		/// <param name="query">The search query.</param>
+		/// <exception cref="System.ArgumentOutOfRangeException">
+		/// <paramref name="algorithm"/> is not supported.
+		/// </exception>
+		/// <exception cref="System.ArgumentNullException">
+		/// <para><paramref name="uids"/> is <c>null</c>.</para>
+		/// <para>-or-</para>
+		/// <para><paramref name="query"/> is <c>null</c>.</para>
+		/// </exception>
+		/// <exception cref="System.ArgumentException">
+		/// <paramref name="uids"/> contains one or more invalid UIDs.
+		/// </exception>
+		/// <exception cref="System.NotSupportedException">
+		/// <para>One or more search terms in the <paramref name="query"/> are not supported by the IMAP server.</para>
+		/// <para>-or-</para>
+		/// <para>The server does not support the THREAD extension.</para>
+		/// </exception>
+		/// <exception cref="System.ObjectDisposedException">
+		/// The <see cref="ImapClient"/> has been disposed.
+		/// </exception>
+		/// <exception cref="System.InvalidOperationException">
+		/// <para>The <see cref="ImapClient"/> is not connected.</para>
+		/// <para>-or-</para>
+		/// <para>The <see cref="ImapClient"/> is not authenticated.</para>
+		/// <para>-or-</para>
+		/// <para>The folder is not currently open.</para>
+		/// </exception>
+		/// <exception cref="System.IO.IOException">
+		/// An I/O error occurred.
+		/// </exception>
+		/// <exception cref="ImapProtocolException">
+		/// The server's response contained unexpected tokens.
+		/// </exception>
+		/// <exception cref="ImapCommandException">
+		/// The server replied with a NO or BAD response.
+		/// </exception>
+		public MessageThread[] Thread (UniqueId[] uids, ThreadingAlgorithm algorithm, SearchQuery query)
+		{
+			return Thread (uids, algorithm, query, CancellationToken.None);
 		}
 
 		/// <summary>

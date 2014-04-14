@@ -26,7 +26,6 @@
 
 using System;
 using System.IO;
-using System.Net.Sockets;
 
 namespace MailKit.Net.Pop3 {
 	/// <summary>
@@ -139,7 +138,7 @@ namespace MailKit.Net.Pop3 {
 		/// </summary>
 		/// <value><c>true</c> if the stream supports seeking; otherwise, <c>false</c>.</value>
 		public override bool CanSeek {
-			get { return Stream.CanSeek; }
+			get { return false; }
 		}
 
 		/// <summary>
@@ -256,6 +255,9 @@ namespace MailKit.Net.Pop3 {
 				if ((nread = Stream.Read (input, start, end - start)) > 0) {
 					logger.LogServer (input, start, nread);
 					inputEnd += nread;
+				} else {
+					IsConnected = false;
+					throw new Pop3ProtocolException ("The POP3 server has unexpectedly disconnected.");
 				}
 			} catch (IOException) {
 				IsConnected = false;

@@ -28,7 +28,11 @@ using System;
 using System.IO;
 using System.Text;
 using System.Threading;
-using System.Net.Sockets;
+using Buffer = System.Buffer;
+
+#if NETFX_CORE
+using Windows.Storage.Streams;
+#endif
 
 namespace MailKit.Net.Imap {
 	/// <summary>
@@ -136,7 +140,7 @@ namespace MailKit.Net.Imap {
 		/// </summary>
 		/// <value><c>true</c> if the stream supports seeking; otherwise, <c>false</c>.</value>
 		public override bool CanSeek {
-			get { return Stream.CanSeek; }
+			get { return false; }
 		}
 
 		/// <summary>
@@ -257,6 +261,9 @@ namespace MailKit.Net.Imap {
 				if ((nread = Stream.Read (input, start, end - start)) > 0) {
 					logger.LogServer (input, start, nread);
 					inputEnd += nread;
+				} else {
+					IsConnected = false;
+					throw new ImapProtocolException ("The IMAP server has unexpectedly disconnected.");
 				}
 			} catch (IOException) {
 				IsConnected = false;
@@ -402,7 +409,11 @@ namespace MailKit.Net.Imap {
 
 				inputIndex = (int) (inptr - inbuf);
 
+#if !NETFX_CORE
 				var buffer = memory.GetBuffer ();
+#else
+				var buffer = memory.ToArray ();
+#endif
 				int length = (int) memory.Length;
 
 				return new ImapToken (ImapTokenType.QString, Encoding.UTF8.GetString (buffer, 0, length));
@@ -785,6 +796,7 @@ namespace MailKit.Net.Imap {
 
 			try {
 				Stream.Write (output, 0, outputIndex);
+				Stream.Flush ();
 				logger.LogClient (output, 0, outputIndex);
 				outputIndex = 0;
 			} catch (IOException) {
