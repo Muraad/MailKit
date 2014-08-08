@@ -35,6 +35,9 @@ namespace MailKit {
 	/// <summary>
 	/// Threads messages according to the algorithms defined in rfc5256.
 	/// </summary>
+	/// <remarks>
+	/// Threads messages according to the algorithms defined in rfc5256.
+	/// </remarks>
 	public static class MessageThreader
 	{
 		class ThreadableNode : ISortable
@@ -142,6 +145,9 @@ namespace MailKit {
 					throw new ArgumentException ("One or more messages is missing information needed for threading.", "messages");
 
 				var id = message.ThreadableMessageId;
+
+				if (string.IsNullOrEmpty (id))
+					id = MimeUtils.GenerateMessageId ();
 
 				if (ids.TryGetValue (id, out node)) {
 					if (node.Message == null) {
@@ -342,7 +348,7 @@ namespace MailKit {
 			}
 		}
 
-		static MessageThread[] ThreadByReferences (IEnumerable<IThreadable> messages, OrderBy[] orderBy)
+		static IList<MessageThread> ThreadByReferences (IEnumerable<IThreadable> messages, OrderBy[] orderBy)
 		{
 			var threads = new List<MessageThread> ();
 			var ids = CreateIdTable (messages);
@@ -353,10 +359,10 @@ namespace MailKit {
 
 			GetThreads (root, threads, orderBy);
 
-			return threads.ToArray ();
+			return threads;
 		}
 
-		static MessageThread[] ThreadBySubject (IEnumerable<IThreadable> messages, OrderBy[] orderBy)
+		static IList<MessageThread> ThreadBySubject (IEnumerable<IThreadable> messages, OrderBy[] orderBy)
 		{
 			var threads = new List<MessageThread> ();
 			var root = new ThreadableNode ();
@@ -375,12 +381,15 @@ namespace MailKit {
 
 			GetThreads (root, threads, orderBy);
 
-			return threads.ToArray ();
+			return threads;
 		}
 
 		/// <summary>
 		/// Thread the messages according to the specified threading algorithm.
 		/// </summary>
+		/// <remarks>
+		/// Thread the messages according to the specified threading algorithm.
+		/// </remarks>
 		/// <returns>The threaded messages.</returns>
 		/// <param name="algorithm">The threading algorithm.</param>
 		/// <param name="messages">The messages.</param>
@@ -393,7 +402,7 @@ namespace MailKit {
 		/// <exception cref="System.ArgumentException">
 		/// <paramref name="messages"/> contains one or more items that is missing information needed for threading.
 		/// </exception>
-		public static MessageThread[] Thread (ThreadingAlgorithm algorithm, IEnumerable<IThreadable> messages)
+		public static IList<MessageThread> Thread (ThreadingAlgorithm algorithm, IEnumerable<IThreadable> messages)
 		{
 			return Thread (algorithm, messages, new [] { OrderBy.Arrival });
 		}
@@ -402,6 +411,10 @@ namespace MailKit {
 		/// Threads the messages according to the specified threading algorithm
 		/// and sorts the resulting threads by the specified ordering.
 		/// </summary>
+		/// <remarks>
+		/// Threads the messages according to the specified threading algorithm
+		/// and sorts the resulting threads by the specified ordering.
+		/// </remarks>
 		/// <returns>The threaded messages.</returns>
 		/// <param name="algorithm">The threading algorithm.</param>
 		/// <param name="messages">The messages.</param>
@@ -417,7 +430,7 @@ namespace MailKit {
 		/// <exception cref="System.ArgumentException">
 		/// <paramref name="messages"/> contains one or more items that is missing information needed for threading or sorting.
 		/// </exception>
-		public static MessageThread[] Thread (ThreadingAlgorithm algorithm, IEnumerable<IThreadable> messages, OrderBy[] orderBy)
+		public static IList<MessageThread> Thread (ThreadingAlgorithm algorithm, IEnumerable<IThreadable> messages, OrderBy[] orderBy)
 		{
 			if (messages == null)
 				throw new ArgumentNullException ("messages");
@@ -480,6 +493,9 @@ namespace MailKit {
 		/// <summary>
 		/// Gets the threadable subject.
 		/// </summary>
+		/// <remarks>
+		/// Gets the threadable subject.
+		/// </remarks>
 		/// <returns>The threadable subject.</returns>
 		/// <param name="subject">The Subject header value.</param>
 		/// <param name="replyDepth">The reply depth.</param>

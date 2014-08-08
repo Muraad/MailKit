@@ -24,7 +24,7 @@
 // THE SOFTWARE.
 //
 
-using System;
+using System.Text;
 
 namespace MailKit {
 	/// <summary>
@@ -35,32 +35,66 @@ namespace MailKit {
 	/// </remarks>
 	public class BodyPartMessage : BodyPartBasic
 	{
-		internal BodyPartMessage ()
+		/// <summary>
+		/// Initializes a new instance of the <see cref="MailKit.BodyPartMessage"/> class.
+		/// </summary>
+		/// <remarks>
+		/// Creates a new <see cref="BodyPartMessage"/>.
+		/// </remarks>
+		public BodyPartMessage ()
 		{
 		}
 
 		/// <summary>
-		/// Gets the envelope of the message.
+		/// Gets the envelope of the message, if available.
 		/// </summary>
+		/// <remarks>
+		/// Gets the envelope of the message, if available.
+		/// </remarks>
 		/// <value>The envelope.</value>
 		public Envelope Envelope {
-			get; internal set;
+			get; set;
 		}
 
 		/// <summary>
 		/// Gets the body structure of the message.
 		/// </summary>
+		/// <remarks>
+		/// Gets the body structure of the message.
+		/// </remarks>
 		/// <value>The body structure.</value>
 		public BodyPart Body {
-			get; internal set;
+			get; set;
 		}
 
 		/// <summary>
-		/// Gets a value indicating the length of the message, in lines.
+		/// Gets the length of the message, in lines.
 		/// </summary>
+		/// <remarks>
+		/// Gets the length of the message, in lines.
+		/// </remarks>
 		/// <value>The number of lines.</value>
 		public uint Lines {
-			get; internal set;
+			get; set;
+		}
+
+		/// <summary>
+		/// Encodes the <see cref="BodyPart"/> into the <see cref="System.Text.StringBuilder"/>.
+		/// </summary>
+		/// <remarks>
+		/// Encodes the <see cref="BodyPart"/> into the <see cref="System.Text.StringBuilder"/>.
+		/// </remarks>
+		/// <param name="builder">The string builder.</param>
+		protected override void Encode (StringBuilder builder)
+		{
+			base.Encode (builder);
+
+			builder.Append (' ');
+			Encode (builder, Envelope);
+			builder.Append (' ');
+			Encode (builder, Body);
+			builder.Append (' ');
+			Encode (builder, Lines);
 		}
 	}
 }

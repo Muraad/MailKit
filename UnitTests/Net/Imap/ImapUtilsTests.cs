@@ -29,6 +29,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
+using System.Collections.Generic;
 
 using NUnit.Framework;
 
@@ -45,7 +46,7 @@ namespace UnitTests.Net.Imap {
 		[Test]
 		public void TestFormattingSimpleUidRange ()
 		{
-			UniqueId[] uids = new UniqueId[] {
+			UniqueId[] uids = {
 				new UniqueId (1), new UniqueId (2), new UniqueId (3),
 				new UniqueId (4), new UniqueId (5), new UniqueId (6),
 				new UniqueId (7), new UniqueId (8), new UniqueId (9)
@@ -60,7 +61,7 @@ namespace UnitTests.Net.Imap {
 		[Test]
 		public void TestFormattingNonSequentialUids ()
 		{
-			UniqueId[] uids = new UniqueId[] {
+			UniqueId[] uids = {
 				new UniqueId (1), new UniqueId (3), new UniqueId (5),
 				new UniqueId (7), new UniqueId (9)
 			};
@@ -74,7 +75,7 @@ namespace UnitTests.Net.Imap {
 		[Test]
 		public void TestFormattingComplexSetOfUids ()
 		{
-			UniqueId[] uids = new UniqueId[] {
+			UniqueId[] uids = {
 				new UniqueId (1), new UniqueId (2), new UniqueId (3),
 				new UniqueId (5), new UniqueId (6), new UniqueId (9),
 				new UniqueId (10), new UniqueId (11), new UniqueId (12),
@@ -88,12 +89,28 @@ namespace UnitTests.Net.Imap {
 		}
 
 		[Test]
+		public void TestFormattingReversedUids ()
+		{
+			UniqueId[] uids = {
+				new UniqueId (20), new UniqueId (19), new UniqueId (15),
+				new UniqueId (12), new UniqueId (11), new UniqueId (10),
+				new UniqueId (9), new UniqueId (6), new UniqueId (5),
+				new UniqueId (3), new UniqueId (2), new UniqueId (1)
+			};
+			string expect = "20:19,15,12:9,6:5,3:1";
+			string actual;
+
+			actual = ImapUtils.FormatUidSet (uids);
+			Assert.AreEqual (expect, actual, "Formatting a complex list of uids.");
+		}
+
+		[Test]
 		public void TestParseExampleBodyRfc3501 ()
 		{
 			const string text = "(\"TEXT\" \"PLAIN\" (\"CHARSET\" \"US-ASCII\") NIL NIL \"7BIT\" 3028 92)\r\n";
 
 			using (var memory = new MemoryStream (Encoding.ASCII.GetBytes (text), false)) {
-				using (var tokenizer = new ImapStream (memory, new NullProtocolLogger ())) {
+				using (var tokenizer = new ImapStream (memory, null, new NullProtocolLogger ())) {
 					using (var engine = new ImapEngine ()) {
 						BodyPartText basic;
 						BodyPart body;
@@ -131,7 +148,7 @@ namespace UnitTests.Net.Imap {
 			const string text = "(\"Wed, 17 Jul 1996 02:23:25 -0700 (PDT)\" \"IMAP4rev1 WG mtg summary and minutes\" ((\"Terry Gray\" NIL \"gray\" \"cac.washington.edu\")) ((\"Terry Gray\" NIL \"gray\" \"cac.washington.edu\")) ((\"Terry Gray\" NIL \"gray\" \"cac.washington.edu\")) ((NIL NIL \"imap\" \"cac.washington.edu\")) ((NIL NIL \"minutes\" \"CNRI.Reston.VA.US\") (\"John Klensin\" NIL \"KLENSIN\" \"MIT.EDU\")) NIL NIL \"<B27397-0100000@cac.washington.edu>\")\r\n";
 
 			using (var memory = new MemoryStream (Encoding.ASCII.GetBytes (text), false)) {
-				using (var tokenizer = new ImapStream (memory, new NullProtocolLogger ())) {
+				using (var tokenizer = new ImapStream (memory, null, new NullProtocolLogger ())) {
 					using (var engine = new ImapEngine ()) {
 						Envelope envelope;
 
@@ -182,7 +199,7 @@ namespace UnitTests.Net.Imap {
 			const string text = "(((\"text\" \"plain\" (\"charset\" \"iso-8859-2\") NIL NIL \"quoted-printable\" 28 2 NIL NIL NIL NIL) (\"text\" \"html\" (\"charset\" \"iso-8859-2\") NIL NIL \"quoted-printable\" 1707 65 NIL NIL NIL NIL) \"alternative\" (\"boundary\" \"----=_NextPart_001_0078_01CBB179.57530990\") NIL NIL NIL) (\"message\" \"rfc822\" NIL NIL NIL \"7bit\" 641 (\"Sat, 8 Jan 2011 14:16:36 +0100\" \"Subj 2\" ((\"Some Name, SOMECOMPANY\" NIL \"recipient\" \"example.com\")) ((\"Some Name, SOMECOMPANY\" NIL \"recipient\" \"example.com\")) ((\"Some Name, SOMECOMPANY\" NIL \"recipient\" \"example.com\")) ((\"Recipient\" NIL \"example\" \"gmail.com\")) NIL NIL NIL NIL) (\"text\" \"plain\" (\"charset\" \"iso-8859-2\") NIL NIL \"quoted-printable\" 185 18 NIL NIL (\"cs\") NIL) 31 NIL (\"attachment\" NIL) NIL NIL) (\"message\" \"rfc822\" NIL NIL NIL \"7bit\" 50592 (\"Sat, 8 Jan 2011 13:58:39 +0100\" \"Subj 1\" ((\"Some Name, SOMECOMPANY\" NIL \"recipient\" \"example.com\")) ((\"Some Name, SOMECOMPANY\" NIL \"recipient\" \"example.com\")) ((\"Some Name, SOMECOMPANY\" NIL \"recipient\" \"example.com\")) ((\"Recipient\" NIL \"example\" \"gmail.com\")) NIL NIL NIL NIL) ( (\"text\" \"plain\" (\"charset\" \"iso-8859-2\") NIL NIL \"quoted-printable\" 4296 345 NIL NIL NIL NIL) (\"text\" \"html\" (\"charset\" \"iso-8859-2\") NIL NIL \"quoted-printable\" 45069 1295 NIL NIL NIL NIL) \"alternative\" (\"boundary\" \"----=_NextPart_000_0073_01CBB179.57530990\") NIL (\"cs\") NIL) 1669 NIL (\"attachment\" NIL) NIL NIL) \"mixed\" (\"boundary\" \"----=_NextPart_000_0077_01CBB179.57530990\") NIL (\"cs\") NIL)\r\n";
 
 			using (var memory = new MemoryStream (Encoding.ASCII.GetBytes (text), false)) {
-				using (var tokenizer = new ImapStream (memory, new NullProtocolLogger ())) {
+				using (var tokenizer = new ImapStream (memory, null, new NullProtocolLogger ())) {
 					using (var engine = new ImapEngine ()) {
 						BodyPartMultipart multipart;
 						BodyPart body;
@@ -221,9 +238,9 @@ namespace UnitTests.Net.Imap {
 			const string text = "(2)(3 6 (4 23)(44 7 96))\r\n";
 
 			using (var memory = new MemoryStream (Encoding.ASCII.GetBytes (text), false)) {
-				using (var tokenizer = new ImapStream (memory, new NullProtocolLogger ())) {
+				using (var tokenizer = new ImapStream (memory, null, new NullProtocolLogger ())) {
 					using (var engine = new ImapEngine ()) {
-						MessageThread[] threads;
+						IList<MessageThread> threads;
 
 						engine.SetStream (tokenizer);
 
@@ -237,7 +254,7 @@ namespace UnitTests.Net.Imap {
 						var token = engine.ReadToken (CancellationToken.None);
 						Assert.AreEqual (ImapTokenType.Eoln, token.Type, "Expected new-line, but got: {0}", token);
 
-						Assert.AreEqual (2, threads.Length, "Expected 2 threads.");
+						Assert.AreEqual (2, threads.Count, "Expected 2 threads.");
 
 						Assert.AreEqual ((uint) 2, threads[0].UniqueId.Value.Id);
 						Assert.AreEqual ((uint) 3, threads[1].UniqueId.Value.Id);

@@ -3,7 +3,7 @@
   <TypeSignature Language="ILAsm" Value=".class public auto ansi sealed SmtpErrorCode extends System.Enum" />
   <AssemblyInfo>
     <AssemblyName>MailKit</AssemblyName>
-    <AssemblyVersion>0.11.0.0</AssemblyVersion>
+    <AssemblyVersion>0.92.0.0</AssemblyVersion>
   </AssemblyInfo>
   <Base>
     <BaseTypeName>System.Enum</BaseTypeName>
@@ -13,9 +13,7 @@
             An enumeration of the possible error codes that may be reported by a <see cref="T:MailKit.Net.Smtp.SmtpCommandException" />.
             </summary>
     <remarks>
-            Other than the <see cref="F:MailKit.Net.Smtp.SmtpErrorCode.ProtocolError" /> error, none of
-            the errors require reconnecting to the <see cref="T:MailKit.Net.Smtp.SmtpClient" /> before
-            continuing to send more messages.
+            An enumeration of the possible error codes that may be reported by a <see cref="T:MailKit.Net.Smtp.SmtpCommandException" />.
             </remarks>
   </Docs>
   <Members>
@@ -24,7 +22,7 @@
       <MemberSignature Language="ILAsm" Value=".field public static literal valuetype MailKit.Net.Smtp.SmtpErrorCode MessageNotAccepted = int32(0)" />
       <MemberType>Field</MemberType>
       <AssemblyInfo>
-        <AssemblyVersion>0.11.0.0</AssemblyVersion>
+        <AssemblyVersion>0.92.0.0</AssemblyVersion>
       </AssemblyInfo>
       <ReturnValue>
         <ReturnType>MailKit.Net.Smtp.SmtpErrorCode</ReturnType>
@@ -41,7 +39,7 @@
       <MemberSignature Language="ILAsm" Value=".field public static literal valuetype MailKit.Net.Smtp.SmtpErrorCode RecipientNotAccepted = int32(2)" />
       <MemberType>Field</MemberType>
       <AssemblyInfo>
-        <AssemblyVersion>0.11.0.0</AssemblyVersion>
+        <AssemblyVersion>0.92.0.0</AssemblyVersion>
       </AssemblyInfo>
       <ReturnValue>
         <ReturnType>MailKit.Net.Smtp.SmtpErrorCode</ReturnType>
@@ -59,7 +57,7 @@
       <MemberSignature Language="ILAsm" Value=".field public static literal valuetype MailKit.Net.Smtp.SmtpErrorCode SenderNotAccepted = int32(1)" />
       <MemberType>Field</MemberType>
       <AssemblyInfo>
-        <AssemblyVersion>0.11.0.0</AssemblyVersion>
+        <AssemblyVersion>0.92.0.0</AssemblyVersion>
       </AssemblyInfo>
       <ReturnValue>
         <ReturnType>MailKit.Net.Smtp.SmtpErrorCode</ReturnType>
@@ -77,7 +75,7 @@
       <MemberSignature Language="ILAsm" Value=".field public static literal valuetype MailKit.Net.Smtp.SmtpErrorCode UnexpectedStatusCode = int32(3)" />
       <MemberType>Field</MemberType>
       <AssemblyInfo>
-        <AssemblyVersion>0.11.0.0</AssemblyVersion>
+        <AssemblyVersion>0.92.0.0</AssemblyVersion>
       </AssemblyInfo>
       <ReturnValue>
         <ReturnType>MailKit.Net.Smtp.SmtpErrorCode</ReturnType>

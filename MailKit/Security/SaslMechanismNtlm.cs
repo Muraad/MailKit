@@ -48,6 +48,9 @@ namespace MailKit.Security {
 		/// <summary>
 		/// Initializes a new instance of the <see cref="MailKit.Security.SaslMechanismNtlm"/> class.
 		/// </summary>
+		/// <remarks>
+		/// Creates a new NTLM SASL context.
+		/// </remarks>
 		/// <param name="uri">The URI of the service.</param>
 		/// <param name="credentials">The user's credentials.</param>
 		public SaslMechanismNtlm (Uri uri, ICredentials credentials) : base (uri, credentials)
@@ -57,18 +60,39 @@ namespace MailKit.Security {
 		/// <summary>
 		/// Gets the name of the mechanism.
 		/// </summary>
+		/// <remarks>
+		/// Gets the name of the mechanism.
+		/// </remarks>
 		/// <value>The name of the mechanism.</value>
 		public override string MechanismName {
 			get { return "NTLM"; }
 		}
 
 		/// <summary>
+		/// Gets whether or not the mechanism supports an initial response (SASL-IR).
+		/// </summary>
+		/// <remarks>
+		/// SASL mechanisms that support sending an initial client response to the server
+		/// should return <value>true</value>.
+		/// </remarks>
+		/// <value><c>true</c> if the mechanism supports an initial response; otherwise, <c>false</c>.</value>
+		public override bool SupportsInitialResponse {
+			get { return true; }
+		}
+
+		/// <summary>
 		/// Parses the server's challenge token and returns the next challenge response.
 		/// </summary>
+		/// <remarks>
+		/// Parses the server's challenge token and returns the next challenge response.
+		/// </remarks>
 		/// <returns>The next challenge response.</returns>
 		/// <param name="token">The server's challenge token.</param>
 		/// <param name="startIndex">The index into the token specifying where the server's challenge begins.</param>
 		/// <param name="length">The length of the server's challenge.</param>
+		/// <exception cref="System.InvalidOperationException">
+		/// The SASL mechanism is already authenticated.
+		/// </exception>
 		/// <exception cref="SaslException">
 		/// An error has occurred while parsing the server's challenge token.
 		/// </exception>
@@ -131,6 +155,9 @@ namespace MailKit.Security {
 		/// <summary>
 		/// Resets the state of the SASL mechanism.
 		/// </summary>
+		/// <remarks>
+		/// Resets the state of the SASL mechanism.
+		/// </remarks>
 		public override void Reset ()
 		{
 			state = LoginState.Initial;

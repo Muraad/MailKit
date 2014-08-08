@@ -25,6 +25,7 @@
 //
 
 using System;
+using System.Text;
 
 using MimeKit;
 
@@ -32,9 +33,18 @@ namespace MailKit {
 	/// <summary>
 	/// A multipart body part.
 	/// </summary>
+	/// <remarks>
+	/// A multipart body part.
+	/// </remarks>
 	public class BodyPartMultipart : BodyPart
 	{
-		internal BodyPartMultipart ()
+		/// <summary>
+		/// Initializes a new instance of the <see cref="MailKit.BodyPartMultipart"/> class.
+		/// </summary>
+		/// <remarks>
+		/// Creates a new <see cref="BodyPartMultipart"/>.
+		/// </remarks>
+		public BodyPartMultipart ()
 		{
 			BodyParts = new BodyPartCollection ();
 		}
@@ -42,6 +52,9 @@ namespace MailKit {
 		/// <summary>
 		/// Gets the child body parts.
 		/// </summary>
+		/// <remarks>
+		/// Gets the child body parts.
+		/// </remarks>
 		/// <value>The child body parts.</value>
 		public BodyPartCollection BodyParts {
 			get; private set;
@@ -50,25 +63,56 @@ namespace MailKit {
 		/// <summary>
 		/// Gets the Content-Disposition of the body part, if available.
 		/// </summary>
+		/// <remarks>
+		/// Gets the Content-Disposition of the body part, if available.
+		/// </remarks>
 		/// <value>The content disposition.</value>
 		public ContentDisposition ContentDisposition {
-			get; internal set;
+			get; set;
 		}
 
 		/// <summary>
 		/// Gets the Content-Language of the body part, if available.
 		/// </summary>
+		/// <remarks>
+		/// Gets the Content-Language of the body part, if available.
+		/// </remarks>
 		/// <value>The content language.</value>
 		public string[] ContentLanguage {
-			get; internal set;
+			get; set;
 		}
 
 		/// <summary>
 		/// Gets the Content-Location of the body part, if available.
 		/// </summary>
+		/// <remarks>
+		/// Gets the Content-Location of the body part, if available.
+		/// </remarks>
 		/// <value>The content location.</value>
-		public string ContentLocation {
-			get; internal set;
+		public Uri ContentLocation {
+			get; set;
+		}
+
+		/// <summary>
+		/// Encodes the <see cref="BodyPart"/> into the <see cref="System.Text.StringBuilder"/>.
+		/// </summary>
+		/// <remarks>
+		/// Encodes the <see cref="BodyPart"/> into the <see cref="System.Text.StringBuilder"/>.
+		/// </remarks>
+		/// <param name="builder">The string builder.</param>
+		protected override void Encode (StringBuilder builder)
+		{
+			Encode (builder, BodyParts);
+			builder.Append (' ');
+			Encode (builder, ContentType.MediaSubtype);
+			builder.Append (' ');
+			Encode (builder, ContentType.Parameters);
+			builder.Append (' ');
+			Encode (builder, ContentDisposition);
+			builder.Append (' ');
+			Encode (builder, ContentLanguage);
+			builder.Append (' ');
+			Encode (builder, ContentLocation);
 		}
 	}
 }

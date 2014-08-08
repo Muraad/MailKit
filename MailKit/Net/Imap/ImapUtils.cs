@@ -31,6 +31,7 @@ using System.Threading;
 using System.Diagnostics;
 using System.Globalization;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 
 using MimeKit;
 using MimeKit.Utils;
@@ -81,7 +82,7 @@ namespace MailKit.Net.Imap {
 		/// <returns><c>true</c> if the UIDs were successfully parsed, otherwise <c>false</c>.</returns>
 		/// <param name="atom">The atom string.</param>
 		/// <param name="uids">The UIDs.</param>
-		public static bool TryParseUidSet (string atom, out UniqueId[] uids)
+		public static bool TryParseUidSet (string atom, out IList<UniqueId> uids)
 		{
 			var ranges = atom.Split (new [] { ',' }, StringSplitOptions.RemoveEmptyEntries);
 			var list = new List<UniqueId> ();
@@ -110,7 +111,7 @@ namespace MailKit.Net.Imap {
 				}
 			}
 
-			uids = list.ToArray ();
+			uids = new ReadOnlyCollection<UniqueId> (list);
 
 			return true;
 		}
@@ -126,36 +127,50 @@ namespace MailKit.Net.Imap {
 		/// <exception cref="System.ArgumentOutOfRangeException">
 		/// One or more of the indexes has a negative value.
 		/// </exception>
-		public static string FormatIndexSet (int[] indexes)
+		public static string FormatIndexSet (IList<int> indexes)
 		{
 			if (indexes == null)
 				throw new ArgumentNullException ("indexes");
 
+			if (indexes.Count == 0)
+				throw new ArgumentException ("No indexes were specified.", "indexes");
+
 			var builder = new StringBuilder ();
 			int index = 0;
 
-			while (index < indexes.Length) {
+			while (index < indexes.Count) {
 				if (indexes[index] < 0)
 					throw new ArgumentException ("One or more of the indexes is negative.", "indexes");
 
-				int min = indexes[index];
-				int max = min;
-				int i = index;
+				int begin = indexes[index];
+				int end = indexes[index];
+				int i = index + 1;
 
-				while (i < indexes.Length) {
-					if (indexes[i] > max + 1)
-						break;
+				if (i < indexes.Count) {
+					if (indexes[i] == end + 1) {
+						end = indexes[i++];
 
-					max = indexes[i++];
+						while (i < indexes.Count && indexes[i] == end + 1) {
+							end++;
+							i++;
+						}
+					} else if (indexes[i] == end - 1) {
+						end = indexes[i++];
+
+						while (i < indexes.Count && indexes[i] == end - 1) {
+							end--;
+							i++;
+						}
+					}
 				}
 
 				if (builder.Length > 0)
 					builder.Append (',');
 
-				if (max > min)
-					builder.AppendFormat ("{0}:{1}", min + 1, max + 1);
+				if (begin != end)
+					builder.AppendFormat ("{0}:{1}", begin + 1, end + 1);
 				else
-					builder.Append ((min + 1).ToString ());
+					builder.Append ((begin + 1).ToString ());
 
 				index = i;
 			}
@@ -174,36 +189,58 @@ namespace MailKit.Net.Imap {
 		/// <exception cref="System.ArgumentException">
 		/// One or more of the UIDs is invalid.
 		/// </exception>
-		public static string FormatUidSet (UniqueId[] uids)
+		public static string FormatUidSet (IList<UniqueId> uids)
 		{
 			if (uids == null)
 				throw new ArgumentNullException ("uids");
 
+			var range = uids as UniqueIdRange;
+			if (range != null)
+				return range.ToString ();
+
+			if (uids.Count == 0)
+				throw new ArgumentException ("No uids were specified.", "uids");
+
+			var set = uids as UniqueIdSet;
+			if (set != null)
+				return set.ToString ();
+
 			var builder = new StringBuilder ();
 			int index = 0;
 
-			while (index < uids.Length) {
+			while (index < uids.Count) {
 				if (uids[index].Id == 0)
 					throw new ArgumentException ("One or more of the uids is invalid.", "uids");
 
-				uint min = uids[index].Id;
-				uint max = min;
-				int i = index;
+				uint begin = uids[index].Id;
+				uint end = uids[index].Id;
+				int i = index + 1;
 
-				while (i < uids.Length) {
-					if (uids[i].Id > max + 1)
-						break;
+				if (i < uids.Count) {
+					if (uids[i].Id == end + 1) {
+						end = uids[i++].Id;
 
-					max = uids[i++].Id;
+						while (i < uids.Count && uids[i].Id == end + 1) {
+							end++;
+							i++;
+						}
+					} else if (uids[i].Id == end - 1) {
+						end = uids[i++].Id;
+
+						while (i < uids.Count && uids[i].Id == end - 1) {
+							end--;
+							i++;
+						}
+					}
 				}
 
 				if (builder.Length > 0)
 					builder.Append (',');
 
-				if (max > min)
-					builder.AppendFormat ("{0}:{1}", min, max);
+				if (begin != end)
+					builder.AppendFormat ("{0}:{1}", begin, end);
 				else
-					builder.Append (min.ToString ());
+					builder.Append (begin.ToString ());
 
 				index = i;
 			}
@@ -217,8 +254,7 @@ namespace MailKit.Net.Imap {
 		/// <param name="engine">The IMAP engine.</param>
 		/// <param name="ic">The IMAP command.</param>
 		/// <param name="index">The index.</param>
-		/// <param name="tok">The token.</param>
-		public static void ParseFolderList (ImapEngine engine, ImapCommand ic, int index, ImapToken tok)
+		public static void ParseFolderList (ImapEngine engine, ImapCommand ic, int index)
 		{
 			var token = engine.ReadToken (ic.CancellationToken);
 			var list = (List<ImapFolder>) ic.UserData;
@@ -296,7 +332,8 @@ namespace MailKit.Net.Imap {
 			}
 
 			if (engine.FolderCache.TryGetValue (encodedName, out folder)) {
-				folder.Attributes = (folder.Attributes & ~(FolderAttributes.Marked | FolderAttributes.Unmarked)) | attrs;
+				attrs |= (folder.Attributes & ~(FolderAttributes.Marked | FolderAttributes.Unmarked));
+				folder.UpdateAttributes (attrs);
 			} else {
 				folder = new ImapFolder (engine, encodedName, attrs, delim);
 				engine.FolderCache.Add (encodedName, folder);
@@ -447,7 +484,7 @@ namespace MailKit.Net.Imap {
 			return disposition;
 		}
 
-		static string[] ParseContentLocation (ImapEngine engine, CancellationToken cancellationToken)
+		static string[] ParseContentLanguage (ImapEngine engine, CancellationToken cancellationToken)
 		{
 			var token = engine.ReadToken (cancellationToken);
 			var languages = new List<string> ();
@@ -484,6 +521,22 @@ namespace MailKit.Net.Imap {
 			}
 
 			return languages.ToArray ();
+		}
+
+		static Uri ParseContentLocation (ImapEngine engine, CancellationToken cancellationToken)
+		{
+			var location = ReadNStringToken (engine, false, cancellationToken);
+
+			if (string.IsNullOrWhiteSpace (location))
+				return null;
+
+			if (Uri.IsWellFormedUriString (location, UriKind.Absolute))
+				return new Uri (location, UriKind.Absolute);
+
+			if (Uri.IsWellFormedUriString (location, UriKind.Relative))
+				return new Uri (location, UriKind.Relative);
+
+			return null;
 		}
 
 		static void SkipBodyExtensions (ImapEngine engine, CancellationToken cancellationToken)
@@ -560,12 +613,12 @@ namespace MailKit.Net.Imap {
 			}
 
 			if (token.Type != ImapTokenType.CloseParen) {
-				body.ContentLanguage = ParseContentLocation (engine, cancellationToken);
+				body.ContentLanguage = ParseContentLanguage (engine, cancellationToken);
 				token = engine.PeekToken (cancellationToken);
 			}
 
 			if (token.Type != ImapTokenType.CloseParen) {
-				body.ContentLocation = ReadNStringToken (engine, false, cancellationToken);
+				body.ContentLocation = ParseContentLocation (engine, cancellationToken);
 				token = engine.PeekToken (cancellationToken);
 			}
 
@@ -606,22 +659,17 @@ namespace MailKit.Net.Imap {
 			if (type.Matches ("message", "rfc822")) {
 				var mesg = new BodyPartMessage ();
 
-				if (engine.IsGMail) {
-					// GMail's support for message/rfc822 body parts is broken, see issue #32
-					token = engine.PeekToken (cancellationToken);
-					if (token.Type != ImapTokenType.CloseParen) {
-						mesg.Envelope = ParseEnvelope (engine, cancellationToken);
-						token = engine.PeekToken (cancellationToken);
-					}
+				// Note: GMail's support for message/rfc822 body parts is broken. Essentially,
+				// GMail treats message/rfc822 parts as if they were basic body parts.
+				//
+				// For examples, see issue #32 and issue #59.
+				//
+				// The workaround is to check for the expected '(' signifying an envelope token.
+				// If we do not get an '(', then we are likely looking at the Content-MD5 token
+				// which gets handled below.
+				token = engine.PeekToken (cancellationToken);
 
-					if (token.Type != ImapTokenType.CloseParen) {
-						mesg.Body = ParseBody (engine, path, cancellationToken);
-						token = engine.PeekToken (cancellationToken);
-					}
-
-					if (token.Type != ImapTokenType.CloseParen)
-						mesg.Lines = ReadNumber (engine, cancellationToken);
-				} else {
+				if (!engine.IsGMail || token.Type == ImapTokenType.OpenParen) {
 					mesg.Envelope = ParseEnvelope (engine, cancellationToken);
 					mesg.Body = ParseBody (engine, path, cancellationToken);
 					mesg.Lines = ReadNumber (engine, cancellationToken);
@@ -657,12 +705,12 @@ namespace MailKit.Net.Imap {
 			}
 
 			if (token.Type != ImapTokenType.CloseParen) {
-				body.ContentLanguage = ParseContentLocation (engine, cancellationToken);
+				body.ContentLanguage = ParseContentLanguage (engine, cancellationToken);
 				token = engine.PeekToken (cancellationToken);
 			}
 
 			if (token.Type != ImapTokenType.CloseParen) {
-				body.ContentLocation = ReadNStringToken (engine, false, cancellationToken);
+				body.ContentLocation = ParseContentLocation (engine, cancellationToken);
 				token = engine.PeekToken (cancellationToken);
 			}
 
@@ -718,17 +766,20 @@ namespace MailKit.Net.Imap {
 			}
 
 			string address = values[3] != null ? values[2] + "@" + values[3] : values[2];
+			DomainList route;
 
-			list.Add (new MailboxAddress (name, address));
+			if (values[1] != null && DomainList.TryParse (values[1], out route))
+				list.Add (new MailboxAddress (name, route, address));
+			else
+				list.Add (new MailboxAddress (name, address));
 		}
 
-		static InternetAddressList ParseEnvelopeAddressList (ImapEngine engine, CancellationToken cancellationToken)
+		static void ParseEnvelopeAddressList (InternetAddressList list, ImapEngine engine, CancellationToken cancellationToken)
 		{
 			var token = engine.ReadToken (cancellationToken);
-			var list = new InternetAddressList ();
 
 			if (token.Type == ImapTokenType.Nil)
-				return list;
+				return;
 
 			if (token.Type != ImapTokenType.OpenParen)
 				throw ImapEngine.UnexpectedToken (token, false);
@@ -744,8 +795,6 @@ namespace MailKit.Net.Imap {
 
 				AddEnvelopeAddress (list, engine, cancellationToken);
 			} while (true);
-
-			return list;
 		}
 
 		static DateTimeOffset? ParseEnvelopeDate (ImapEngine engine, CancellationToken cancellationToken)
@@ -783,20 +832,20 @@ namespace MailKit.Net.Imap {
 		public static Envelope ParseEnvelope (ImapEngine engine, CancellationToken cancellationToken)
 		{
 			var token = engine.ReadToken (cancellationToken);
-			var envelope = new Envelope ();
 			string nstring;
 
 			if (token.Type != ImapTokenType.OpenParen)
 				throw ImapEngine.UnexpectedToken (token, false);
 
+			var envelope = new Envelope ();
 			envelope.Date = ParseEnvelopeDate (engine, cancellationToken);
 			envelope.Subject = ReadNStringToken (engine, true, cancellationToken);
-			envelope.From = ParseEnvelopeAddressList (engine, cancellationToken);
-			envelope.Sender = ParseEnvelopeAddressList (engine, cancellationToken);
-			envelope.ReplyTo = ParseEnvelopeAddressList (engine, cancellationToken);
-			envelope.To = ParseEnvelopeAddressList (engine, cancellationToken);
-			envelope.Cc = ParseEnvelopeAddressList (engine, cancellationToken);
-			envelope.Bcc = ParseEnvelopeAddressList (engine, cancellationToken);
+			ParseEnvelopeAddressList (envelope.From, engine, cancellationToken);
+			ParseEnvelopeAddressList (envelope.Sender, engine, cancellationToken);
+			ParseEnvelopeAddressList (envelope.ReplyTo, engine, cancellationToken);
+			ParseEnvelopeAddressList (envelope.To, engine, cancellationToken);
+			ParseEnvelopeAddressList (envelope.Cc, engine, cancellationToken);
+			ParseEnvelopeAddressList (envelope.Bcc, engine, cancellationToken);
 
 			if ((nstring = ReadNStringToken (engine, false, cancellationToken)) != null)
 				envelope.InReplyTo = MimeUtils.EnumerateReferences (nstring).FirstOrDefault ();
@@ -880,6 +929,37 @@ namespace MailKit.Net.Imap {
 			return flags;
 		}
 
+		/// <summary>
+		/// Parses the X-GM-LABELS list.
+		/// </summary>
+		/// <returns>The message labels.</returns>
+		/// <param name="engine">The IMAP engine.</param>
+		/// <param name="cancellationToken">The cancellation token.</param>
+		public static ReadOnlyCollection<string> ParseLabelsList (ImapEngine engine, CancellationToken cancellationToken)
+		{
+			var token = engine.ReadToken (cancellationToken);
+			var labels = new List<string> ();
+
+			if (token.Type != ImapTokenType.OpenParen)
+				throw ImapEngine.UnexpectedToken (token, false);
+
+			// Note: GMail's IMAP implementation is broken and does not quote strings with ']' like it should.
+			token = engine.ReadToken (ImapStream.GMailLabelSpecials, cancellationToken);
+
+			while (token.Type == ImapTokenType.Flag || token.Type == ImapTokenType.Atom || token.Type == ImapTokenType.QString) {
+				var label = engine.DecodeMailboxName ((string) token.Value);
+
+				labels.Add (label);
+
+				token = engine.ReadToken (cancellationToken);
+			}
+
+			if (token.Type != ImapTokenType.CloseParen)
+				throw ImapEngine.UnexpectedToken (token, false);
+
+			return new ReadOnlyCollection<string> (labels);
+		}
+
 		static MessageThread ParseThread (ImapEngine engine, CancellationToken cancellationToken)
 		{
 			var token = engine.ReadToken (cancellationToken);
@@ -919,7 +999,7 @@ namespace MailKit.Net.Imap {
 		/// <returns>The threads.</returns>
 		/// <param name="engine">The IMAP engine.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
-		public static MessageThread[] ParseThreads (ImapEngine engine, CancellationToken cancellationToken)
+		public static IList<MessageThread> ParseThreads (ImapEngine engine, CancellationToken cancellationToken)
 		{
 			var threads = new List<MessageThread> ();
 			ImapToken token;
@@ -938,7 +1018,7 @@ namespace MailKit.Net.Imap {
 				threads.Add (ParseThread (engine, cancellationToken));
 			} while (true);
 
-			return threads.ToArray ();
+			return threads;
 		}
 	}
 }

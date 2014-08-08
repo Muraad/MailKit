@@ -114,6 +114,12 @@
     <ErrorReport>prompt</ErrorReport>
     <Prefer32Bit>true</Prefer32Bit>
   </PropertyGroup>
+  <PropertyGroup>
+    <SignAssembly>true</SignAssembly>
+  </PropertyGroup>
+  <PropertyGroup>
+    <AssemblyOriginatorKeyFile>mailkit.snk</AssemblyOriginatorKeyFile>
+  </PropertyGroup>
   <ItemGroup>
     <!-- A reference to the entire .Net Framework and Windows SDK are automatically included -->
   </ItemGroup>
@@ -149,6 +155,7 @@
     <Compile Include="Net\Pop3\Pop3Command.cs" />
     <Compile Include="Net\Pop3\Pop3CommandException.cs" />
     <Compile Include="Net\Pop3\Pop3Engine.cs" />
+    <Compile Include="Net\Pop3\Pop3Language.cs" />
     <Compile Include="Net\Pop3\Pop3ProtocolException.cs" />
     <Compile Include="Net\Pop3\Pop3Stream.cs" />
     <Compile Include="Net\Smtp\SmtpCapabilities.cs" />
@@ -158,6 +165,7 @@
     <Compile Include="Net\Smtp\SmtpProtocolException.cs" />
     <Compile Include="Net\Smtp\SmtpResponse.cs" />
     <Compile Include="Net\Smtp\SmtpStatusCode.cs" />
+    <Compile Include="Net\SelectMode.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Search\BinarySearchQuery.cs" />
     <Compile Include="Search\DateSearchQuery.cs" />
@@ -181,10 +189,12 @@
     <Compile Include="Security\Ntlm\NtlmAuthLevel.cs" />
     <Compile Include="Security\Ntlm\NtlmFlags.cs" />
     <Compile Include="Security\Ntlm\NtlmSettings.cs" />
+    <Compile Include="Security\Ntlm\TargetInfo.cs" />
     <Compile Include="Security\Ntlm\Type1Message.cs" />
     <Compile Include="Security\Ntlm\Type2Message.cs" />
     <Compile Include="Security\Ntlm\Type3Message.cs" />
     <Compile Include="Security\AuthenticationException.cs" />
+    <Compile Include="Security\KeyedHashAlgorithm.cs" />
     <Compile Include="Security\RandomNumberGenerator.cs" />
     <Compile Include="Security\SaslException.cs" />
     <Compile Include="Security\SaslMechanism.cs" />
@@ -194,13 +204,17 @@
     <Compile Include="Security\SaslMechanismNtlm.cs" />
     <Compile Include="Security\SaslMechanismOAuth2.cs" />
     <Compile Include="Security\SaslMechanismPlain.cs" />
+    <Compile Include="Security\SaslMechanismScramBase.cs" />
+    <Compile Include="Security\SaslMechanismScramSha1.cs" />
     <Compile Include="AlertEventArgs.cs" />
+    <Compile Include="AuthenticatedEventArgs.cs" />
     <Compile Include="BodyPart.cs" />
     <Compile Include="BodyPartBasic.cs" />
     <Compile Include="BodyPartCollection.cs" />
     <Compile Include="BodyPartMessage.cs" />
     <Compile Include="BodyPartMultipart.cs" />
     <Compile Include="BodyPartText.cs" />
+    <Compile Include="CommandException.cs" />
     <Compile Include="DuplexStream.cs" />
     <Compile Include="Envelope.cs" />
     <Compile Include="FolderAccess.cs" />
@@ -208,18 +222,26 @@
     <Compile Include="FolderNamespace.cs" />
     <Compile Include="FolderNamespaceCollection.cs" />
     <Compile Include="FolderNotFoundException.cs" />
+    <Compile Include="FolderQuota.cs" />
     <Compile Include="FolderRenamedEventArgs.cs" />
-    <Compile Include="IFolder.cs" />
-    <Compile Include="IMessageService.cs" />
-    <Compile Include="IMessageSpool.cs" />
-    <Compile Include="IMessageStore.cs" />
-    <Compile Include="IMessageTransport.cs" />
+    <Compile Include="IMailFolder.cs" />
+    <Compile Include="IMailService.cs" />
+    <Compile Include="IMailSpool.cs" />
+    <Compile Include="IMailStore.cs" />
+    <Compile Include="IMailTransport.cs" />
+    <Compile Include="IMessageSummary.cs" />
     <Compile Include="IProtocolLogger.cs" />
     <Compile Include="ISortable.cs" />
     <Compile Include="IThreadable.cs" />
+    <Compile Include="MailFolder.cs" />
+    <Compile Include="MailService.cs" />
+    <Compile Include="MailSpool.cs" />
+    <Compile Include="MailStore.cs" />
+    <Compile Include="MailTransport.cs" />
     <Compile Include="MessageEventArgs.cs" />
     <Compile Include="MessageFlags.cs" />
     <Compile Include="MessageFlagsChangedEventArgs.cs" />
+    <Compile Include="MessageLabelsChangedEventArgs.cs" />
     <Compile Include="MessageSorter.cs" />
     <Compile Include="MessageSummary.cs" />
     <Compile Include="MessageSummaryItems.cs" />
@@ -233,6 +255,8 @@
     <Compile Include="StatusItems.cs" />
     <Compile Include="ThreadingAlgorithm.cs" />
     <Compile Include="UniqueId.cs" />
+    <Compile Include="UniqueIdRange.cs" />
+    <Compile Include="UniqueIdSet.cs" />
     <Compile Include="UriExtensions.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath)\Microsoft\WindowsXaml\v$(VisualStudioVersion)\Microsoft.Windows.UI.Xaml.CSharp.targets" />

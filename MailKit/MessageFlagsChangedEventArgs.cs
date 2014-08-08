@@ -26,17 +26,90 @@
 
 namespace MailKit {
 	/// <summary>
-	/// Event args for the <see cref="IFolder.MessageFlagsChanged"/> event.
+	/// Event args for the <see cref="IMailFolder.MessageFlagsChanged"/> event.
 	/// </summary>
+	/// <remarks>
+	/// Event args for the <see cref="IMailFolder.MessageFlagsChanged"/> event.
+	/// </remarks>
 	public class MessageFlagsChangedEventArgs : MessageEventArgs
 	{
+		/// <summary>
+		/// Initializes a new instance of the <see cref="MailKit.MessageFlagsChangedEventArgs"/> class.
+		/// </summary>
+		/// <remarks>
+		/// Creates a new <see cref="MessageFlagsChangedEventArgs"/>.
+		/// </remarks>
+		/// <param name="index">The message index.</param>
 		internal MessageFlagsChangedEventArgs (int index) : base (index)
 		{
 		}
 
 		/// <summary>
+		/// Initializes a new instance of the <see cref="MailKit.MessageFlagsChangedEventArgs"/> class.
+		/// </summary>
+		/// <remarks>
+		/// Creates a new <see cref="MessageFlagsChangedEventArgs"/>.
+		/// </remarks>
+		/// <param name="index">The message index.</param>
+		/// <param name="flags">The message flags.</param>
+		public MessageFlagsChangedEventArgs (int index, MessageFlags flags) : base (index)
+		{
+			Flags = flags;
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="MailKit.MessageFlagsChangedEventArgs"/> class.
+		/// </summary>
+		/// <remarks>
+		/// Creates a new <see cref="MessageFlagsChangedEventArgs"/>.
+		/// </remarks>
+		/// <param name="index">The message index.</param>
+		/// <param name="flags">The message flags.</param>
+		/// <param name="modseq">The modification sequence value.</param>
+		public MessageFlagsChangedEventArgs (int index, MessageFlags flags, ulong modseq) : base (index)
+		{
+			Flags = flags;
+			ModSeq = modseq;
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="MailKit.MessageFlagsChangedEventArgs"/> class.
+		/// </summary>
+		/// <remarks>
+		/// Creates a new <see cref="MessageFlagsChangedEventArgs"/>.
+		/// </remarks>
+		/// <param name="index">The message index.</param>
+		/// <param name="uid">The unique id of the message.</param>
+		/// <param name="flags">The message flags.</param>
+		public MessageFlagsChangedEventArgs (int index, UniqueId uid, MessageFlags flags) : base (index)
+		{
+			UniqueId = uid;
+			Flags = flags;
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="MailKit.MessageFlagsChangedEventArgs"/> class.
+		/// </summary>
+		/// <remarks>
+		/// Creates a new <see cref="MessageFlagsChangedEventArgs"/>.
+		/// </remarks>
+		/// <param name="index">The message index.</param>
+		/// <param name="uid">The unique id of the message.</param>
+		/// <param name="flags">The message flags.</param>
+		/// <param name="modseq">The modification sequence value.</param>
+		public MessageFlagsChangedEventArgs (int index, UniqueId uid, MessageFlags flags, ulong modseq) : base (index)
+		{
+			UniqueId = uid;
+			Flags = flags;
+			ModSeq = modseq;
+		}
+
+		/// <summary>
 		/// Gets the unique ID of the message that changed, if available.
 		/// </summary>
+		/// <remarks>
+		/// Gets the unique ID of the message that changed, if available.
+		/// </remarks>
 		/// <value>The unique ID of the message.</value>
 		public UniqueId? UniqueId {
 			get; internal set;
@@ -45,6 +118,9 @@ namespace MailKit {
 		/// <summary>
 		/// Gets the updated message flags.
 		/// </summary>
+		/// <remarks>
+		/// Gets the updated message flags.
+		/// </remarks>
 		/// <value>The updated message flags.</value>
 		public MessageFlags Flags {
 			get; internal set;
@@ -53,6 +129,9 @@ namespace MailKit {
 		/// <summary>
 		/// Gets the updated mod-sequence value of the message, if available.
 		/// </summary>
+		/// <remarks>
+		/// Gets the updated mod-sequence value of the message, if available.
+		/// </remarks>
 		/// <value>The mod-sequence value.</value>
 		public ulong? ModSeq {
 			get; internal set;

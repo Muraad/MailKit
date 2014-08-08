@@ -3,7 +3,7 @@
   <TypeSignature Language="ILAsm" Value=".class public auto ansi sealed Pop3Capabilities extends System.Enum" />
   <AssemblyInfo>
     <AssemblyName>MailKit</AssemblyName>
-    <AssemblyVersion>0.11.0.0</AssemblyVersion>
+    <AssemblyVersion>0.92.0.0</AssemblyVersion>
   </AssemblyInfo>
   <Base>
     <BaseTypeName>System.Enum</BaseTypeName>
@@ -29,7 +29,7 @@
       <MemberSignature Language="ILAsm" Value=".field public static literal valuetype MailKit.Net.Pop3.Pop3Capabilities Apop = int32(1)" />
       <MemberType>Field</MemberType>
       <AssemblyInfo>
-        <AssemblyVersion>0.11.0.0</AssemblyVersion>
+        <AssemblyVersion>0.92.0.0</AssemblyVersion>
       </AssemblyInfo>
       <ReturnValue>
         <ReturnType>MailKit.Net.Pop3.Pop3Capabilities</ReturnType>
@@ -45,7 +45,7 @@
       <MemberSignature Language="ILAsm" Value=".field public static literal valuetype MailKit.Net.Pop3.Pop3Capabilities Expire = int32(2)" />
       <MemberType>Field</MemberType>
       <AssemblyInfo>
-        <AssemblyVersion>0.11.0.0</AssemblyVersion>
+        <AssemblyVersion>0.92.0.0</AssemblyVersion>
       </AssemblyInfo>
       <ReturnValue>
         <ReturnType>MailKit.Net.Pop3.Pop3Capabilities</ReturnType>
@@ -57,12 +57,30 @@
             </summary>
       </Docs>
     </Member>
+    <Member MemberName="Lang">
+      <MemberSignature Language="C#" Value="Lang" />
+      <MemberSignature Language="ILAsm" Value=".field public static literal valuetype MailKit.Net.Pop3.Pop3Capabilities Lang = int32(4096)" />
+      <MemberType>Field</MemberType>
+      <AssemblyInfo>
+        <AssemblyVersion>0.92.0.0</AssemblyVersion>
+      </AssemblyInfo>
+      <ReturnValue>
+        <ReturnType>MailKit.Net.Pop3.Pop3Capabilities</ReturnType>
+      </ReturnValue>
+      <Docs>
+        <summary>
+            The server supports the UTF8 extension (rfc6856), allowing clients to
+            authenticate using UTF-8 encoded usernames and passwords and retrieve
+            messages in the UTF-8 encoding.
+            </summary>
+      </Docs>
+    </Member>
     <Member MemberName="LoginDelay">
       <MemberSignature Language="C#" Value="LoginDelay" />
       <MemberSignature Language="ILAsm" Value=".field public static literal valuetype MailKit.Net.Pop3.Pop3Capabilities LoginDelay = int32(4)" />
       <MemberType>Field</MemberType>
       <AssemblyInfo>
-        <AssemblyVersion>0.11.0.0</AssemblyVersion>
+        <AssemblyVersion>0.92.0.0</AssemblyVersion>
       </AssemblyInfo>
       <ReturnValue>
         <ReturnType>MailKit.Net.Pop3.Pop3Capabilities</ReturnType>
@@ -80,7 +98,7 @@
       <MemberSignature Language="ILAsm" Value=".field public static literal valuetype MailKit.Net.Pop3.Pop3Capabilities None = int32(0)" />
       <MemberType>Field</MemberType>
       <AssemblyInfo>
-        <AssemblyVersion>0.11.0.0</AssemblyVersion>
+        <AssemblyVersion>0.92.0.0</AssemblyVersion>
       </AssemblyInfo>
       <ReturnValue>
         <ReturnType>MailKit.Net.Pop3.Pop3Capabilities</ReturnType>
@@ -96,7 +114,7 @@
       <MemberSignature Language="ILAsm" Value=".field public static literal valuetype MailKit.Net.Pop3.Pop3Capabilities Pipelining = int32(8)" />
       <MemberType>Field</MemberType>
       <AssemblyInfo>
-        <AssemblyVersion>0.11.0.0</AssemblyVersion>
+        <AssemblyVersion>0.92.0.0</AssemblyVersion>
       </AssemblyInfo>
       <ReturnValue>
         <ReturnType>MailKit.Net.Pop3.Pop3Capabilities</ReturnType>
@@ -113,7 +131,7 @@
       <MemberSignature Language="ILAsm" Value=".field public static literal valuetype MailKit.Net.Pop3.Pop3Capabilities ResponseCodes = int32(16)" />
       <MemberType>Field</MemberType>
       <AssemblyInfo>
-        <AssemblyVersion>0.11.0.0</AssemblyVersion>
+        <AssemblyVersion>0.92.0.0</AssemblyVersion>
       </AssemblyInfo>
       <ReturnValue>
         <ReturnType>MailKit.Net.Pop3.Pop3Capabilities</ReturnType>
@@ -130,7 +148,7 @@
       <MemberSignature Language="ILAsm" Value=".field public static literal valuetype MailKit.Net.Pop3.Pop3Capabilities Sasl = int32(32)" />
       <MemberType>Field</MemberType>
       <AssemblyInfo>
-        <AssemblyVersion>0.11.0.0</AssemblyVersion>
+        <AssemblyVersion>0.92.0.0</AssemblyVersion>
       </AssemblyInfo>
       <ReturnValue>
         <ReturnType>MailKit.Net.Pop3.Pop3Capabilities</ReturnType>
@@ -148,7 +166,7 @@
       <MemberSignature Language="ILAsm" Value=".field public static literal valuetype MailKit.Net.Pop3.Pop3Capabilities StartTLS = int32(64)" />
       <MemberType>Field</MemberType>
       <AssemblyInfo>
-        <AssemblyVersion>0.11.0.0</AssemblyVersion>
+        <AssemblyVersion>0.92.0.0</AssemblyVersion>
       </AssemblyInfo>
       <ReturnValue>
         <ReturnType>MailKit.Net.Pop3.Pop3Capabilities</ReturnType>
@@ -165,7 +183,7 @@
       <MemberSignature Language="ILAsm" Value=".field public static literal valuetype MailKit.Net.Pop3.Pop3Capabilities Top = int32(128)" />
       <MemberType>Field</MemberType>
       <AssemblyInfo>
-        <AssemblyVersion>0.11.0.0</AssemblyVersion>
+        <AssemblyVersion>0.92.0.0</AssemblyVersion>
       </AssemblyInfo>
       <ReturnValue>
         <ReturnType>MailKit.Net.Pop3.Pop3Capabilities</ReturnType>
@@ -182,7 +200,7 @@
       <MemberSignature Language="ILAsm" Value=".field public static literal valuetype MailKit.Net.Pop3.Pop3Capabilities UIDL = int32(256)" />
       <MemberType>Field</MemberType>
       <AssemblyInfo>
-        <AssemblyVersion>0.11.0.0</AssemblyVersion>
+        <AssemblyVersion>0.92.0.0</AssemblyVersion>
       </AssemblyInfo>
       <ReturnValue>
         <ReturnType>MailKit.Net.Pop3.Pop3Capabilities</ReturnType>
@@ -199,7 +217,7 @@
       <MemberSignature Language="ILAsm" Value=".field public static literal valuetype MailKit.Net.Pop3.Pop3Capabilities User = int32(512)" />
       <MemberType>Field</MemberType>
       <AssemblyInfo>
-        <AssemblyVersion>0.11.0.0</AssemblyVersion>
+        <AssemblyVersion>0.92.0.0</AssemblyVersion>
       </AssemblyInfo>
       <ReturnValue>
         <ReturnType>MailKit.Net.Pop3.Pop3Capabilities</ReturnType>
@@ -209,6 +227,40 @@
             The server supports the USER authentication command, allowing the
             client to authenticate via a plain-text username and password command
             (not recommended unless no other authentication mechanisms exist).
+            </summary>
+      </Docs>
+    </Member>
+    <Member MemberName="UTF8">
+      <MemberSignature Language="C#" Value="UTF8" />
+      <MemberSignature Language="ILAsm" Value=".field public static literal valuetype MailKit.Net.Pop3.Pop3Capabilities UTF8 = int32(1024)" />
+      <MemberType>Field</MemberType>
+      <AssemblyInfo>
+        <AssemblyVersion>0.92.0.0</AssemblyVersion>
+      </AssemblyInfo>
+      <ReturnValue>
+        <ReturnType>MailKit.Net.Pop3.Pop3Capabilities</ReturnType>
+      </ReturnValue>
+      <Docs>
+        <summary>
+            The server supports the UTF8 extension (rfc6856), allowing clients to
+            retrieve messages in the UTF-8 encoding.
+            </summary>
+      </Docs>
+    </Member>
+    <Member MemberName="UTF8User">
+      <MemberSignature Language="C#" Value="UTF8User" />
+      <MemberSignature Language="ILAsm" Value=".field public static literal valuetype MailKit.Net.Pop3.Pop3Capabilities UTF8User = int32(2048)" />
+      <MemberType>Field</MemberType>
+      <AssemblyInfo>
+        <AssemblyVersion>0.92.0.0</AssemblyVersion>
+      </AssemblyInfo>
+      <ReturnValue>
+        <ReturnType>MailKit.Net.Pop3.Pop3Capabilities</ReturnType>
+      </ReturnValue>
+      <Docs>
+        <summary>
+            The server supports the UTF8 extension (rfc6856), allowing clients to
+            authenticate using UTF-8 encoded usernames and passwords.
             </summary>
       </Docs>
     </Member>

@@ -3,7 +3,7 @@
   <TypeSignature Language="ILAsm" Value=".class public auto ansi beforefieldinit Envelope extends System.Object" />
   <AssemblyInfo>
     <AssemblyName>MailKit</AssemblyName>
-    <AssemblyVersion>0.11.0.0</AssemblyVersion>
+    <AssemblyVersion>0.92.0.0</AssemblyVersion>
   </AssemblyInfo>
   <Base>
     <BaseTypeName>System.Object</BaseTypeName>
@@ -22,12 +22,29 @@
             </remarks>
   </Docs>
   <Members>
+    <Member MemberName=".ctor">
+      <MemberSignature Language="C#" Value="public Envelope ();" />
+      <MemberSignature Language="ILAsm" Value=".method public hidebysig specialname rtspecialname instance void .ctor() cil managed" />
+      <MemberType>Constructor</MemberType>
+      <AssemblyInfo>
+        <AssemblyVersion>0.92.0.0</AssemblyVersion>
+      </AssemblyInfo>
+      <Parameters />
+      <Docs>
+        <summary>
+            Initializes a new instance of the <see cref="T:MailKit.Envelope" /> class.
+            </summary>
+        <remarks>
+            Creates a new <see cref="T:MailKit.Envelope" />.
+            </remarks>
+      </Docs>
+    </Member>
     <Member MemberName="Bcc">
       <MemberSignature Language="C#" Value="public MimeKit.InternetAddressList Bcc { get; }" />
       <MemberSignature Language="ILAsm" Value=".property instance class MimeKit.InternetAddressList Bcc" />
       <MemberType>Property</MemberType>
       <AssemblyInfo>
-        <AssemblyVersion>0.11.0.0</AssemblyVersion>
+        <AssemblyVersion>0.92.0.0</AssemblyVersion>
       </AssemblyInfo>
       <ReturnValue>
         <ReturnType>MimeKit.InternetAddressList</ReturnType>
@@ -37,7 +54,9 @@
             Gets the list of addresses that the message was blind-carbon-copied to.
             </summary>
         <value>The address(es) that the message was carbon-copied to.</value>
-        <remarks>To be added.</remarks>
+        <remarks>
+            Gets the list of addresses that the message was blind-carbon-copied to.
+            </remarks>
       </Docs>
     </Member>
     <Member MemberName="Cc">
@@ -45,25 +64,27 @@
       <MemberSignature Language="ILAsm" Value=".property instance class MimeKit.InternetAddressList Cc" />
       <MemberType>Property</MemberType>
       <AssemblyInfo>
-        <AssemblyVersion>0.11.0.0</AssemblyVersion>
+        <AssemblyVersion>0.92.0.0</AssemblyVersion>
       </AssemblyInfo>
       <ReturnValue>
         <ReturnType>MimeKit.InternetAddressList</ReturnType>
       </ReturnValue>
       <Docs>
         <summary>
-            Gest the list of addresses that the message was carbon-copied to.
+            Gets the list of addresses that the message was carbon-copied to.
             </summary>
         <value>The address(es) that the message was carbon-copied to.</value>
-        <remarks>To be added.</remarks>
+        <remarks>
+            Gets the list of addresses that the message was carbon-copied to.
+            </remarks>
       </Docs>
     </Member>
     <Member MemberName="Date">
-      <MemberSignature Language="C#" Value="public Nullable&lt;DateTimeOffset&gt; Date { get; }" />
+      <MemberSignature Language="C#" Value="public Nullable&lt;DateTimeOffset&gt; Date { get; set; }" />
       <MemberSignature Language="ILAsm" Value=".property instance valuetype System.Nullable`1&lt;valuetype System.DateTimeOffset&gt; Date" />
       <MemberType>Property</MemberType>
       <AssemblyInfo>
-        <AssemblyVersion>0.11.0.0</AssemblyVersion>
+        <AssemblyVersion>0.92.0.0</AssemblyVersion>
       </AssemblyInfo>
       <ReturnValue>
         <ReturnType>System.Nullable&lt;System.DateTimeOffset&gt;</ReturnType>
@@ -73,7 +94,9 @@
             Gets the date that the message was sent on, if available.
             </summary>
         <value>The date the message was sent.</value>
-        <remarks>To be added.</remarks>
+        <remarks>
+            Gets the date that the message was sent on, if available.
+            </remarks>
       </Docs>
     </Member>
     <Member MemberName="From">
@@ -81,7 +104,7 @@
       <MemberSignature Language="ILAsm" Value=".property instance class MimeKit.InternetAddressList From" />
       <MemberType>Property</MemberType>
       <AssemblyInfo>
-        <AssemblyVersion>0.11.0.0</AssemblyVersion>
+        <AssemblyVersion>0.92.0.0</AssemblyVersion>
       </AssemblyInfo>
       <ReturnValue>
         <ReturnType>MimeKit.InternetAddressList</ReturnType>
@@ -91,15 +114,17 @@
             Gets the address(es) that the message is from.
             </summary>
         <value>The address(es) that the message is from.</value>
-        <remarks>To be added.</remarks>
+        <remarks>
+            Gets the address(es) that the message is from.
+            </remarks>
       </Docs>
     </Member>
     <Member MemberName="InReplyTo">
-      <MemberSignature Language="C#" Value="public string InReplyTo { get; }" />
+      <MemberSignature Language="C#" Value="public string InReplyTo { get; set; }" />
       <MemberSignature Language="ILAsm" Value=".property instance string InReplyTo" />
       <MemberType>Property</MemberType>
       <AssemblyInfo>
-        <AssemblyVersion>0.11.0.0</AssemblyVersion>
+        <AssemblyVersion>0.92.0.0</AssemblyVersion>
       </AssemblyInfo>
       <ReturnValue>
         <ReturnType>System.String</ReturnType>
@@ -109,25 +134,29 @@
             The Message-Id that the message is replying to.
             </summary>
         <value>The Message-Id that the message is replying to.</value>
-        <remarks>To be added.</remarks>
+        <remarks>
+            The Message-Id that the message is replying to.
+            </remarks>
       </Docs>
     </Member>
     <Member MemberName="MessageId">
-      <MemberSignature Language="C#" Value="public string MessageId { get; }" />
+      <MemberSignature Language="C#" Value="public string MessageId { get; set; }" />
       <MemberSignature Language="ILAsm" Value=".property instance string MessageId" />
       <MemberType>Property</MemberType>
       <AssemblyInfo>
-        <AssemblyVersion>0.11.0.0</AssemblyVersion>
+        <AssemblyVersion>0.92.0.0</AssemblyVersion>
       </AssemblyInfo>
       <ReturnValue>
         <ReturnType>System.String</ReturnType>
       </ReturnValue>
       <Docs>
         <summary>
-            Gets the ID of the message.
+            Gets the ID of the message, if available.
             </summary>
         <value>The message identifier.</value>
-        <remarks>To be added.</remarks>
+        <remarks>
+            Gets the ID of the message, if available.
+            </remarks>
       </Docs>
     </Member>
     <Member MemberName="ReplyTo">
@@ -135,7 +164,7 @@
       <MemberSignature Language="ILAsm" Value=".property instance class MimeKit.InternetAddressList ReplyTo" />
       <MemberType>Property</MemberType>
       <AssemblyInfo>
-        <AssemblyVersion>0.11.0.0</AssemblyVersion>
+        <AssemblyVersion>0.92.0.0</AssemblyVersion>
       </AssemblyInfo>
       <ReturnValue>
         <ReturnType>MimeKit.InternetAddressList</ReturnType>
@@ -156,7 +185,7 @@
       <MemberSignature Language="ILAsm" Value=".property instance class MimeKit.InternetAddressList Sender" />
       <MemberType>Property</MemberType>
       <AssemblyInfo>
-        <AssemblyVersion>0.11.0.0</AssemblyVersion>
+        <AssemblyVersion>0.92.0.0</AssemblyVersion>
       </AssemblyInfo>
       <ReturnValue>
         <ReturnType>MimeKit.InternetAddressList</ReturnType>
@@ -173,11 +202,11 @@
       </Docs>
     </Member>
     <Member MemberName="Subject">
-      <MemberSignature Language="C#" Value="public string Subject { get; }" />
+      <MemberSignature Language="C#" Value="public string Subject { get; set; }" />
       <MemberSignature Language="ILAsm" Value=".property instance string Subject" />
       <MemberType>Property</MemberType>
       <AssemblyInfo>
-        <AssemblyVersion>0.11.0.0</AssemblyVersion>
+        <AssemblyVersion>0.92.0.0</AssemblyVersion>
       </AssemblyInfo>
       <ReturnValue>
         <ReturnType>System.String</ReturnType>
@@ -187,7 +216,9 @@
             Gets the subject of the message.
             </summary>
         <value>The subject.</value>
-        <remarks>To be added.</remarks>
+        <remarks>
+            Gets the subject of the message.
+            </remarks>
       </Docs>
     </Member>
     <Member MemberName="To">
@@ -195,7 +226,7 @@
       <MemberSignature Language="ILAsm" Value=".property instance class MimeKit.InternetAddressList To" />
       <MemberType>Property</MemberType>
       <AssemblyInfo>
-        <AssemblyVersion>0.11.0.0</AssemblyVersion>
+        <AssemblyVersion>0.92.0.0</AssemblyVersion>
       </AssemblyInfo>
       <ReturnValue>
         <ReturnType>MimeKit.InternetAddressList</ReturnType>
@@ -205,7 +236,63 @@
             Gets the list of addresses that the message was sent to.
             </summary>
         <value>The address(es) that the message was sent to.</value>
-        <remarks>To be added.</remarks>
+        <remarks>
+            Gets the list of addresses that the message was sent to.
+            </remarks>
+      </Docs>
+    </Member>
+    <Member MemberName="ToString">
+      <MemberSignature Language="C#" Value="public override string ToString ();" />
+      <MemberSignature Language="ILAsm" Value=".method public hidebysig virtual instance string ToString() cil managed" />
+      <MemberType>Method</MemberType>
+      <AssemblyInfo>
+        <AssemblyVersion>0.92.0.0</AssemblyVersion>
+      </AssemblyInfo>
+      <ReturnValue>
+        <ReturnType>System.String</ReturnType>
+      </ReturnValue>
+      <Parameters />
+      <Docs>
+        <summary>
+            Returns a <see cref="T:System.String" /> that represents the current <see cref="T:MailKit.Envelope" />.
+            </summary>
+        <returns>A <see cref="T:System.String" /> that represents the current <see cref="T:MailKit.Envelope" />.</returns>
+        <remarks>
+          <para>The returned string can be parsed by <see cref="M:MailKit.Envelope.TryParse(System.String,MailKit.Envelope@)" />.</para>
+          <para>Note: The syntax of the string returned, while similar to IMAP's ENVELOPE syntax,
+            is not completely compatible.</para>
+        </remarks>
+      </Docs>
+    </Member>
+    <Member MemberName="TryParse">
+      <MemberSignature Language="C#" Value="public static bool TryParse (string text, out MailKit.Envelope envelope);" />
+      <MemberSignature Language="ILAsm" Value=".method public static hidebysig bool TryParse(string text, class MailKit.Envelope envelope) cil managed" />
+      <MemberType>Method</MemberType>
+      <AssemblyInfo>
+        <AssemblyVersion>0.92.0.0</AssemblyVersion>
+      </AssemblyInfo>
+      <ReturnValue>
+        <ReturnType>System.Boolean</ReturnType>
+      </ReturnValue>
+      <Parameters>
+        <Parameter Name="text" Type="System.String" />
+        <Parameter Name="envelope" Type="MailKit.Envelope&amp;" RefType="out" />
+      </Parameters>
+      <Docs>
+        <param name="text">The text to parse.</param>
+        <param name="envelope">The parsed envelope.</param>
+        <summary>
+            Tries to parse the given text into a new <see cref="T:MailKit.Envelope" /> instance.
+            </summary>
+        <returns>
+          <c>true</c>, if the envelope was successfully parsed, <c>false</c> otherwise.</returns>
+        <remarks>
+          <para>Parses an Envelope value from the specified text.</para>
+          <para>Note: This syntax, while similar to IMAP's ENVELOPE syntax, is not completely compatible.</para>
+        </remarks>
+        <exception cref="T:System.ArgumentNullException">
+          <paramref name="text" /> is <c>null</c>.
+            </exception>
       </Docs>
     </Member>
   </Members>

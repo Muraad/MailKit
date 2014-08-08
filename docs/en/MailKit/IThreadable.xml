@@ -3,7 +3,7 @@
   <TypeSignature Language="ILAsm" Value=".class public interface auto ansi abstract IThreadable implements class MailKit.ISortable" />
   <AssemblyInfo>
     <AssemblyName>MailKit</AssemblyName>
-    <AssemblyVersion>0.11.0.0</AssemblyVersion>
+    <AssemblyVersion>0.92.0.0</AssemblyVersion>
   </AssemblyInfo>
   <Interfaces>
     <Interface>
@@ -14,7 +14,9 @@
     <summary>
             An interface for a threading messages.
             </summary>
-    <remarks>To be added.</remarks>
+    <remarks>
+            An interface for a threading messages.
+            </remarks>
   </Docs>
   <Members>
     <Member MemberName="CanThread">
@@ -22,18 +24,20 @@
       <MemberSignature Language="ILAsm" Value=".property instance bool CanThread" />
       <MemberType>Property</MemberType>
       <AssemblyInfo>
-        <AssemblyVersion>0.11.0.0</AssemblyVersion>
+        <AssemblyVersion>0.92.0.0</AssemblyVersion>
       </AssemblyInfo>
       <ReturnValue>
         <ReturnType>System.Boolean</ReturnType>
       </ReturnValue>
       <Docs>
         <summary>
-            Gets a value indicating whether this instance can be threaded.
+            Gets whether the message can be threaded.
             </summary>
         <value>
-          <c>true</c> if this instance can be threaded; otherwise, <c>false</c>.</value>
-        <remarks>To be added.</remarks>
+          <c>true</c> if the message can be threaded; otherwise, <c>false</c>.</value>
+        <remarks>
+            Gets whether the message can be threaded.
+            </remarks>
       </Docs>
     </Member>
     <Member MemberName="IsThreadableReply">
@@ -41,7 +45,7 @@
       <MemberSignature Language="ILAsm" Value=".property instance bool IsThreadableReply" />
       <MemberType>Property</MemberType>
       <AssemblyInfo>
-        <AssemblyVersion>0.11.0.0</AssemblyVersion>
+        <AssemblyVersion>0.92.0.0</AssemblyVersion>
       </AssemblyInfo>
       <ReturnValue>
         <ReturnType>System.Boolean</ReturnType>
@@ -62,7 +66,7 @@
       <MemberSignature Language="ILAsm" Value=".property instance string ThreadableMessageId" />
       <MemberType>Property</MemberType>
       <AssemblyInfo>
-        <AssemblyVersion>0.11.0.0</AssemblyVersion>
+        <AssemblyVersion>0.92.0.0</AssemblyVersion>
       </AssemblyInfo>
       <ReturnValue>
         <ReturnType>System.String</ReturnType>
@@ -83,7 +87,7 @@
       <MemberSignature Language="ILAsm" Value=".property instance class MimeKit.MessageIdList ThreadableReferences" />
       <MemberType>Property</MemberType>
       <AssemblyInfo>
-        <AssemblyVersion>0.11.0.0</AssemblyVersion>
+        <AssemblyVersion>0.92.0.0</AssemblyVersion>
       </AssemblyInfo>
       <ReturnValue>
         <ReturnType>MimeKit.MessageIdList</ReturnType>
@@ -104,7 +108,7 @@
       <MemberSignature Language="ILAsm" Value=".property instance string ThreadableSubject" />
       <MemberType>Property</MemberType>
       <AssemblyInfo>
-        <AssemblyVersion>0.11.0.0</AssemblyVersion>
+        <AssemblyVersion>0.92.0.0</AssemblyVersion>
       </AssemblyInfo>
       <ReturnValue>
         <ReturnType>System.String</ReturnType>
@@ -125,7 +129,7 @@
       <MemberSignature Language="ILAsm" Value=".property instance valuetype MailKit.UniqueId ThreadableUniqueId" />
       <MemberType>Property</MemberType>
       <AssemblyInfo>
-        <AssemblyVersion>0.11.0.0</AssemblyVersion>
+        <AssemblyVersion>0.92.0.0</AssemblyVersion>
       </AssemblyInfo>
       <ReturnValue>
         <ReturnType>MailKit.UniqueId</ReturnType>
@@ -135,7 +139,9 @@
             Gets the unique identifier.
             </summary>
         <value>The unique identifier.</value>
-        <remarks>To be added.</remarks>
+        <remarks>
+            Gets the unique identifier.
+            </remarks>
       </Docs>
     </Member>
   </Members>

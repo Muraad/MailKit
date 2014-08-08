@@ -3,7 +3,7 @@
   <TypeSignature Language="ILAsm" Value=".class public auto ansi beforefieldinit MessageEventArgs extends System.EventArgs" />
   <AssemblyInfo>
     <AssemblyName>MailKit</AssemblyName>
-    <AssemblyVersion>0.11.0.0</AssemblyVersion>
+    <AssemblyVersion>0.92.0.0</AssemblyVersion>
   </AssemblyInfo>
   <Base>
     <BaseTypeName>System.EventArgs</BaseTypeName>
@@ -13,7 +13,9 @@
     <summary>
             Event args used when the state of a message changes.
             </summary>
-    <remarks>To be added.</remarks>
+    <remarks>
+            Event args used when the state of a message changes.
+            </remarks>
   </Docs>
   <Members>
     <Member MemberName="Index">
@@ -21,7 +23,7 @@
       <MemberSignature Language="ILAsm" Value=".property instance int32 Index" />
       <MemberType>Property</MemberType>
       <AssemblyInfo>
-        <AssemblyVersion>0.11.0.0</AssemblyVersion>
+        <AssemblyVersion>0.92.0.0</AssemblyVersion>
       </AssemblyInfo>
       <ReturnValue>
         <ReturnType>System.Int32</ReturnType>
@@ -31,7 +33,9 @@
             Gets the index of the message that changed.
             </summary>
         <value>The index of the message.</value>
-        <remarks>To be added.</remarks>
+        <remarks>
+            Gets the index of the message that changed.
+            </remarks>
       </Docs>
     </Member>
   </Members>

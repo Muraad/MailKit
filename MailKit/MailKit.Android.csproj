@@ -3,7 +3,7 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProductVersion>10.0.0</ProductVersion>
+    <ProductVersion>8.0.30703</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{9BF818C3-C20E-4EFB-9426-F0A6C2EDC627}</ProjectGuid>
     <ProjectTypeGuids>{EFBA0AD7-5A72-4C68-AF49-83D382785DCF};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
@@ -42,6 +42,12 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <DocumentationFile>bin\Release\lib\MonoAndroid\MailKit.xml</DocumentationFile>
   </PropertyGroup>
+  <PropertyGroup>
+    <SignAssembly>true</SignAssembly>
+  </PropertyGroup>
+  <PropertyGroup>
+    <AssemblyOriginatorKeyFile>mailkit.snk</AssemblyOriginatorKeyFile>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Xml" />
@@ -73,6 +79,7 @@
     <Compile Include="Net\Pop3\Pop3Command.cs" />
     <Compile Include="Net\Pop3\Pop3CommandException.cs" />
     <Compile Include="Net\Pop3\Pop3Engine.cs" />
+    <Compile Include="Net\Pop3\Pop3Language.cs" />
     <Compile Include="Net\Pop3\Pop3ProtocolException.cs" />
     <Compile Include="Net\Pop3\Pop3Stream.cs" />
     <Compile Include="Net\Smtp\SmtpCapabilities.cs" />
@@ -103,6 +110,7 @@
     <Compile Include="Security\Ntlm\NtlmAuthLevel.cs" />
     <Compile Include="Security\Ntlm\NtlmFlags.cs" />
     <Compile Include="Security\Ntlm\NtlmSettings.cs" />
+    <Compile Include="Security\Ntlm\TargetInfo.cs" />
     <Compile Include="Security\Ntlm\Type1Message.cs" />
     <Compile Include="Security\Ntlm\Type2Message.cs" />
     <Compile Include="Security\Ntlm\Type3Message.cs" />
@@ -115,13 +123,17 @@
     <Compile Include="Security\SaslMechanismNtlm.cs" />
     <Compile Include="Security\SaslMechanismOAuth2.cs" />
     <Compile Include="Security\SaslMechanismPlain.cs" />
+    <Compile Include="Security\SaslMechanismScramBase.cs" />
+    <Compile Include="Security\SaslMechanismScramSha1.cs" />
     <Compile Include="AlertEventArgs.cs" />
+    <Compile Include="AuthenticatedEventArgs.cs" />
     <Compile Include="BodyPart.cs" />
     <Compile Include="BodyPartBasic.cs" />
     <Compile Include="BodyPartCollection.cs" />
     <Compile Include="BodyPartMessage.cs" />
     <Compile Include="BodyPartMultipart.cs" />
     <Compile Include="BodyPartText.cs" />
+    <Compile Include="CommandException.cs" />
     <Compile Include="DuplexStream.cs" />
     <Compile Include="Envelope.cs" />
     <Compile Include="FolderAccess.cs" />
@@ -129,18 +141,26 @@
     <Compile Include="FolderNamespace.cs" />
     <Compile Include="FolderNamespaceCollection.cs" />
     <Compile Include="FolderNotFoundException.cs" />
+    <Compile Include="FolderQuota.cs" />
     <Compile Include="FolderRenamedEventArgs.cs" />
-    <Compile Include="IFolder.cs" />
-    <Compile Include="IMessageService.cs" />
-    <Compile Include="IMessageSpool.cs" />
-    <Compile Include="IMessageStore.cs" />
-    <Compile Include="IMessageTransport.cs" />
+    <Compile Include="IMailFolder.cs" />
+    <Compile Include="IMailService.cs" />
+    <Compile Include="IMailSpool.cs" />
+    <Compile Include="IMailStore.cs" />
+    <Compile Include="IMailTransport.cs" />
+    <Compile Include="IMessageSummary.cs" />
     <Compile Include="IProtocolLogger.cs" />
     <Compile Include="ISortable.cs" />
     <Compile Include="IThreadable.cs" />
+    <Compile Include="MailFolder.cs" />
+    <Compile Include="MailService.cs" />
+    <Compile Include="MailSpool.cs" />
+    <Compile Include="MailStore.cs" />
+    <Compile Include="MailTransport.cs" />
     <Compile Include="MessageEventArgs.cs" />
     <Compile Include="MessageFlags.cs" />
     <Compile Include="MessageFlagsChangedEventArgs.cs" />
+    <Compile Include="MessageLabelsChangedEventArgs.cs" />
     <Compile Include="MessageSorter.cs" />
     <Compile Include="MessageSummary.cs" />
     <Compile Include="MessageSummaryItems.cs" />
@@ -154,6 +174,8 @@
     <Compile Include="StatusItems.cs" />
     <Compile Include="ThreadingAlgorithm.cs" />
     <Compile Include="UniqueId.cs" />
+    <Compile Include="UniqueIdRange.cs" />
+    <Compile Include="UniqueIdSet.cs" />
     <Compile Include="UriExtensions.cs" />
   </ItemGroup>
   <ItemGroup>

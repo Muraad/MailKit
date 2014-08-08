@@ -3,7 +3,7 @@
   <TypeSignature Language="ILAsm" Value=".class public auto ansi beforefieldinit MessageFlagsChangedEventArgs extends MailKit.MessageEventArgs" />
   <AssemblyInfo>
     <AssemblyName>MailKit</AssemblyName>
-    <AssemblyVersion>0.11.0.0</AssemblyVersion>
+    <AssemblyVersion>0.92.0.0</AssemblyVersion>
   </AssemblyInfo>
   <Base>
     <BaseTypeName>MailKit.MessageEventArgs</BaseTypeName>
@@ -11,17 +11,115 @@
   <Interfaces />
   <Docs>
     <summary>
-            Event args for the <see cref="E:MailKit.IFolder.MessageFlagsChanged" /> event.
+            Event args for the <see cref="E:MailKit.IMailFolder.MessageFlagsChanged" /> event.
             </summary>
-    <remarks>To be added.</remarks>
+    <remarks>
+            Event args for the <see cref="E:MailKit.IMailFolder.MessageFlagsChanged" /> event.
+            </remarks>
   </Docs>
   <Members>
+    <Member MemberName=".ctor">
+      <MemberSignature Language="C#" Value="public MessageFlagsChangedEventArgs (int index, MailKit.MessageFlags flags);" />
+      <MemberSignature Language="ILAsm" Value=".method public hidebysig specialname rtspecialname instance void .ctor(int32 index, valuetype MailKit.MessageFlags flags) cil managed" />
+      <MemberType>Constructor</MemberType>
+      <AssemblyInfo>
+        <AssemblyVersion>0.92.0.0</AssemblyVersion>
+      </AssemblyInfo>
+      <Parameters>
+        <Parameter Name="index" Type="System.Int32" />
+        <Parameter Name="flags" Type="MailKit.MessageFlags" />
+      </Parameters>
+      <Docs>
+        <param name="index">The message index.</param>
+        <param name="flags">The message flags.</param>
+        <summary>
+            Initializes a new instance of the <see cref="T:MailKit.MessageFlagsChangedEventArgs" /> class.
+            </summary>
+        <remarks>
+            Creates a new <see cref="T:MailKit.MessageFlagsChangedEventArgs" />.
+            </remarks>
+      </Docs>
+    </Member>
+    <Member MemberName=".ctor">
+      <MemberSignature Language="C#" Value="public MessageFlagsChangedEventArgs (int index, MailKit.MessageFlags flags, ulong modseq);" />
+      <MemberSignature Language="ILAsm" Value=".method public hidebysig specialname rtspecialname instance void .ctor(int32 index, valuetype MailKit.MessageFlags flags, unsigned int64 modseq) cil managed" />
+      <MemberType>Constructor</MemberType>
+      <AssemblyInfo>
+        <AssemblyVersion>0.92.0.0</AssemblyVersion>
+      </AssemblyInfo>
+      <Parameters>
+        <Parameter Name="index" Type="System.Int32" />
+        <Parameter Name="flags" Type="MailKit.MessageFlags" />
+        <Parameter Name="modseq" Type="System.UInt64" />
+      </Parameters>
+      <Docs>
+        <param name="index">The message index.</param>
+        <param name="flags">The message flags.</param>
+        <param name="modseq">The modification sequence value.</param>
+        <summary>
+            Initializes a new instance of the <see cref="T:MailKit.MessageFlagsChangedEventArgs" /> class.
+            </summary>
+        <remarks>
+            Creates a new <see cref="T:MailKit.MessageFlagsChangedEventArgs" />.
+            </remarks>
+      </Docs>
+    </Member>
+    <Member MemberName=".ctor">
+      <MemberSignature Language="C#" Value="public MessageFlagsChangedEventArgs (int index, MailKit.UniqueId uid, MailKit.MessageFlags flags);" />
+      <MemberSignature Language="ILAsm" Value=".method public hidebysig specialname rtspecialname instance void .ctor(int32 index, valuetype MailKit.UniqueId uid, valuetype MailKit.MessageFlags flags) cil managed" />
+      <MemberType>Constructor</MemberType>
+      <AssemblyInfo>
+        <AssemblyVersion>0.92.0.0</AssemblyVersion>
+      </AssemblyInfo>
+      <Parameters>
+        <Parameter Name="index" Type="System.Int32" />
+        <Parameter Name="uid" Type="MailKit.UniqueId" />
+        <Parameter Name="flags" Type="MailKit.MessageFlags" />
+      </Parameters>
+      <Docs>
+        <param name="index">The message index.</param>
+        <param name="uid">The unique id of the message.</param>
+        <param name="flags">The message flags.</param>
+        <summary>
+            Initializes a new instance of the <see cref="T:MailKit.MessageFlagsChangedEventArgs" /> class.
+            </summary>
+        <remarks>
+            Creates a new <see cref="T:MailKit.MessageFlagsChangedEventArgs" />.
+            </remarks>
+      </Docs>
+    </Member>
+    <Member MemberName=".ctor">
+      <MemberSignature Language="C#" Value="public MessageFlagsChangedEventArgs (int index, MailKit.UniqueId uid, MailKit.MessageFlags flags, ulong modseq);" />
+      <MemberSignature Language="ILAsm" Value=".method public hidebysig specialname rtspecialname instance void .ctor(int32 index, valuetype MailKit.UniqueId uid, valuetype MailKit.MessageFlags flags, unsigned int64 modseq) cil managed" />
+      <MemberType>Constructor</MemberType>
+      <AssemblyInfo>
+        <AssemblyVersion>0.92.0.0</AssemblyVersion>
+      </AssemblyInfo>
+      <Parameters>
+        <Parameter Name="index" Type="System.Int32" />
+        <Parameter Name="uid" Type="MailKit.UniqueId" />
+        <Parameter Name="flags" Type="MailKit.MessageFlags" />
+        <Parameter Name="modseq" Type="System.UInt64" />
+      </Parameters>
+      <Docs>
+        <param name="index">The message index.</param>
+        <param name="uid">The unique id of the message.</param>
+        <param name="flags">The message flags.</param>
+        <param name="modseq">The modification sequence value.</param>
+        <summary>
+            Initializes a new instance of the <see cref="T:MailKit.MessageFlagsChangedEventArgs" /> class.
+            </summary>
+        <remarks>
+            Creates a new <see cref="T:MailKit.MessageFlagsChangedEventArgs" />.
+            </remarks>
+      </Docs>
+    </Member>
     <Member MemberName="Flags">
       <MemberSignature Language="C#" Value="public MailKit.MessageFlags Flags { get; }" />
       <MemberSignature Language="ILAsm" Value=".property instance valuetype MailKit.MessageFlags Flags" />
       <MemberType>Property</MemberType>
       <AssemblyInfo>
-        <AssemblyVersion>0.11.0.0</AssemblyVersion>
+        <AssemblyVersion>0.92.0.0</AssemblyVersion>
       </AssemblyInfo>
       <ReturnValue>
         <ReturnType>MailKit.MessageFlags</ReturnType>
@@ -31,7 +129,9 @@
             Gets the updated message flags.
             </summary>
         <value>The updated message flags.</value>
-        <remarks>To be added.</remarks>
+        <remarks>
+            Gets the updated message flags.
+            </remarks>
       </Docs>
     </Member>
     <Member MemberName="ModSeq">
@@ -39,7 +139,7 @@
       <MemberSignature Language="ILAsm" Value=".property instance valuetype System.Nullable`1&lt;unsigned int64&gt; ModSeq" />
       <MemberType>Property</MemberType>
       <AssemblyInfo>
-        <AssemblyVersion>0.11.0.0</AssemblyVersion>
+        <AssemblyVersion>0.92.0.0</AssemblyVersion>
       </AssemblyInfo>
       <ReturnValue>
         <ReturnType>System.Nullable&lt;System.UInt64&gt;</ReturnType>
@@ -49,7 +149,9 @@
             Gets the updated mod-sequence value of the message, if available.
             </summary>
         <value>The mod-sequence value.</value>
-        <remarks>To be added.</remarks>
+        <remarks>
+            Gets the updated mod-sequence value of the message, if available.
+            </remarks>
       </Docs>
     </Member>
     <Member MemberName="UniqueId">
@@ -57,7 +159,7 @@
       <MemberSignature Language="ILAsm" Value=".property instance valuetype System.Nullable`1&lt;valuetype MailKit.UniqueId&gt; UniqueId" />
       <MemberType>Property</MemberType>
       <AssemblyInfo>
-        <AssemblyVersion>0.11.0.0</AssemblyVersion>
+        <AssemblyVersion>0.92.0.0</AssemblyVersion>
       </AssemblyInfo>
       <ReturnValue>
         <ReturnType>System.Nullable&lt;MailKit.UniqueId&gt;</ReturnType>
@@ -67,7 +169,9 @@
             Gets the unique ID of the message that changed, if available.
             </summary>
         <value>The unique ID of the message.</value>
-        <remarks>To be added.</remarks>
+        <remarks>
+            Gets the unique ID of the message that changed, if available.
+            </remarks>
       </Docs>
     </Member>
   </Members>

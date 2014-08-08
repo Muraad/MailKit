@@ -51,6 +51,9 @@ namespace MailKit.Security {
 		/// <summary>
 		/// Initializes a new instance of the <see cref="MailKit.Security.SaslMechanismCramMd5"/> class.
 		/// </summary>
+		/// <remarks>
+		/// Creates a new CRAM-MD5 SASL context.
+		/// </remarks>
 		/// <param name="uri">The URI of the service.</param>
 		/// <param name="credentials">The user's credentials.</param>
 		public SaslMechanismCramMd5 (Uri uri, ICredentials credentials) : base (uri, credentials)
@@ -60,6 +63,9 @@ namespace MailKit.Security {
 		/// <summary>
 		/// Gets the name of the mechanism.
 		/// </summary>
+		/// <remarks>
+		/// Gets the name of the mechanism.
+		/// </remarks>
 		/// <value>The name of the mechanism.</value>
 		public override string MechanismName {
 			get { return "CRAM-MD5"; }
@@ -68,10 +74,19 @@ namespace MailKit.Security {
 		/// <summary>
 		/// Parses the server's challenge token and returns the next challenge response.
 		/// </summary>
+		/// <remarks>
+		/// Parses the server's challenge token and returns the next challenge response.
+		/// </remarks>
 		/// <returns>The next challenge response.</returns>
 		/// <param name="token">The server's challenge token.</param>
 		/// <param name="startIndex">The index into the token specifying where the server's challenge begins.</param>
 		/// <param name="length">The length of the server's challenge.</param>
+		/// <exception cref="System.InvalidOperationException">
+		/// The SASL mechanism is already authenticated.
+		/// </exception>
+		/// <exception cref="System.NotSupportedException">
+		/// THe SASL mechanism does not support SASL-IR.
+		/// </exception>
 		/// <exception cref="SaslException">
 		/// An error has occurred while parsing the server's challenge token.
 		/// </exception>
@@ -81,7 +96,7 @@ namespace MailKit.Security {
 				throw new InvalidOperationException ();
 
 			if (token == null)
-				return null;
+				throw new NotSupportedException ("CRAM-MD5 does not support SASL-IR.");
 
 			var cred = Credentials.GetCredential (Uri, MechanismName);
 			var userName = Encoding.UTF8.GetBytes (cred.UserName);

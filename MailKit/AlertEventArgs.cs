@@ -31,7 +31,7 @@ namespace MailKit {
 	/// Alert event arguments.
 	/// </summary>
 	/// <remarks>
-	/// Some <see cref="IMessageStore"/> implementations, such as
+	/// Some <see cref="IMailStore"/> implementations, such as
 	/// <see cref="MailKit.Net.Imap.ImapClient"/>, will emit Alert
 	/// events when they receive alert messages from the server.
 	/// </remarks>
@@ -40,8 +40,11 @@ namespace MailKit {
 		/// <summary>
 		/// Initializes a new instance of the <see cref="MailKit.AlertEventArgs"/> class.
 		/// </summary>
+		/// <remarks>
+		/// Creates a new <see cref="AlertEventArgs"/>.
+		/// </remarks>
 		/// <param name="message">The alert message.</param>
-		internal AlertEventArgs (string message)
+		public AlertEventArgs (string message)
 		{
 			Message = message;
 		}

@@ -127,6 +127,29 @@ namespace UnitTests.Security {
 			return builder.ToString ();
 		}
 
+		[Test]
+		public void TestNtlmTargetInfoEncode ()
+		{
+			var now = DateTime.Now.Ticks;
+
+			var targetInfo = new TargetInfo {
+				DomainName = "DOMAIN",
+				ServerName = "SERVER",
+				DnsDomainName = "domain.com",
+				DnsServerName = "server.domain.com",
+				Timestamp = now,
+			};
+
+			var encoded = targetInfo.Encode (true);
+			var decoded = new TargetInfo (encoded, 0, encoded.Length, true);
+
+			Assert.AreEqual (targetInfo.DnsDomainName, decoded.DnsDomainName, "DnsDomainName does not match.");
+			Assert.AreEqual (targetInfo.DnsServerName, decoded.DnsServerName, "DnsServerName does not match.");
+			Assert.AreEqual (targetInfo.DomainName, decoded.DomainName, "DomainName does not match.");
+			Assert.AreEqual (targetInfo.ServerName, decoded.ServerName, "ServerName does not match.");
+			Assert.AreEqual (targetInfo.Timestamp, decoded.Timestamp, "Timestamp does not match.");
+		}
+
 		static readonly byte[] NtlmType1EncodedMessage = {
 			0x4e, 0x54, 0x4c, 0x4d, 0x53, 0x53, 0x50, 0x00, 0x01, 0x00, 0x00, 0x00,
 			0x07, 0x32, 0x00, 0x00, 0x06, 0x00, 0x06, 0x00, 0x33, 0x00, 0x00, 0x00,
@@ -191,8 +214,16 @@ namespace UnitTests.Security {
 			var nonce = HexEncode (type2.Nonce);
 			Assert.AreEqual ("0123456789abcdef", nonce, "The expected nonce does not match.");
 
-			var targetInfo = HexEncode (type2.TargetInfo);
+			var targetInfo = HexEncode (type2.EncodedTargetInfo);
 			Assert.AreEqual (expectedTargetInfo, targetInfo, "The expected TargetInfo does not match.");
+
+			Assert.AreEqual ("DOMAIN", type2.TargetInfo.DomainName, "The expected TargetInfo domain name does not match.");
+			Assert.AreEqual ("SERVER", type2.TargetInfo.ServerName, "The expected TargetInfo server name does not match.");
+			Assert.AreEqual ("domain.com", type2.TargetInfo.DnsDomainName, "The expected TargetInfo DNS domain name does not match.");
+			Assert.AreEqual ("server.domain.com", type2.TargetInfo.DnsServerName, "The expected TargetInfo DNS server name does not match.");
+
+			targetInfo = HexEncode (type2.TargetInfo.Encode (true));
+			Assert.AreEqual (expectedTargetInfo, targetInfo, "The expected re-encoded TargetInfo does not match.");
 		}
 
 		[Test]
@@ -237,6 +268,63 @@ namespace UnitTests.Security {
 			Assert.AreEqual ("DOMAIN", type1.Domain, "Expected initial NTLM client challenge domain does not match.");
 			Assert.AreEqual (string.Empty, type1.Host, "Expected initial NTLM client challenge host does not match.");
 			Assert.IsFalse (sasl.IsAuthenticated, "NTLM should not be authenticated.");
+		}
+
+		[Test]
+		public void TestScramSha1 ()
+		{
+			const string cnonce = "fyko+d2lbbFgONRv9qkxdawL";
+			var uri = new Uri ("imap://elwood.innosoft.com");
+			var credentials = new NetworkCredential ("user", "pencil");
+			var sasl = new SaslMechanismScramSha1 (uri, credentials, cnonce);
+			string token;
+
+			var challenge = Encoding.UTF8.GetString (Convert.FromBase64String (sasl.Challenge (null)));
+
+			Assert.AreEqual ("n,,n=user,r=" + cnonce, challenge, "Initial SCRAM-SHA-1 challenge response does not match the expected string.");
+			Assert.IsFalse (sasl.IsAuthenticated, "SCRAM-SHA-1 should not be authenticated yet.");
+
+			token = Convert.ToBase64String (Encoding.UTF8.GetBytes ("r=fyko+d2lbbFgONRv9qkxdawL3rfcNHYJY1ZVvWVs7j,s=QSXCR+Q6sek8bf92,i=4096"));
+			challenge = Encoding.UTF8.GetString (Convert.FromBase64String (sasl.Challenge (token)));
+
+			const string expected = "c=biws,r=fyko+d2lbbFgONRv9qkxdawL3rfcNHYJY1ZVvWVs7j,p=v0X8v3Bz2T0CJGbJQyF0X+HI4Ts=";
+			Assert.AreEqual (expected, challenge, "Second SCRAM-SHA-1 challenge response does not match the expected string.");
+			Assert.IsFalse (sasl.IsAuthenticated, "SCRAM-SHA-1 should not be authenticated yet.");
+
+			token = Convert.ToBase64String (Encoding.UTF8.GetBytes ("v=rmF9pqV8S7suAoZWja4dJRkFsKQ="));
+			challenge = Encoding.UTF8.GetString (Convert.FromBase64String (sasl.Challenge (token)));
+			Assert.AreEqual (string.Empty, challenge, "Third SCRAM-SHA-1 challenge should be an empty string.");
+			Assert.IsTrue (sasl.IsAuthenticated, "SCRAM-SHA-1 should be authenticated now.");
+		}
+
+		[Test]
+		public void TestSaslPrep ()
+		{
+			// The following examples are from rfc4013, Section 3.
+			// #  Input            Output     Comments
+			// -  -----            ------     --------
+			// 1  I<U+00AD>X       IX         SOFT HYPHEN mapped to nothing
+			Assert.AreEqual ("IX", SaslMechanism.SaslPrep ("I\u00ADX"), "1");
+			// 2  user             user       no transformation
+			Assert.AreEqual ("user", SaslMechanism.SaslPrep ("user"), "2");
+			// 3  USER             USER       case preserved, will not match #2
+			Assert.AreEqual ("USER", SaslMechanism.SaslPrep ("USER"), "3");
+			// 4  <U+00AA>         a          output is NFKC, input in ISO 8859-1
+			Assert.AreEqual ("a", SaslMechanism.SaslPrep ("\u00AA"), "4");
+			// 5  <U+2168>         IX         output is NFKC, will match #1
+			Assert.AreEqual ("IX", SaslMechanism.SaslPrep ("\u2168"), "5");
+			// 6  <U+0007>                    Error - prohibited character
+			try {
+				SaslMechanism.SaslPrep ("\u0007");
+				Assert.Fail ("6");
+			} catch (ArgumentException) {
+			}
+			// 7  <U+0627><U+0031>            Error - bidirectional check
+			//try {
+			//	SaslMechanism.SaslPrep ("\u0627\u0031");
+			//	Assert.Fail ("7");
+			//} catch (ArgumentException) {
+			//}
 		}
 	}
 }

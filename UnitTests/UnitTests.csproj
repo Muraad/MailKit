@@ -6,6 +6,7 @@
     <ProductVersion>8.0.30703</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{637EC535-3921-4A7A-8CB4-00A5AB18FAA2}</ProjectGuid>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <OutputType>Library</OutputType>
     <RootNamespace>UnitTests</RootNamespace>
     <AssemblyName>UnitTests</AssemblyName>
@@ -29,6 +30,12 @@
     <ConsolePause>false</ConsolePause>
     <NoWarn>219</NoWarn>
   </PropertyGroup>
+  <PropertyGroup>
+    <SignAssembly>true</SignAssembly>
+  </PropertyGroup>
+  <PropertyGroup>
+    <AssemblyOriginatorKeyFile>..\MailKit\mailkit.snk</AssemblyOriginatorKeyFile>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="nunit.framework">
       <HintPath>..\packages\NUnit.2.6.3\lib\nunit.framework.dll</HintPath>
@@ -37,11 +44,11 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\MimeKit\MimeKit\MimeKit.csproj">
-      <Project>{C909FC86-6084-41E5-B99C-DCDF2A5B7F82}</Project>
+      <Project>{D5F54A4F-D84B-430F-9271-F7861E285B3E}</Project>
       <Name>MimeKit</Name>
     </ProjectReference>
     <ProjectReference Include="..\MailKit\MailKit.csproj">
-      <Project>{DB3A2478-4742-452B-80C1-F672B64285AD}</Project>
+      <Project>{7264D469-A390-4C10-9C87-DAA37EDD3C1D}</Project>
       <Name>MailKit</Name>
     </ProjectReference>
   </ItemGroup>
@@ -58,6 +65,8 @@
     <Compile Include="MessageThreadingTests.cs" />
     <Compile Include="UriExtensionTests.cs" />
     <Compile Include="Security\SaslMechanismTests.cs" />
+    <Compile Include="BodyPartTests.cs" />
+    <Compile Include="UniqueIdSetTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Net\Imap\Resources\common\capability-greeting.txt" />
@@ -166,6 +175,7 @@
     <EmbeddedResource Include="Net\Imap\Resources\gmail\capability.txt" />
     <EmbeddedResource Include="Net\Imap\Resources\gmail\create-unittests.txt" />
     <EmbeddedResource Include="Net\Imap\Resources\gmail\delete-unittests.txt" />
+    <EmbeddedResource Include="Net\Imap\Resources\gmail\examine-inbox.txt" />
     <EmbeddedResource Include="Net\Imap\Resources\gmail\fetch.1.txt" />
     <EmbeddedResource Include="Net\Imap\Resources\gmail\fetch.2.txt" />
     <EmbeddedResource Include="Net\Imap\Resources\gmail\fetch.3.txt" />
@@ -194,6 +204,7 @@
     <EmbeddedResource Include="Net\Imap\Resources\gmail\list-unittests.txt" />
     <EmbeddedResource Include="Net\Imap\Resources\gmail\logout.txt" />
     <EmbeddedResource Include="Net\Imap\Resources\gmail\namespace.txt" />
+    <EmbeddedResource Include="Net\Imap\Resources\gmail\precise-pangolin-message.txt" />
     <EmbeddedResource Include="Net\Imap\Resources\gmail\remove-flags.txt" />
     <EmbeddedResource Include="Net\Imap\Resources\gmail\search.txt" />
     <EmbeddedResource Include="Net\Imap\Resources\gmail\search-summary.txt" />
@@ -217,6 +228,14 @@
     <EmbeddedResource Include="Net\Pop3\Resources\exchange\retr1.txt" />
     <EmbeddedResource Include="Net\Pop3\Resources\exchange\stat.txt" />
     <EmbeddedResource Include="Net\Pop3\Resources\exchange\uidl.txt" />
+    <EmbeddedResource Include="Net\Pop3\Resources\gmail\auth.txt" />
+    <EmbeddedResource Include="Net\Pop3\Resources\gmail\capa1.txt" />
+    <EmbeddedResource Include="Net\Pop3\Resources\gmail\capa2.txt" />
+    <EmbeddedResource Include="Net\Pop3\Resources\gmail\greeting.txt" />
+    <EmbeddedResource Include="Net\Pop3\Resources\gmail\plus.txt" />
+    <EmbeddedResource Include="Net\Pop3\Resources\gmail\quit.txt" />
+    <EmbeddedResource Include="Net\Pop3\Resources\gmail\retr1.txt" />
+    <EmbeddedResource Include="Net\Pop3\Resources\gmail\stat.txt" />
     <EmbeddedResource Include="Net\Smtp\Resources\auth-required.txt" />
     <EmbeddedResource Include="Net\Smtp\Resources\auth-successful.txt" />
     <EmbeddedResource Include="Net\Smtp\Resources\comcast-auth-plain.txt" />
@@ -231,8 +250,6 @@
     <EmbeddedResource Include="Net\Smtp\Resources\comcast-rset.txt" />
     <EmbeddedResource Include="Net\Smtp\Resources\mailbox-unavailable.txt" />
     <EmbeddedResource Include="Net\Smtp\Resources\pipelined-mail-from-rcpt-to.txt" />
-    <EmbeddedResource Include="Net\Imap\Resources\gmail\examine-inbox.txt" />
-    <EmbeddedResource Include="Net\Imap\Resources\gmail\precise-pangolin-message.txt" />
   </ItemGroup>
   <ItemGroup />
   <ItemGroup>
@@ -244,10 +261,11 @@
     <Folder Include="Net\Imap\Resources\gmail\" />
     <Folder Include="Net\Pop3\" />
     <Folder Include="Net\Pop3\Resources\" />
-    <Folder Include="Net\Smtp\" />
-    <Folder Include="Net\Smtp\Resources\" />
     <Folder Include="Net\Pop3\Resources\comcast\" />
     <Folder Include="Net\Pop3\Resources\exchange\" />
+    <Folder Include="Net\Pop3\Resources\gmail\" />
+    <Folder Include="Net\Smtp\" />
+    <Folder Include="Net\Smtp\Resources\" />
     <Folder Include="Security\" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />

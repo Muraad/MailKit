@@ -28,8 +28,11 @@ using System;
 
 namespace MailKit {
 	/// <summary>
-	/// Event args used when a <see cref="IFolder"/> is renamed.
+	/// Event args used when a <see cref="IMailFolder"/> is renamed.
 	/// </summary>
+	/// <remarks>
+	/// Event args used when a <see cref="IMailFolder"/> is renamed.
+	/// </remarks>
 	public class FolderRenamedEventArgs : EventArgs
 	{
 		internal FolderRenamedEventArgs (string oldName, string newName)
@@ -41,6 +44,9 @@ namespace MailKit {
 		/// <summary>
 		/// The old name of the folder.
 		/// </summary>
+		/// <remarks>
+		/// The old name of the folder.
+		/// </remarks>
 		/// <value>The old name.</value>
 		public string OldName {
 			get; private set;
@@ -49,6 +55,9 @@ namespace MailKit {
 		/// <summary>
 		/// The new name of the folder.
 		/// </summary>
+		/// <remarks>
+		/// The new name of the folder.
+		/// </remarks>
 		/// <value>The new name.</value>
 		public string NewName {
 			get; private set;

@@ -3,7 +3,7 @@
   <TypeSignature Language="ILAsm" Value=".class public auto ansi sealed beforefieldinit TextSearchQuery extends MailKit.Search.SearchQuery" />
   <AssemblyInfo>
     <AssemblyName>MailKit</AssemblyName>
-    <AssemblyVersion>0.11.0.0</AssemblyVersion>
+    <AssemblyVersion>0.92.0.0</AssemblyVersion>
   </AssemblyInfo>
   <Base>
     <BaseTypeName>MailKit.Search.SearchQuery</BaseTypeName>
@@ -13,7 +13,9 @@
     <summary>
             A text-based search query.
             </summary>
-    <remarks>To be added.</remarks>
+    <remarks>
+            A text-based search query.
+            </remarks>
   </Docs>
   <Members>
     <Member MemberName="Text">
@@ -21,7 +23,7 @@
       <MemberSignature Language="ILAsm" Value=".property instance string Text" />
       <MemberType>Property</MemberType>
       <AssemblyInfo>
-        <AssemblyVersion>0.11.0.0</AssemblyVersion>
+        <AssemblyVersion>0.92.0.0</AssemblyVersion>
       </AssemblyInfo>
       <ReturnValue>
         <ReturnType>System.String</ReturnType>
@@ -31,7 +33,9 @@
             Gets the text to match against.
             </summary>
         <value>The text.</value>
-        <remarks>To be added.</remarks>
+        <remarks>
+            Gets the text to match against.
+            </remarks>
       </Docs>
     </Member>
   </Members>

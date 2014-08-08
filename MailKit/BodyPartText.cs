@@ -24,7 +24,7 @@
 // THE SOFTWARE.
 //
 
-using System;
+using System.Text;
 
 namespace MailKit {
 	/// <summary>
@@ -35,16 +35,40 @@ namespace MailKit {
 	/// </remarks>
 	public class BodyPartText : BodyPartBasic
 	{
-		internal BodyPartText ()
+		/// <summary>
+		/// Initializes a new instance of the <see cref="MailKit.BodyPartText"/> class.
+		/// </summary>
+		/// <remarks>
+		/// Creates a new <see cref="BodyPartText"/>.
+		/// </remarks>
+		public BodyPartText ()
 		{
 		}
 
 		/// <summary>
-		/// The length of the text, in lines.
+		/// Gets the length of the text, in lines.
 		/// </summary>
+		/// <remarks>
+		/// Gets the length of the text, in lines.
+		/// </remarks>
 		/// <value>The number of lines.</value>
 		public uint Lines {
-			get; internal set;
+			get; set;
+		}
+
+		/// <summary>
+		/// Encodes the <see cref="BodyPart"/> into the <see cref="System.Text.StringBuilder"/>.
+		/// </summary>
+		/// <remarks>
+		/// Encodes the <see cref="BodyPart"/> into the <see cref="System.Text.StringBuilder"/>.
+		/// </remarks>
+		/// <param name="builder">The string builder.</param>
+		protected override void Encode (StringBuilder builder)
+		{
+			base.Encode (builder);
+
+			builder.Append (' ');
+			Encode (builder, Lines);
 		}
 	}
 }

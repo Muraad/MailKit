@@ -31,6 +31,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Collections.Generic;
+using System.Security.Cryptography;
 
 using NUnit.Framework;
 
@@ -49,12 +50,13 @@ namespace UnitTests.Net.Imap {
 			ImapCapabilities.Namespace | ImapCapabilities.Unselect;
 		static readonly ImapCapabilities GMailInitialCapabilities = ImapCapabilities.IMAP4rev1 | ImapCapabilities.Status |
 			ImapCapabilities.Unselect | ImapCapabilities.Idle | ImapCapabilities.Namespace | ImapCapabilities.Quota |
-			ImapCapabilities.XList | ImapCapabilities.Children | ImapCapabilities.GMailExt1 | ImapCapabilities.SaslIR;
+			ImapCapabilities.XList | ImapCapabilities.Children | ImapCapabilities.GMailExt1 | ImapCapabilities.SaslIR |
+			ImapCapabilities.Id;
 		static readonly ImapCapabilities GMailAuthenticatedCapabilities = ImapCapabilities.IMAP4rev1 | ImapCapabilities.Status |
 			ImapCapabilities.Unselect | ImapCapabilities.Idle | ImapCapabilities.Namespace | ImapCapabilities.Quota |
 			ImapCapabilities.XList | ImapCapabilities.Children | ImapCapabilities.GMailExt1 | ImapCapabilities.UidPlus |
 			ImapCapabilities.Compress | ImapCapabilities.Enable | ImapCapabilities.Move | ImapCapabilities.CondStore |
-			ImapCapabilities.ESearch;
+			ImapCapabilities.ESearch | ImapCapabilities.Id;
 
 		static FolderAttributes GetSpecialFolderAttribute (SpecialFolder special)
 		{
@@ -73,6 +75,16 @@ namespace UnitTests.Net.Imap {
 		Stream GetResourceStream (string name)
 		{
 			return GetType ().Assembly.GetManifestResourceStream ("UnitTests.Net.Imap.Resources." + name);
+		}
+
+		static string HexEncode (byte[] digest)
+		{
+			var hex = new StringBuilder ();
+
+			for (int i = 0; i < digest.Length; i++)
+				hex.Append (digest[i].ToString ("x2"));
+
+			return hex.ToString ();
 		}
 
 		[Test]
@@ -232,7 +244,10 @@ namespace UnitTests.Net.Imap {
 				var summaries = created.Fetch (matches, items, CancellationToken.None);
 
 				foreach (var summary in summaries) {
-					var message = created.GetMessage (summary.UniqueId, CancellationToken.None);
+					if (summary.UniqueId.HasValue)
+						created.GetMessage (summary.UniqueId.Value, CancellationToken.None);
+					else
+						created.GetMessage (summary.Index, CancellationToken.None);
 				}
 
 				created.SetFlags (matches, MessageFlags.Seen | MessageFlags.Answered, false, CancellationToken.None);
@@ -316,15 +331,16 @@ namespace UnitTests.Net.Imap {
 
 				var message = client.Inbox.GetMessage (269, CancellationToken.None);
 
-				foreach (var attachment in message.Attachments) {
-					using (var stream = File.Create ("attachment.txt")) {
-						var options = FormatOptions.Default.Clone ();
-						options.NewLineFormat = NewLineFormat.Dos;
-						attachment.WriteTo (options, stream);
-					}
-					using (var stream = File.Create (attachment.FileName)) {
-						attachment.ContentObject.DecodeTo (stream);
-						stream.Close ();
+				using (var jpeg = new MemoryStream ()) {
+					var attachment = message.Attachments.FirstOrDefault ();
+
+					attachment.ContentObject.DecodeTo (jpeg);
+					jpeg.Position = 0;
+
+					using (var md5 = new MD5CryptoServiceProvider ()) {
+						var md5sum = HexEncode (md5.ComputeHash (jpeg));
+
+						Assert.AreEqual ("167a46aa81e881da2ea8a840727384d3", md5sum, "MD5 checksums do not match.");
 					}
 				}
 

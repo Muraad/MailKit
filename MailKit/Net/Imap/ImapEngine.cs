@@ -35,6 +35,8 @@ using System.Collections.Generic;
 using Encoding = Portable.Text.Encoding;
 #endif
 
+using MimeKit;
+
 namespace MailKit.Net.Imap {
 	/// <summary>
 	/// The state of the <see cref="ImapEngine"/>.
@@ -73,8 +75,8 @@ namespace MailKit.Net.Imap {
 
 	enum ImapProtocolVersion {
 		Unknown,
-		Imap4,
-		Imap4rev1
+		IMAP4,
+		IMAP4rev1
 	}
 
 	enum ImapUntaggedResult {
@@ -96,7 +98,7 @@ namespace MailKit.Net.Imap {
 		readonly List<ImapCommand> queue;
 		internal char TagPrefix;
 		ImapCommand current;
-		ImapStream stream;
+		MimeParser parser;
 		internal int Tag;
 		bool disposed;
 		int nextId;
@@ -171,9 +173,23 @@ namespace MailKit.Net.Imap {
 		/// <summary>
 		/// Indicates whether or not the engine is connected to a GMail server (used for various workarounds).
 		/// </summary>
+		/// <remarks>
+		/// Indicates whether or not the engine is connected to a GMail server (used for various workarounds).
+		/// </remarks>
 		/// <value><c>true</c> if the engine is connected to a GMail server; otherwise, <c>false</c>.</value>
 		internal bool IsGMail {
 			get { return (Capabilities & ImapCapabilities.GMailExt1) != 0; }
+		}
+
+		/// <summary>
+		/// Indicates whether or not the engine is processing commands.
+		/// </summary>
+		/// <remarks>
+		/// Indicates whether or not the engine is processing commands.
+		/// </remarks>
+		/// <value><c>true</c> if th e engine is processing commands; otherwise, <c>false</c>.</value>
+		internal bool IsProcessingCommands {
+			get { return current != null; }
 		}
 
 		/// <summary>
@@ -191,6 +207,9 @@ namespace MailKit.Net.Imap {
 		/// <summary>
 		/// Gets the IMAP protocol version.
 		/// </summary>
+		/// <remarks>
+		/// Gets the IMAP protocol version.
+		/// </remarks>
 		/// <value>The IMAP protocol version.</value>
 		public ImapProtocolVersion ProtocolVersion {
 			get; private set;
@@ -199,6 +218,9 @@ namespace MailKit.Net.Imap {
 		/// <summary>
 		/// Gets the supported charsets.
 		/// </summary>
+		/// <remarks>
+		/// Gets the supported charsets.
+		/// </remarks>
 		/// <value>The supported charsets.</value>
 		public HashSet<string> SupportedCharsets {
 			get; private set;
@@ -207,6 +229,9 @@ namespace MailKit.Net.Imap {
 		/// <summary>
 		/// Gets the supported contexts.
 		/// </summary>
+		/// <remarks>
+		/// Gets the supported contexts.
+		/// </remarks>
 		/// <value>The supported contexts.</value>
 		public HashSet<string> SupportedContexts {
 			get; private set;
@@ -215,22 +240,53 @@ namespace MailKit.Net.Imap {
 		/// <summary>
 		/// Gets whether or not the QRESYNC feature has been enabled.
 		/// </summary>
+		/// <remarks>
+		/// Gets whether or not the QRESYNC feature has been enabled.
+		/// </remarks>
 		/// <value><c>true</c> if the QRESYNC feature has been enabled; otherwise, <c>false</c>.</value>
 		public bool QResyncEnabled {
 			get; internal set;
 		}
 
 		/// <summary>
+		/// Gets whether or not the UTF8=ACCEPT feature has been enabled.
+		/// </summary>
+		/// <remarks>
+		/// Gets whether or not the UTF8=ACCEPT feature has been enabled.
+		/// </remarks>
+		/// <value><c>true</c> if the UTF8=ACCEPT feature has been enabled; otherwise, <c>false</c>.</value>
+		public bool UTF8Enabled {
+			get; internal set;
+		}
+
+		/// <summary>
+		/// Gets the URI of the IMAP server.
+		/// </summary>
+		/// <remarks>
+		/// Gets the URI of the IMAP server.
+		/// </remarks>
+		/// <value>The URI of the IMAP server.</value>
+		public Uri Uri {
+			get; private set;
+		}
+
+		/// <summary>
 		/// Gets the underlying IMAP stream.
 		/// </summary>
+		/// <remarks>
+		/// Gets the underlying IMAP stream.
+		/// </remarks>
 		/// <value>The IMAP stream.</value>
 		public ImapStream Stream {
-			get { return stream; }
+			get; private set;
 		}
 
 		/// <summary>
 		/// Gets or sets the state of the engine.
 		/// </summary>
+		/// <remarks>
+		/// Gets or sets the state of the engine.
+		/// </remarks>
 		/// <value>The engine state.</value>
 		public ImapEngineState State {
 			get; internal set;
@@ -239,14 +295,20 @@ namespace MailKit.Net.Imap {
 		/// <summary>
 		/// Gets whether or not the engine is currently connected to a IMAP server.
 		/// </summary>
+		/// <remarks>
+		/// Gets whether or not the engine is currently connected to a IMAP server.
+		/// </remarks>
 		/// <value><c>true</c> if the engine is connected; otherwise, <c>false</c>.</value>
 		public bool IsConnected {
-			get { return stream != null && stream.IsConnected; }
+			get { return Stream != null && Stream.IsConnected; }
 		}
 
 		/// <summary>
 		/// Gets the personal folder namespaces.
 		/// </summary>
+		/// <remarks>
+		/// Gets the personal folder namespaces.
+		/// </remarks>
 		/// <value>The personal folder namespaces.</value>
 		public FolderNamespaceCollection PersonalNamespaces {
 			get; private set;
@@ -255,6 +317,9 @@ namespace MailKit.Net.Imap {
 		/// <summary>
 		/// Gets the shared folder namespaces.
 		/// </summary>
+		/// <remarks>
+		/// Gets the shared folder namespaces.
+		/// </remarks>
 		/// <value>The shared folder namespaces.</value>
 		public FolderNamespaceCollection SharedNamespaces {
 			get; private set;
@@ -263,6 +328,9 @@ namespace MailKit.Net.Imap {
 		/// <summary>
 		/// Gets the other folder namespaces.
 		/// </summary>
+		/// <remarks>
+		/// Gets the other folder namespaces.
+		/// </remarks>
 		/// <value>The other folder namespaces.</value>
 		public FolderNamespaceCollection OtherNamespaces {
 			get; private set;
@@ -271,6 +339,9 @@ namespace MailKit.Net.Imap {
 		/// <summary>
 		/// Gets the selected folder.
 		/// </summary>
+		/// <remarks>
+		/// Gets the selected folder.
+		/// </remarks>
 		/// <value>The selected folder.</value>
 		public ImapFolder Selected {
 			get; internal set;
@@ -279,6 +350,9 @@ namespace MailKit.Net.Imap {
 		/// <summary>
 		/// Gets a value indicating whether the engine is disposed.
 		/// </summary>
+		/// <remarks>
+		/// Gets a value indicating whether the engine is disposed.
+		/// </remarks>
 		/// <value><c>true</c> if the engine is disposed; otherwise, <c>false</c>.</value>
 		public bool IsDisposed {
 			get { return disposed; }
@@ -367,17 +441,18 @@ namespace MailKit.Net.Imap {
 		/// <summary>
 		/// Sets the stream - this is only here to be used by the unit tests.
 		/// </summary>
-		/// <param name="imap">The IMAP stream.</param>
-		internal void SetStream (ImapStream imap)
+		/// <param name="stream">The IMAP stream.</param>
+		internal void SetStream (ImapStream stream)
 		{
-			stream = imap;
+			Stream = stream;
 		}
 
 		/// <summary>
 		/// Takes posession of the <see cref="ImapStream"/> and reads the greeting.
 		/// </summary>
-		/// <param name="imap">The IMAP stream.</param>
-		/// <param name="cancellationToken">A cancellation token</param>
+		/// <param name="uri">The URI of the IMAP server.</param>
+		/// <param name="stream">The IMAP stream.</param>
+		/// <param name="cancellationToken">The cancellation token</param>
 		/// <exception cref="System.OperationCanceledException">
 		/// The operation was canceled via the cancellation token.
 		/// </exception>
@@ -387,10 +462,10 @@ namespace MailKit.Net.Imap {
 		/// <exception cref="ImapProtocolException">
 		/// An IMAP protocol error occurred.
 		/// </exception>
-		public void Connect (ImapStream imap, CancellationToken cancellationToken)
+		public void Connect (Uri uri, ImapStream stream, CancellationToken cancellationToken)
 		{
-			if (stream != null)
-				stream.Dispose ();
+			if (Stream != null)
+				Stream.Dispose ();
 
 			TagPrefix = (char) ('A' + (TagPrefixIndex++ % 26));
 			ProtocolVersion = ImapProtocolVersion.Unknown;
@@ -401,13 +476,16 @@ namespace MailKit.Net.Imap {
 			SupportedCharsets.Clear ();
 			SupportedContexts.Clear ();
 
-			// TODO: should we clear the folder cache?
+			if (Uri != uri)
+				FolderCache.Clear ();
 
 			State = ImapEngineState.Connected;
 			SupportedCharsets.Add ("UTF-8");
 			CapabilitiesVersion = 0;
 			QResyncEnabled = false;
-			stream = imap;
+			UTF8Enabled = false;
+			Stream = stream;
+			Uri = uri;
 			Tag = 0;
 
 			try {
@@ -450,15 +528,23 @@ namespace MailKit.Net.Imap {
 		}
 
 		/// <summary>
-		/// Disconnects the <see cref="ImapStream"/>.
+		/// Disconnects the <see cref="ImapEngine"/>.
 		/// </summary>
+		/// <remarks>
+		/// Disconnects the <see cref="ImapEngine"/>.
+		/// </remarks>
 		public void Disconnect ()
 		{
-			State = ImapEngineState.Disconnected;
+			current = null;
 
-			if (stream != null) {
-				stream.Dispose ();
-				stream = null;
+			if (Stream != null) {
+				Stream.Dispose ();
+				Stream = null;
+			}
+
+			if (State != ImapEngineState.Disconnected) {
+				State = ImapEngineState.Disconnected;
+				OnDisconnected ();
 			}
 		}
 
@@ -466,7 +552,7 @@ namespace MailKit.Net.Imap {
 		/// Reads a single line from the <see cref="ImapStream"/>.
 		/// </summary>
 		/// <returns>The line.</returns>
-		/// <param name="cancellationToken">A cancellation token.</param>
+		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <exception cref="System.InvalidOperationException">
 		/// The engine is not connected.
 		/// </exception>
@@ -481,19 +567,15 @@ namespace MailKit.Net.Imap {
 		/// </exception>
 		public string ReadLine (CancellationToken cancellationToken)
 		{
-			if (stream == null)
+			if (Stream == null)
 				throw new InvalidOperationException ();
-
-			cancellationToken.ThrowIfCancellationRequested ();
 
 			using (var memory = new MemoryStream ()) {
 				int offset, count;
 				byte[] buf;
 
-				while (!stream.ReadLine (out buf, out offset, out count)) {
-					cancellationToken.ThrowIfCancellationRequested ();
+				while (!Stream.ReadLine (out buf, out offset, out count, cancellationToken))
 					memory.Write (buf, offset, count);
-				}
 
 				memory.Write (buf, offset, count);
 
@@ -516,6 +598,29 @@ namespace MailKit.Net.Imap {
 		/// Reads the next token.
 		/// </summary>
 		/// <returns>The token.</returns>
+		/// <param name="specials">A list of characters that are not legal in bare string tokens.</param>
+		/// <param name="cancellationToken">The cancellation token.</param>
+		/// <exception cref="System.InvalidOperationException">
+		/// The engine is not connected.
+		/// </exception>
+		/// <exception cref="System.OperationCanceledException">
+		/// The operation was canceled via the cancellation token.
+		/// </exception>
+		/// <exception cref="System.IO.IOException">
+		/// An I/O error occurred.
+		/// </exception>
+		/// <exception cref="ImapProtocolException">
+		/// An IMAP protocol error occurred.
+		/// </exception>
+		public ImapToken ReadToken (string specials, CancellationToken cancellationToken)
+		{
+			return Stream.ReadToken (specials, cancellationToken);
+		}
+
+		/// <summary>
+		/// Reads the next token.
+		/// </summary>
+		/// <returns>The token.</returns>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <exception cref="System.InvalidOperationException">
 		/// The engine is not connected.
@@ -531,7 +636,34 @@ namespace MailKit.Net.Imap {
 		/// </exception>
 		public ImapToken ReadToken (CancellationToken cancellationToken)
 		{
-			return stream.ReadToken (cancellationToken);
+			return Stream.ReadToken (cancellationToken);
+		}
+
+		/// <summary>
+		/// Peeks at the next token.
+		/// </summary>
+		/// <returns>The next token.</returns>
+		/// <param name="specials">A list of characters that are not legal in bare string tokens.</param>
+		/// <param name="cancellationToken">The cancellation token.</param>
+		/// <exception cref="System.InvalidOperationException">
+		/// The engine is not connected.
+		/// </exception>
+		/// <exception cref="System.OperationCanceledException">
+		/// The operation was canceled via the cancellation token.
+		/// </exception>
+		/// <exception cref="System.IO.IOException">
+		/// An I/O error occurred.
+		/// </exception>
+		/// <exception cref="ImapProtocolException">
+		/// An IMAP protocol error occurred.
+		/// </exception>
+		public ImapToken PeekToken (string specials, CancellationToken cancellationToken)
+		{
+			var token = Stream.ReadToken (specials, cancellationToken);
+
+			Stream.UngetToken (token);
+
+			return token;
 		}
 
 		/// <summary>
@@ -553,9 +685,9 @@ namespace MailKit.Net.Imap {
 		/// </exception>
 		public ImapToken PeekToken (CancellationToken cancellationToken)
 		{
-			var token = stream.ReadToken (cancellationToken);
+			var token = Stream.ReadToken (cancellationToken);
 
-			stream.UngetToken (token);
+			Stream.UngetToken (token);
 
 			return token;
 		}
@@ -576,19 +708,15 @@ namespace MailKit.Net.Imap {
 		/// </exception>
 		public string ReadLiteral (CancellationToken cancellationToken)
 		{
-			if (stream.Mode != ImapStreamMode.Literal)
+			if (Stream.Mode != ImapStreamMode.Literal)
 				throw new InvalidOperationException ();
 
-			cancellationToken.ThrowIfCancellationRequested ();
-
-			using (var memory = new MemoryStream (stream.LiteralLength)) {
+			using (var memory = new MemoryStream (Stream.LiteralLength)) {
 				var buf = new byte[4096];
 				int nread;
 
-				while ((nread = stream.Read (buf, 0, buf.Length)) > 0) {
-					cancellationToken.ThrowIfCancellationRequested ();
+				while ((nread = Stream.Read (buf, 0, buf.Length, cancellationToken)) > 0)
 					memory.Write (buf, 0, nread);
-				}
 
 				nread = (int) memory.Length;
 #if !NETFX_CORE
@@ -606,15 +734,14 @@ namespace MailKit.Net.Imap {
 			ImapToken token;
 
 			do {
-				token = stream.ReadToken (cancellationToken);
+				token = Stream.ReadToken (cancellationToken);
 
 				if (token.Type == ImapTokenType.Literal) {
 					var buf = new byte[4096];
 					int nread;
 
 					do {
-						cancellationToken.ThrowIfCancellationRequested ();
-						nread = stream.Read (buf, 0, buf.Length);
+						nread = Stream.Read (buf, 0, buf.Length, cancellationToken);
 					} while (nread > 0);
 				}
 			} while (token.Type != ImapTokenType.Eoln);
@@ -630,7 +757,7 @@ namespace MailKit.Net.Imap {
 			SupportedContexts.Clear ();
 			CapabilitiesVersion++;
 
-			var token = stream.ReadToken (cancellationToken);
+			var token = Stream.ReadToken (cancellationToken);
 
 			while (token.Type == ImapTokenType.Atom) {
 				var atom = (string) token.Value;
@@ -657,43 +784,52 @@ namespace MailKit.Net.Imap {
 					Capabilities |= ImapCapabilities.Thread;
 				} else {
 					switch (atom.ToUpperInvariant ()) {
-					case "IMAP4":         Capabilities |= ImapCapabilities.IMAP4; break;
-					case "IMAP4REV1":     Capabilities |= ImapCapabilities.IMAP4rev1; break;
-					case "STATUS":        Capabilities |= ImapCapabilities.Status; break;
-					case "QUOTA":         Capabilities |= ImapCapabilities.Quota; break;
-					case "LITERAL+":      Capabilities |= ImapCapabilities.LiteralPlus; break;
-					case "IDLE":          Capabilities |= ImapCapabilities.Idle; break;
-					case "NAMESPACE":     Capabilities |= ImapCapabilities.Namespace; break;
-					case "CHILDREN":      Capabilities |= ImapCapabilities.Children; break;
-					case "LOGINDISABLED": Capabilities |= ImapCapabilities.LoginDisabled; break;
-					case "STARTTLS":      Capabilities |= ImapCapabilities.StartTLS; break;
-					case "MULTIAPPEND":   Capabilities |= ImapCapabilities.MultiAppend; break;
-					case "BINARY":        Capabilities |= ImapCapabilities.Binary; break;
-					case "UNSELECT":      Capabilities |= ImapCapabilities.Unselect; break;
-					case "UIDPLUS":       Capabilities |= ImapCapabilities.UidPlus; break;
-					case "CATENATE":      Capabilities |= ImapCapabilities.Catenate; break;
-					case "CONDSTORE":     Capabilities |= ImapCapabilities.CondStore; break;
-					case "ESEARCH":       Capabilities |= ImapCapabilities.ESearch; break;
-					case "SASL-IR":       Capabilities |= ImapCapabilities.SaslIR; break;
-					case "WITHIN":        Capabilities |= ImapCapabilities.Within; break;
-					case "ENABLE":        Capabilities |= ImapCapabilities.Enable; break;
-					case "QRESYNC":       Capabilities |= ImapCapabilities.QuickResync; break;
-					case "SORT":          Capabilities |= ImapCapabilities.Sort; break;
-					case "LIST-EXTENDED": Capabilities |= ImapCapabilities.ListExtended; break;
-					case "CONVERT":       Capabilities |= ImapCapabilities.Convert; break;
-					case "ESORT":         Capabilities |= ImapCapabilities.ESort; break;
-					case "METADATA":      Capabilities |= ImapCapabilities.Metadata; break;
-					case "NOTIFY":        Capabilities |= ImapCapabilities.Notify; break;
-					case "LIST-STATUS":   Capabilities |= ImapCapabilities.ListStatus; break;
-					case "SPECIAL-USE":   Capabilities |= ImapCapabilities.SpecialUse; break;
-					case "MULTISEARCH":   Capabilities |= ImapCapabilities.MultiSearch; break;
-					case "MOVE":          Capabilities |= ImapCapabilities.Move; break;
-					case "XLIST":         Capabilities |= ImapCapabilities.XList; break;
-					case "X-GM-EXT-1":    Capabilities |= ImapCapabilities.GMailExt1; break;
+					case "IMAP4":              Capabilities |= ImapCapabilities.IMAP4; break;
+					case "IMAP4REV1":          Capabilities |= ImapCapabilities.IMAP4rev1; break;
+					case "STATUS":             Capabilities |= ImapCapabilities.Status; break;
+					case "ACL":                Capabilities |= ImapCapabilities.Acl; break;
+					case "QUOTA":              Capabilities |= ImapCapabilities.Quota; break;
+					case "LITERAL+":           Capabilities |= ImapCapabilities.LiteralPlus; break;
+					case "IDLE":               Capabilities |= ImapCapabilities.Idle; break;
+					case "MAILBOX-REFERRALS":  Capabilities |= ImapCapabilities.MailboxReferrals; break;
+					case "LOGIN-REFERRALS":    Capabilities |= ImapCapabilities.LoginReferrals; break;
+					case "NAMESPACE":          Capabilities |= ImapCapabilities.Namespace; break;
+					case "ID":                 Capabilities |= ImapCapabilities.Id; break;
+					case "CHILDREN":           Capabilities |= ImapCapabilities.Children; break;
+					case "LOGINDISABLED":      Capabilities |= ImapCapabilities.LoginDisabled; break;
+					case "STARTTLS":           Capabilities |= ImapCapabilities.StartTLS; break;
+					case "MULTIAPPEND":        Capabilities |= ImapCapabilities.MultiAppend; break;
+					case "BINARY":             Capabilities |= ImapCapabilities.Binary; break;
+					case "UNSELECT":           Capabilities |= ImapCapabilities.Unselect; break;
+					case "UIDPLUS":            Capabilities |= ImapCapabilities.UidPlus; break;
+					case "CATENATE":           Capabilities |= ImapCapabilities.Catenate; break;
+					case "CONDSTORE":          Capabilities |= ImapCapabilities.CondStore; break;
+					case "ESEARCH":            Capabilities |= ImapCapabilities.ESearch; break;
+					case "SASL-IR":            Capabilities |= ImapCapabilities.SaslIR; break;
+					case "WITHIN":             Capabilities |= ImapCapabilities.Within; break;
+					case "ENABLE":             Capabilities |= ImapCapabilities.Enable; break;
+					case "QRESYNC":            Capabilities |= ImapCapabilities.QuickResync; break;
+					case "SEARCHRES":          Capabilities |= ImapCapabilities.SearchResults; break;
+					case "SORT":               Capabilities |= ImapCapabilities.Sort; break;
+					case "LIST-EXTENDED":      Capabilities |= ImapCapabilities.ListExtended; break;
+					case "CONVERT":            Capabilities |= ImapCapabilities.Convert; break;
+					case "ESORT":              Capabilities |= ImapCapabilities.ESort; break;
+					case "METADATA":           Capabilities |= ImapCapabilities.Metadata; break;
+					case "NOTIFY":             Capabilities |= ImapCapabilities.Notify; break;
+					case "LIST-STATUS":        Capabilities |= ImapCapabilities.ListStatus; break;
+					case "CREATE-SPECIAL-USE": Capabilities |= ImapCapabilities.CreateSpecialUse; break;
+					case "SPECIAL-USE":        Capabilities |= ImapCapabilities.SpecialUse; break;
+					case "SEARCH=FUZZY":       Capabilities |= ImapCapabilities.FuzzySearch; break;
+					case "MULTISEARCH":        Capabilities |= ImapCapabilities.MultiSearch; break;
+					case "MOVE":               Capabilities |= ImapCapabilities.Move; break;
+					case "UTF8=ACCEPT":        Capabilities |= ImapCapabilities.UTF8Accept; break;
+					case "UTF8=ONLY":          Capabilities |= ImapCapabilities.UTF8Only; break;
+					case "XLIST":              Capabilities |= ImapCapabilities.XList; break;
+					case "X-GM-EXT-1":         Capabilities |= ImapCapabilities.GMailExt1; break;
 					}
 				}
 
-				token = stream.ReadToken (cancellationToken);
+				token = Stream.ReadToken (cancellationToken);
 			}
 
 			if (token.Type != sentinel) {
@@ -702,17 +838,20 @@ namespace MailKit.Net.Imap {
 			}
 
 			// unget the sentinel
-			stream.UngetToken (token);
+			Stream.UngetToken (token);
 
 			if ((Capabilities & ImapCapabilities.IMAP4rev1) != 0) {
-				ProtocolVersion = ImapProtocolVersion.Imap4rev1;
+				ProtocolVersion = ImapProtocolVersion.IMAP4rev1;
 				Capabilities |= ImapCapabilities.Status;
 			} else if ((Capabilities & ImapCapabilities.IMAP4) != 0) {
-				ProtocolVersion = ImapProtocolVersion.Imap4;
+				ProtocolVersion = ImapProtocolVersion.IMAP4;
 			}
 
 			if ((Capabilities & ImapCapabilities.QuickResync) != 0)
 				Capabilities |= ImapCapabilities.CondStore;
+
+			if ((Capabilities & ImapCapabilities.UTF8Only) != 0)
+				Capabilities |= ImapCapabilities.UTF8Accept;
 		}
 
 		void UpdateNamespaces (CancellationToken cancellationToken)
@@ -730,16 +869,16 @@ namespace MailKit.Net.Imap {
 			SharedNamespaces.Clear ();
 			OtherNamespaces.Clear ();
 
-			token = stream.ReadToken (cancellationToken);
+			token = Stream.ReadToken (cancellationToken);
 
 			do {
 				if (token.Type == ImapTokenType.OpenParen) {
 					// parse the list of namespace pairs...
-					token = stream.ReadToken (cancellationToken);
+					token = Stream.ReadToken (cancellationToken);
 
 					while (token.Type == ImapTokenType.OpenParen) {
 						// parse the namespace pair - first token is the path
-						token = stream.ReadToken (cancellationToken);
+						token = Stream.ReadToken (cancellationToken);
 
 						if (token.Type != ImapTokenType.QString && token.Type != ImapTokenType.Atom) {
 							Debug.WriteLine ("Expected string token as first element in namespace pair, but got: {0}", token);
@@ -749,7 +888,7 @@ namespace MailKit.Net.Imap {
 						path = (string) token.Value;
 
 						// second token is the directory separator
-						token = stream.ReadToken (cancellationToken);
+						token = Stream.ReadToken (cancellationToken);
 
 						if (token.Type != ImapTokenType.QString && token.Type != ImapTokenType.Nil) {
 							Debug.WriteLine ("Expected string or nil token as second element in namespace pair, but got: {0}", token);
@@ -767,16 +906,16 @@ namespace MailKit.Net.Imap {
 							delim = '\0';
 						}
 
-						namespaces[n].Add (new FolderNamespace (delim, ImapEncoding.Decode (path)));
+						namespaces[n].Add (new FolderNamespace (delim, DecodeMailboxName (path)));
 						if (!FolderCache.TryGetValue (path, out folder)) {
 							folder = new ImapFolder (this, path, FolderAttributes.None, delim);
 							FolderCache.Add (path, folder);
 						}
 
-						folder.IsNamespace = true;
+						folder.UpdateIsNamespace (true);
 
 						do {
-							token = stream.ReadToken (cancellationToken);
+							token = Stream.ReadToken (cancellationToken);
 
 							if (token.Type == ImapTokenType.CloseParen)
 								break;
@@ -786,13 +925,13 @@ namespace MailKit.Net.Imap {
 							if (token.Type != ImapTokenType.QString && token.Type != ImapTokenType.Atom)
 								throw UnexpectedToken (token, false);
 
-							token = stream.ReadToken (cancellationToken);
+							token = Stream.ReadToken (cancellationToken);
 
 							if (token.Type != ImapTokenType.OpenParen)
 								throw UnexpectedToken (token, false);
 
 							do {
-								token = stream.ReadToken (cancellationToken);
+								token = Stream.ReadToken (cancellationToken);
 
 								if (token.Type == ImapTokenType.CloseParen)
 									break;
@@ -803,7 +942,7 @@ namespace MailKit.Net.Imap {
 						} while (true);
 
 						// read the next token - it should either be '(' or ')'
-						token = stream.ReadToken (cancellationToken);
+						token = Stream.ReadToken (cancellationToken);
 					}
 
 					if (token.Type != ImapTokenType.CloseParen) {
@@ -815,12 +954,12 @@ namespace MailKit.Net.Imap {
 					throw UnexpectedToken (token, false);
 				}
 
-				token = stream.ReadToken (cancellationToken);
+				token = Stream.ReadToken (cancellationToken);
 				n++;
 			} while (n < 3);
 
 			while (token.Type != ImapTokenType.Eoln)
-				token = stream.ReadToken (cancellationToken);
+				token = Stream.ReadToken (cancellationToken);
 		}
 
 		void ProcessResponseCodes (ImapCommand ic)
@@ -836,27 +975,44 @@ namespace MailKit.Net.Imap {
 		static ImapResponseCodeType GetResponseCodeType (string atom)
 		{
 			switch (atom) {
-			case "ALERT":             return ImapResponseCodeType.Alert;
-			case "BADCHARSET":        return ImapResponseCodeType.BadCharset;
-			case "CAPABILITY":        return ImapResponseCodeType.Capability;
-			case "PARSE":             return ImapResponseCodeType.Parse;
-			case "PERMANENTFLAGS":    return ImapResponseCodeType.PermanentFlags;
-			case "READ-ONLY":         return ImapResponseCodeType.ReadOnly;
-			case "READ-WRITE":        return ImapResponseCodeType.ReadWrite;
-			case "TRYCREATE":         return ImapResponseCodeType.TryCreate;
-			case "UIDNEXT":           return ImapResponseCodeType.UidNext;
-			case "UIDVALIDITY":       return ImapResponseCodeType.UidValidity;
-			case "UNSEEN":            return ImapResponseCodeType.Unseen;
-			case "NEWNAME":           return ImapResponseCodeType.NewName;
-			case "APPENDUID":         return ImapResponseCodeType.AppendUid;
-			case "COPYUID":           return ImapResponseCodeType.CopyUid;
-			case "UIDNOTSTICKY":      return ImapResponseCodeType.UidNotSticky;
-			case "HIGHESTMODSEQ":     return ImapResponseCodeType.HighestModSeq;
-			case "MODIFIED":          return ImapResponseCodeType.Modified;
-			case "NOMODSEQ":          return ImapResponseCodeType.NoModSeq;
-			case "COMPRESSIONACTIVE": return ImapResponseCodeType.CompressionActive;
-			case "CLOSED":            return ImapResponseCodeType.Closed;
-			default:                  return ImapResponseCodeType.Unknown;
+			case "ALERT":                return ImapResponseCodeType.Alert;
+			case "BADCHARSET":           return ImapResponseCodeType.BadCharset;
+			case "CAPABILITY":           return ImapResponseCodeType.Capability;
+			case "PARSE":                return ImapResponseCodeType.Parse;
+			case "PERMANENTFLAGS":       return ImapResponseCodeType.PermanentFlags;
+			case "READ-ONLY":            return ImapResponseCodeType.ReadOnly;
+			case "READ-WRITE":           return ImapResponseCodeType.ReadWrite;
+			case "TRYCREATE":            return ImapResponseCodeType.TryCreate;
+			case "UIDNEXT":              return ImapResponseCodeType.UidNext;
+			case "UIDVALIDITY":          return ImapResponseCodeType.UidValidity;
+			case "UNSEEN":               return ImapResponseCodeType.Unseen;
+			case "NEWNAME":              return ImapResponseCodeType.NewName;
+			case "APPENDUID":            return ImapResponseCodeType.AppendUid;
+			case "COPYUID":              return ImapResponseCodeType.CopyUid;
+			case "UIDNOTSTICKY":         return ImapResponseCodeType.UidNotSticky;
+			case "HIGHESTMODSEQ":        return ImapResponseCodeType.HighestModSeq;
+			case "MODIFIED":             return ImapResponseCodeType.Modified;
+			case "NOMODSEQ":             return ImapResponseCodeType.NoModSeq;
+			case "COMPRESSIONACTIVE":    return ImapResponseCodeType.CompressionActive;
+			case "CLOSED":               return ImapResponseCodeType.Closed;
+			case "UNAVAILABLE":          return ImapResponseCodeType.Unavailable;
+			case "AUTHENTICATIONFAILED": return ImapResponseCodeType.AuthenticationFailed;
+			case "AUTHORIZATIONFAILED":  return ImapResponseCodeType.AuthorizationFailed;
+			case "EXPIRED":              return ImapResponseCodeType.Expired;
+			case "PRIVACYREQUIRED":      return ImapResponseCodeType.PrivacyRequired;
+			case "CONTACTADMIN":         return ImapResponseCodeType.ContactAdmin;
+			case "NOPERM":               return ImapResponseCodeType.NoPerm;
+			case "INUSE":                return ImapResponseCodeType.InUse;
+			case "EXPUNGEISSUED":        return ImapResponseCodeType.ExpungeIssued;
+			case "CORRUPTION":           return ImapResponseCodeType.Corruption;
+			case "SERVERBUG":            return ImapResponseCodeType.ServerBug;
+			case "CLIENTBUG":            return ImapResponseCodeType.ClientBug;
+			case "CANNOT":               return ImapResponseCodeType.CanNot;
+			case "LIMIT":                return ImapResponseCodeType.Limit;
+			case "OVERQUOTA":            return ImapResponseCodeType.OverQuota;
+			case "ALREADYEXISTS":        return ImapResponseCodeType.AlreadyExists;
+			case "NONEXISTENT":          return ImapResponseCodeType.NonExistent;
+			default:                     return ImapResponseCodeType.Unknown;
 			}
 		}
 
@@ -864,7 +1020,7 @@ namespace MailKit.Net.Imap {
 		/// Parses the response code.
 		/// </summary>
 		/// <returns>The response code.</returns>
-		/// <param name="cancellationToken">Cancellation token.</param>
+		/// <param name="cancellationToken">The cancellation token.</param>
 		public ImapResponseCode ParseResponseCode (CancellationToken cancellationToken)
 		{
 			ImapResponseCode code;
@@ -873,14 +1029,14 @@ namespace MailKit.Net.Imap {
 			ulong n64;
 			uint n32;
 
-//			token = stream.ReadToken (cancellationToken);
+//			token = Stream.ReadToken (cancellationToken);
 //
 //			if (token.Type != ImapTokenType.LeftBracket) {
 //				Debug.WriteLine ("Expected a '[' followed by a RESP-CODE, but got: {0}", token);
 //				throw UnexpectedToken (token, false);
 //			}
 
-			token = stream.ReadToken (cancellationToken);
+			token = Stream.ReadToken (cancellationToken);
 
 			if (token.Type != ImapTokenType.Atom) {
 				Debug.WriteLine ("Expected an atom token containing a RESP-CODE, but got: {0}", token);
@@ -888,28 +1044,19 @@ namespace MailKit.Net.Imap {
 			}
 
 			atom = (string) token.Value;
-			token = stream.ReadToken (cancellationToken);
+			token = Stream.ReadToken (cancellationToken);
 
-			code = new ImapResponseCode (GetResponseCodeType (atom));
+			code = ImapResponseCode.Create (GetResponseCodeType (atom));
 
 			switch (code.Type) {
-			case ImapResponseCodeType.Alert:
-				if (token.Type != ImapTokenType.CloseBracket) {
-					Debug.WriteLine ("Expected ']' after 'ALERT' RESP-CODE, but got: {0}", token);
-					throw UnexpectedToken (token, false);
-				}
-
-				code.Message = ReadLine (cancellationToken).Trim ();
-
-				return code;
 			case ImapResponseCodeType.BadCharset:
 				if (token.Type == ImapTokenType.OpenParen) {
-					token = stream.ReadToken (cancellationToken);
+					token = Stream.ReadToken (cancellationToken);
 
 					SupportedCharsets.Clear ();
 					while (token.Type == ImapTokenType.Atom || token.Type == ImapTokenType.QString) {
 						SupportedCharsets.Add ((string) token.Value);
-						token = stream.ReadToken (cancellationToken);
+						token = Stream.ReadToken (cancellationToken);
 					}
 
 					if (token.Type != ImapTokenType.CloseParen) {
@@ -917,7 +1064,7 @@ namespace MailKit.Net.Imap {
 						throw UnexpectedToken (token, false);
 					}
 
-					token = stream.ReadToken (cancellationToken);
+					token = Stream.ReadToken (cancellationToken);
 				}
 				break;
 			case ImapResponseCodeType.Capability:
@@ -925,44 +1072,40 @@ namespace MailKit.Net.Imap {
 				UpdateCapabilities (ImapTokenType.CloseBracket, cancellationToken);
 				token = ReadToken (cancellationToken);
 				break;
-			case ImapResponseCodeType.Parse:
-				if (token.Type != ImapTokenType.CloseBracket) {
-					Debug.WriteLine ("Expected ']' after 'PARSE' RESP-CODE, but got: {0}", token);
-					throw UnexpectedToken (token, false);
-				}
-
-				code.Message = ReadLine (cancellationToken).Trim ();
-
-				return code;
 			case ImapResponseCodeType.PermanentFlags:
-				stream.UngetToken (token);
-				code.Flags = ImapUtils.ParseFlagsList (this, cancellationToken);
-				token = stream.ReadToken (cancellationToken);
+				var perm = (PermanentFlagsResponseCode) code;
+
+				Stream.UngetToken (token);
+				perm.Flags = ImapUtils.ParseFlagsList (this, cancellationToken);
+				token = Stream.ReadToken (cancellationToken);
 				break;
-			case ImapResponseCodeType.ReadOnly: break;
-			case ImapResponseCodeType.ReadWrite: break;
-			case ImapResponseCodeType.TryCreate: break;
 			case ImapResponseCodeType.UidNext:
+				var next = (UidNextResponseCode) code;
+
 				if (token.Type != ImapTokenType.Atom || !uint.TryParse ((string) token.Value, out n32) || n32 == 0) {
 					Debug.WriteLine ("Expected nz-number argument to 'UIDNEXT' RESP-CODE, but got: {0}", token);
 					throw UnexpectedToken (token, false);
 				}
 
-				code.Uid = new UniqueId (n32);
+				next.Uid = new UniqueId (n32);
 
-				token = stream.ReadToken (cancellationToken);
+				token = Stream.ReadToken (cancellationToken);
 				break;
 			case ImapResponseCodeType.UidValidity:
+				var uidvalidity = (UidValidityResponseCode) code;
+
 				if (token.Type != ImapTokenType.Atom || !uint.TryParse ((string) token.Value, out n32) || n32 == 0) {
 					Debug.WriteLine ("Expected nz-number argument to 'UIDVALIDITY' RESP-CODE, but got: {0}", token);
 					throw UnexpectedToken (token, false);
 				}
 
-				code.UidValidity = new UniqueId (n32);
+				uidvalidity.UidValidity = new UniqueId (n32);
 
-				token = stream.ReadToken (cancellationToken);
+				token = Stream.ReadToken (cancellationToken);
 				break;
 			case ImapResponseCodeType.Unseen:
+				var unseen = (UnseenResponseCode) code;
+
 				// Note: we allow '0' here because some servers have been known to send "* OK [UNSEEN 0]" when the folder
 				// has no messages. See https://github.com/jstedfast/MailKit/issues/34 for details.
 				if (token.Type != ImapTokenType.Atom || !uint.TryParse ((string) token.Value, out n32)) {
@@ -970,11 +1113,13 @@ namespace MailKit.Net.Imap {
 					throw UnexpectedToken (token, false);
 				}
 
-				code.Index = n32 > 0 ? (int) (n32 - 1) : 0;
+				unseen.Index = n32 > 0 ? (int) (n32 - 1) : 0;
 
-				token = stream.ReadToken (cancellationToken);
+				token = Stream.ReadToken (cancellationToken);
 				break;
 			case ImapResponseCodeType.NewName:
+				var rename = (NewNameResponseCode) code;
+
 				// Note: this RESP-CODE existed in rfc2060 but has been removed in rfc3501:
 				//
 				// 85) Remove NEWNAME.  It can't work because mailbox names can be
@@ -985,95 +1130,130 @@ namespace MailKit.Net.Imap {
 					throw UnexpectedToken (token, false);
 				}
 
-				// FIXME:
-				//code.OldName = (string) token.Value;
+				rename.OldName = (string) token.Value;
 
 				// the next token should be another atom or qstring token representing the new name of the folder
-				token = stream.ReadToken (cancellationToken);
+				token = Stream.ReadToken (cancellationToken);
 
 				if (token.Type != ImapTokenType.Atom && token.Type != ImapTokenType.QString) {
 					Debug.WriteLine ("Expected atom or qstring as second argument to 'NEWNAME' RESP-CODE, but got: {0}", token);
 					throw UnexpectedToken (token, false);
 				}
 
-				// FIXME:
-				//code.NewName = (string) token.Value;
+				rename.NewName = (string) token.Value;
 
-				token = stream.ReadToken (cancellationToken);
+				token = Stream.ReadToken (cancellationToken);
 				break;
 			case ImapResponseCodeType.AppendUid:
+				var append = (AppendUidResponseCode) code;
+
 				if (token.Type != ImapTokenType.Atom || !uint.TryParse ((string) token.Value, out n32) || n32 == 0) {
 					Debug.WriteLine ("Expected nz-number as first argument of the 'APPENDUID' RESP-CODE, but got: {0}", token);
 					throw UnexpectedToken (token, false);
 				}
 
-				code.UidValidity = new UniqueId (n32);
+				append.UidValidity = new UniqueId (n32);
 
-				token = stream.ReadToken (cancellationToken);
+				token = Stream.ReadToken (cancellationToken);
 
 				// The MULTIAPPEND extension redefines APPENDUID's second argument to be a uid-set instead of a single uid.
-				if (token.Type != ImapTokenType.Atom || !ImapUtils.TryParseUidSet ((string) token.Value, out code.DestUidSet)) {
+				if (token.Type != ImapTokenType.Atom || !ImapUtils.TryParseUidSet ((string) token.Value, out append.UidSet)) {
 					Debug.WriteLine ("Expected nz-number or uid-set as second argument to 'APPENDUID' RESP-CODE, but got: {0}", token);
 					throw UnexpectedToken (token, false);
 				}
 
-				token = stream.ReadToken (cancellationToken);
+				token = Stream.ReadToken (cancellationToken);
 				break;
 			case ImapResponseCodeType.CopyUid:
+				var copy = (CopyUidResponseCode) code;
+
 				if (token.Type != ImapTokenType.Atom || !uint.TryParse ((string) token.Value, out n32) || n32 == 0) {
 					Debug.WriteLine ("Expected nz-number as first argument of the 'COPYUID' RESP-CODE, but got: {0}", token);
 					throw UnexpectedToken (token, false);
 				}
 
-				code.UidValidity = new UniqueId (n32);
+				copy.UidValidity = new UniqueId (n32);
 
-				token = stream.ReadToken (cancellationToken);
+				token = Stream.ReadToken (cancellationToken);
 
-				if (token.Type != ImapTokenType.Atom || !ImapUtils.TryParseUidSet ((string) token.Value, out code.SrcUidSet)) {
+				if (token.Type != ImapTokenType.Atom || !ImapUtils.TryParseUidSet ((string) token.Value, out copy.SrcUidSet)) {
 					Debug.WriteLine ("Expected uid-set as second argument to 'COPYUID' RESP-CODE, but got: {0}", token);
 					throw UnexpectedToken (token, false);
 				}
 
-				token = stream.ReadToken (cancellationToken);
+				token = Stream.ReadToken (cancellationToken);
 
-				if (token.Type != ImapTokenType.Atom || !ImapUtils.TryParseUidSet ((string) token.Value, out code.DestUidSet)) {
+				if (token.Type != ImapTokenType.Atom || !ImapUtils.TryParseUidSet ((string) token.Value, out copy.DestUidSet)) {
 					Debug.WriteLine ("Expected uid-set as third argument to 'COPYUID' RESP-CODE, but got: {0}", token);
 					throw UnexpectedToken (token, false);
 				}
 
-				token = stream.ReadToken (cancellationToken);
+				token = Stream.ReadToken (cancellationToken);
 				break;
-			case ImapResponseCodeType.UidNotSticky: break;
+			case ImapResponseCodeType.BadUrl:
+				var badurl = (BadUrlResponseCode) code;
+
+				if (token.Type != ImapTokenType.Atom && token.Type != ImapTokenType.QString) {
+					Debug.WriteLine ("Expected url-resp-text as argument to the 'BADURL' RESP-CODE, but got: {0}", token);
+					throw UnexpectedToken (token, false);
+				}
+
+				badurl.BadUrl = (string) token.Value;
+				break;
 			case ImapResponseCodeType.HighestModSeq:
+				var highest = (HighestModSeqResponseCode) code;
+
 				if (token.Type != ImapTokenType.Atom || !ulong.TryParse ((string) token.Value, out n64) || n64 == 0) {
 					Debug.WriteLine ("Expected 64-bit nz-number as first argument of the 'HIGHESTMODSEQ' RESP-CODE, but got: {0}", token);
 					throw UnexpectedToken (token, false);
 				}
 
-				code.HighestModSeq = n64;
+				highest.HighestModSeq = n64;
 
-				token = stream.ReadToken (cancellationToken);
+				token = Stream.ReadToken (cancellationToken);
 				break;
 			case ImapResponseCodeType.Modified:
-				if (token.Type != ImapTokenType.Atom || !ImapUtils.TryParseUidSet ((string) token.Value, out code.DestUidSet)) {
-					Debug.WriteLine ("Expected uid-set as first argument to 'MODIFIED' RESP-CODE, but got: {0}", token);
+				var modified = (ModifiedResponseCode) code;
+
+				if (token.Type != ImapTokenType.Atom || !ImapUtils.TryParseUidSet ((string) token.Value, out modified.UidSet)) {
+					Debug.WriteLine ("Expected uid-set argument to 'MODIFIED' RESP-CODE, but got: {0}", token);
 					throw UnexpectedToken (token, false);
 				}
 
-				token = stream.ReadToken (cancellationToken);
+				token = Stream.ReadToken (cancellationToken);
 				break;
-			case ImapResponseCodeType.NoModSeq: break;
-			case ImapResponseCodeType.Closed: break;
-			default:
-				code = new ImapResponseCode (ImapResponseCodeType.Unknown);
+			case ImapResponseCodeType.MaxConvertMessages:
+			case ImapResponseCodeType.MaxConvertParts:
+				var maxConvert = (MaxConvertResponseCode) code;
 
-				Debug.WriteLine (string.Format ("Unknown RESP-CODE encountered: {0}", atom));
+				if (token.Type != ImapTokenType.Atom || !int.TryParse ((string) token.Value, out maxConvert.MaxConvert)) {
+					Debug.WriteLine ("Expected number argument to '{0}' RESP-CODE, but got: {1}", code.Type.ToString ().ToUpperInvariant (), token);
+					throw UnexpectedToken (token, false);
+				}
+
+				token = Stream.ReadToken (cancellationToken);
+				break;
+			case ImapResponseCodeType.NoUpdate:
+				var noUpdate = (NoUpdateResponseCode) code;
+
+				if (token.Type != ImapTokenType.Atom && token.Type != ImapTokenType.QString) {
+					Debug.WriteLine ("Expected string argument to 'NOUPDATE' RESP-CODE, but got: {0}", token);
+					throw UnexpectedToken (token, false);
+				}
+
+				noUpdate.Tag = (string) token.Value;
+
+				token = Stream.ReadToken (cancellationToken);
+				break;
+			default:
+				if (code.Type == ImapResponseCodeType.Unknown)
+					Debug.WriteLine (string.Format ("Unknown RESP-CODE encountered: {0}", atom));
 
 				// extensions are of the form: "[" atom [SPACE 1*<any TEXT_CHAR except "]">] "]"
 
 				// skip over tokens until we get to a ']'
 				while (token.Type != ImapTokenType.CloseBracket && token.Type != ImapTokenType.Eoln)
-					token = stream.ReadToken (cancellationToken);
+					token = Stream.ReadToken (cancellationToken);
 
 				break;
 			}
@@ -1083,15 +1263,14 @@ namespace MailKit.Net.Imap {
 				throw UnexpectedToken (token, false);
 			}
 
-			// ignore any text after the response code
-			ReadLine (cancellationToken);
+			code.Message = ReadLine (cancellationToken).Trim ();
 
 			return code;
 		}
 
 		void UpdateStatus (CancellationToken cancellationToken)
 		{
-			var token = stream.ReadToken (cancellationToken);
+			var token = Stream.ReadToken (cancellationToken);
 			ImapFolder folder;
 			string name;
 			uint value;
@@ -1112,13 +1291,13 @@ namespace MailKit.Net.Imap {
 				// FIXME: what should we do in this situation?
 			}
 
-			token = stream.ReadToken (cancellationToken);
+			token = Stream.ReadToken (cancellationToken);
 
 			if (token.Type != ImapTokenType.OpenParen)
 				throw UnexpectedToken (token, false);
 
 			do {
-				token = stream.ReadToken (cancellationToken);
+				token = Stream.ReadToken (cancellationToken);
 
 				if (token.Type == ImapTokenType.CloseParen)
 					break;
@@ -1128,7 +1307,7 @@ namespace MailKit.Net.Imap {
 
 				var atom = (string) token.Value;
 
-				token = stream.ReadToken (cancellationToken);
+				token = Stream.ReadToken (cancellationToken);
 
 				if (token.Type != ImapTokenType.Atom || !uint.TryParse ((string) token.Value, out value))
 					throw UnexpectedToken (token, false);
@@ -1148,16 +1327,13 @@ namespace MailKit.Net.Imap {
 						folder.UpdateUidValidity (new UniqueId (value));
 						break;
 					case "UNSEEN":
-						if (value > 0)
-							value--;
-
-						folder.UpdateFirstUnread ((int) value);
+						folder.UpdateUnread ((int) value);
 						break;
 					}
 				}
 			} while (true);
 
-			token = stream.ReadToken (cancellationToken);
+			token = Stream.ReadToken (cancellationToken);
 
 			if (token.Type != ImapTokenType.Eoln)
 				throw UnexpectedToken (token, false);
@@ -1167,11 +1343,11 @@ namespace MailKit.Net.Imap {
 		/// Processes an untagged response.
 		/// </summary>
 		/// <returns>The untagged response.</returns>
-		/// <param name="cancellationToken">Cancellation token.</param>
+		/// <param name="cancellationToken">The cancellation token.</param>
 		internal ImapUntaggedResult ProcessUntaggedResponse (CancellationToken cancellationToken)
 		{
 			var result = ImapUntaggedResult.Handled;
-			var token = stream.ReadToken (cancellationToken);
+			var token = Stream.ReadToken (cancellationToken);
 			ImapUntaggedHandler handler;
 			ImapFolder folder;
 			uint number;
@@ -1186,7 +1362,7 @@ namespace MailKit.Net.Imap {
 
 				switch (atom) {
 				case "BYE":
-					token = stream.ReadToken (cancellationToken);
+					token = Stream.ReadToken (cancellationToken);
 
 					if (token.Type == ImapTokenType.OpenBracket) {
 						var code = ParseResponseCode (cancellationToken);
@@ -1206,11 +1382,11 @@ namespace MailKit.Net.Imap {
 					UpdateCapabilities (ImapTokenType.Eoln, cancellationToken);
 
 					// read the eoln token
-					stream.ReadToken (cancellationToken);
+					Stream.ReadToken (cancellationToken);
 					break;
 				case "FLAGS":
-					folder.AcceptedFlags = ImapUtils.ParseFlagsList (this, cancellationToken);
-					token = stream.ReadToken (cancellationToken);
+					folder.UpdateAcceptedFlags (ImapUtils.ParseFlagsList (this, cancellationToken));
+					token = Stream.ReadToken (cancellationToken);
 
 					if (token.Type != ImapTokenType.Eoln) {
 						Debug.WriteLine ("Expected eoln after untagged FLAGS list, but got: {0}", token);
@@ -1223,39 +1399,31 @@ namespace MailKit.Net.Imap {
 				case "STATUS":
 					UpdateStatus (cancellationToken);
 					break;
-				case "NO": case "BAD":
-					// our command got rejected...
-					result = atom == "NO" ? ImapUntaggedResult.No : ImapUntaggedResult.Bad;
+				case "OK": case "NO": case "BAD":
+					if (atom == "OK")
+						result = ImapUntaggedResult.Ok;
+					else if (atom == "NO")
+						result = ImapUntaggedResult.No;
+					else
+						result = ImapUntaggedResult.Bad;
 
-					token = stream.ReadToken (cancellationToken);
+					token = Stream.ReadToken (cancellationToken);
 
 					if (token.Type == ImapTokenType.OpenBracket) {
 						var code = ParseResponseCode (cancellationToken);
 						if (current != null)
 							current.RespCodes.Add (code);
 					} else if (token.Type != ImapTokenType.Eoln) {
-						// throw away any remaining text up until the end of the line
-						ReadLine (cancellationToken);
-					}
-					break;
-				case "OK":
-					result = ImapUntaggedResult.Ok;
+						var text = ReadLine (cancellationToken);
 
-					token = stream.ReadToken (cancellationToken);
-
-					if (token.Type == ImapTokenType.OpenBracket) {
-						var code = ParseResponseCode (cancellationToken);
-						if (current != null && code.Type != ImapResponseCodeType.Closed)
-							current.RespCodes.Add (code);
-					} else if (token.Type != ImapTokenType.Eoln) {
-						// throw away any remaining text up until the end of the line
-						ReadLine (cancellationToken);
+						if (current != null)
+							current.ResultText = text.Trim ();
 					}
 					break;
 				default:
 					if (uint.TryParse (atom, out number)) {
 						// we probably have something like "* 1 EXISTS"
-						token = stream.ReadToken (cancellationToken);
+						token = Stream.ReadToken (cancellationToken);
 
 						if (token.Type != ImapTokenType.Atom) {
 							// protocol error
@@ -1267,7 +1435,7 @@ namespace MailKit.Net.Imap {
 
 						if (current != null && current.UntaggedHandlers.TryGetValue (atom, out handler)) {
 							// the command registered an untagged handler for this atom...
-							handler (this, current, (int) number - 1, token);
+							handler (this, current, (int) number - 1);
 						} else if (folder != null) {
 							switch (atom) {
 							case "EXISTS":
@@ -1299,7 +1467,7 @@ namespace MailKit.Net.Imap {
 						SkipLine (cancellationToken);
 					} else if (current != null && current.UntaggedHandlers.TryGetValue (atom, out handler)) {
 						// the command registered an untagged handler for this atom...
-						handler (this, current, -1, token);
+						handler (this, current, -1);
 						SkipLine (cancellationToken);
 					} else if (atom == "VANISHED" && folder != null) {
 						folder.OnVanished (this, cancellationToken);
@@ -1320,7 +1488,7 @@ namespace MailKit.Net.Imap {
 		/// </summary>
 		public int Iterate ()
 		{
-			if (stream == null)
+			if (Stream == null)
 				throw new InvalidOperationException ();
 
 			if (queue.Count == 0)
@@ -1329,15 +1497,19 @@ namespace MailKit.Net.Imap {
 			current = queue[0];
 			queue.RemoveAt (0);
 
-			try {
-				current.CancellationToken.ThrowIfCancellationRequested ();
-			} catch (OperationCanceledException) {
-				// FIXME: is this right??
-				queue.RemoveAll (x => x.CancellationToken == current.CancellationToken);
-				throw;
+			if (current.CancellationToken.IsCancellationRequested) {
+				queue.RemoveAll (x => x.CancellationToken.IsCancellationRequested);
+
+				try {
+					current.CancellationToken.ThrowIfCancellationRequested ();
+				} finally {
+					current = null;
+				}
 			}
 
 			current.Status = ImapCommandStatus.Active;
+
+			int id = current.Id;
 
 			try {
 				while (current.Step ()) {
@@ -1349,9 +1521,11 @@ namespace MailKit.Net.Imap {
 			} catch {
 				Disconnect ();
 				throw;
+			} finally {
+				current = null;
 			}
 
-			return current.Id;
+			return id;
 		}
 
 		/// <summary>
@@ -1377,13 +1551,27 @@ namespace MailKit.Net.Imap {
 		/// <returns>The command.</returns>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <param name="folder">The folder that the command operates on.</param>
+		/// <param name="options">The formatting options.</param>
+		/// <param name="format">The command format.</param>
+		/// <param name="args">The command arguments.</param>
+		public ImapCommand QueueCommand (CancellationToken cancellationToken, ImapFolder folder, FormatOptions options, string format, params object[] args)
+		{
+			var ic = new ImapCommand (this, cancellationToken, folder, options, format, args);
+			QueueCommand (ic);
+			return ic;
+		}
+
+		/// <summary>
+		/// Queues the command.
+		/// </summary>
+		/// <returns>The command.</returns>
+		/// <param name="cancellationToken">The cancellation token.</param>
+		/// <param name="folder">The folder that the command operates on.</param>
 		/// <param name="format">The command format.</param>
 		/// <param name="args">The command arguments.</param>
 		public ImapCommand QueueCommand (CancellationToken cancellationToken, ImapFolder folder, string format, params object[] args)
 		{
-			var ic = new ImapCommand (this, cancellationToken, folder, format, args);
-			QueueCommand (ic);
-			return ic;
+			return QueueCommand (cancellationToken, folder, FormatOptions.Default, format, args);
 		}
 
 		/// <summary>
@@ -1404,7 +1592,7 @@ namespace MailKit.Net.Imap {
 		/// <param name="cancellationToken">The cancellation token.</param>
 		public ImapCommandResult QueryCapabilities (CancellationToken cancellationToken)
 		{
-			if (stream == null)
+			if (Stream == null)
 				throw new InvalidOperationException ();
 
 			var ic = QueueCommand (cancellationToken, null, "CAPABILITY\r\n");
@@ -1414,7 +1602,7 @@ namespace MailKit.Net.Imap {
 		}
 
 		/// <summary>
-		/// Looks up and sets the <see cref="ImapFolder.ParentFolder"/> property of each of the folders.
+		/// Looks up and sets the <see cref="MailFolder.ParentFolder"/> property of each of the folders.
 		/// </summary>
 		/// <param name="folders">The IMAP folders.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
@@ -1425,7 +1613,10 @@ namespace MailKit.Net.Imap {
 			ImapFolder parent;
 			int index;
 
-			foreach (var folder in list) {
+			// Note: we use a for-loop instead of foreach because we conditionally add items to the list.
+			for (int i = 0; i < list.Count; i++) {
+				var folder = list[i];
+
 				if (folder.ParentFolder != null)
 					continue;
 
@@ -1434,7 +1625,7 @@ namespace MailKit.Net.Imap {
 						continue;
 
 					var parentName = folder.FullName.Substring (0, index);
-					encodedName = ImapEncoding.Encode (parentName);
+					encodedName = EncodeMailboxName (parentName);
 				} else {
 					encodedName = string.Empty;
 				}
@@ -1469,7 +1660,7 @@ namespace MailKit.Net.Imap {
 		/// <param name="cancellationToken">The cancellation token.</param>
 		public ImapCommandResult QueryNamespaces (CancellationToken cancellationToken)
 		{
-			if (stream == null)
+			if (Stream == null)
 				throw new InvalidOperationException ();
 
 			ImapCommand ic;
@@ -1493,7 +1684,7 @@ namespace MailKit.Net.Imap {
 
 				if (list.Count > 0) {
 					PersonalNamespaces.Add (new FolderNamespace (list[0].DirectorySeparator, ""));
-					list[0].IsNamespace = true;
+					list[0].UpdateIsNamespace (true);
 				}
 
 				LookupParentFolders (list, cancellationToken);
@@ -1509,7 +1700,7 @@ namespace MailKit.Net.Imap {
 		/// <param name="cancellationToken">The cancellation token.</param>
 		public void QuerySpecialFolders (CancellationToken cancellationToken)
 		{
-			if (stream == null)
+			if (Stream == null)
 				throw new InvalidOperationException ();
 
 			ImapFolder folder;
@@ -1525,6 +1716,8 @@ namespace MailKit.Net.Imap {
 				Wait (ic);
 
 				Inbox = list.Count > 0 ? list[0] : null;
+			} else {
+				Inbox = folder;
 			}
 
 			if ((Capabilities & ImapCapabilities.SpecialUse) != 0) {
@@ -1598,7 +1791,7 @@ namespace MailKit.Net.Imap {
 		/// <param name="cancellationToken">The cancellation token.</param>
 		public ImapFolder GetFolder (string path, CancellationToken cancellationToken)
 		{
-			var encodedName = ImapEncoding.Encode (path);
+			var encodedName = EncodeMailboxName (path);
 			var list = new List<ImapFolder> ();
 			ImapFolder folder;
 
@@ -1617,11 +1810,78 @@ namespace MailKit.Net.Imap {
 			ProcessResponseCodes (ic);
 
 			if (ic.Result != ImapCommandResult.Ok)
-				throw new ImapCommandException ("LIST", ic.Result);
+				throw ImapCommandException.Create ("LIST", ic);
 
 			return list.Count > 0 ? list[0] : null;
 		}
 
+		/// <summary>
+		/// Decodes the name of the mailbox.
+		/// </summary>
+		/// <returns>The mailbox name.</returns>
+		/// <param name="encodedName">The encoded name.</param>
+		public string DecodeMailboxName (string encodedName)
+		{
+			return UTF8Enabled ? encodedName : ImapEncoding.Decode (encodedName);
+		}
+
+		/// <summary>
+		/// Encodes the name of the mailbox.
+		/// </summary>
+		/// <returns>The mailbox name.</returns>
+		/// <param name="mailboxName">The encoded mailbox name.</param>
+		public string EncodeMailboxName (string mailboxName)
+		{
+			return UTF8Enabled ? mailboxName : ImapEncoding.Encode (mailboxName);
+		}
+
+		/// <summary>
+		/// Determines whether the mailbox name is valid or not.
+		/// </summary>
+		/// <returns><c>true</c> if the mailbox name is valid; otherwise, <c>false</c>.</returns>
+		/// <param name="mailboxName">The mailbox name.</param>
+		/// <param name="delim">The path delimeter.</param>
+		public bool IsValidMailboxName (string mailboxName, char delim)
+		{
+			// From rfc6855:
+			//
+			// Mailbox names MUST comply with the Net-Unicode Definition ([RFC5198], Section 2)
+			// with the specific exception that they MUST NOT contain control characters
+			// (U+0000-U+001F and U+0080-U+009F), a delete character (U+007F), a line separator (U+2028),
+			// or a paragraph separator (U+2029).
+			for (int i = 0; i < mailboxName.Length; i++) {
+				char c = mailboxName[i];
+
+				if (c <= 0x1F || (c >= 0x80 && c <= 0x9F) || c == 0x7F || c == 0x2028 || c == 0x2029 || c == delim)
+					return false;
+			}
+
+			return mailboxName.Length > 0;
+		}
+
+		public MimeMessage ParseMessage (Stream stream, bool persistent, CancellationToken cancellationToken)
+		{
+			if (parser == null)
+				parser = new MimeParser (ParserOptions.Default, stream, persistent);
+			else
+				parser.SetStream (ParserOptions.Default, stream, persistent);
+
+			return parser.ParseMessage (cancellationToken);
+		}
+
+		public MimeEntity ParseEntity (Stream stream, bool persistent, CancellationToken cancellationToken)
+		{
+			if (parser == null)
+				parser = new MimeParser (ParserOptions.Default, stream, persistent);
+			else
+				parser.SetStream (ParserOptions.Default, stream, persistent);
+
+			return parser.ParseEntity (cancellationToken);
+		}
+
+		/// <summary>
+		/// Occurs when the engine receives an alert message from the server.
+		/// </summary>
 		public event EventHandler<AlertEventArgs> Alert;
 
 		internal void OnAlert (string message)
@@ -1630,6 +1890,16 @@ namespace MailKit.Net.Imap {
 
 			if (handler != null)
 				handler (this, new AlertEventArgs (message));
+		}
+
+		public event EventHandler<EventArgs> Disconnected;
+
+		void OnDisconnected ()
+		{
+			var handler = Disconnected;
+
+			if (handler != null)
+				handler (this, EventArgs.Empty);
 		}
 
 		/// <summary>

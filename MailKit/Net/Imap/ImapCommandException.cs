@@ -40,12 +40,15 @@ namespace MailKit.Net.Imap {
 #if !NETFX_CORE
 	[Serializable]
 #endif
-	public class ImapCommandException : ProtocolException
+	public class ImapCommandException : CommandException
 	{
 #if !NETFX_CORE
 		/// <summary>
 		/// Initializes a new instance of the <see cref="MailKit.Net.Imap.ImapCommandException"/> class.
 		/// </summary>
+		/// <remarks>
+		/// Creates a new <see cref="ImapCommandException"/> from the serialized data.
+		/// </remarks>
 		/// <param name="info">The serialization info.</param>
 		/// <param name="context">The streaming context.</param>
 		protected ImapCommandException (SerializationInfo info, StreamingContext context) : base (info, context)
@@ -54,18 +57,44 @@ namespace MailKit.Net.Imap {
 #endif
 
 		/// <summary>
-		/// Initializes a new instance of the <see cref="MailKit.Net.Imap.ImapCommandException"/> class.
+		/// Create a new <see cref="ImapCommandException"/> based on the specified command name and <see cref="ImapCommand"/> state.
 		/// </summary>
-		/// <param name="command">The command.</param>
-		/// <param name="result">The command result.</param>
-		internal ImapCommandException (string command, ImapCommandResult result)
-			: base (string.Format ("The IMAP server replied to the '{0}' command with a '{1}' response.", command, result.ToString ().ToUpperInvariant ()))
+		/// <remarks>
+		/// Create a new <see cref="ImapCommandException"/> based on the specified command name and <see cref="ImapCommand"/> state.
+		/// </remarks>
+		/// <returns>A new command exception.</returns>
+		/// <param name="command">The command name.</param>
+		/// <param name="ic">The command state.</param>
+		internal static ImapCommandException Create (string command, ImapCommand ic)
 		{
+			var result = ic.Result.ToString ().ToUpperInvariant ();
+			string message, reason = null;
+
+			if (string.IsNullOrEmpty (ic.ResultText)) {
+				for (int i = 0; i < ic.RespCodes.Count; i++) {
+					if (ic.RespCodes[i].IsError) {
+						reason = ic.RespCodes[i].Message;
+						break;
+					}
+				}
+			} else {
+				reason = ic.ResultText;
+			}
+
+			if (!string.IsNullOrEmpty (reason))
+				message = string.Format ("The IMAP server replied to the '{0}' command with a '{1}' response: {2}", command, result, reason);
+			else
+				message = string.Format ("The IMAP server replied to the '{0}' command with a '{1}' response.", command, result);
+
+			return ic.Exception != null ? new ImapCommandException (message, ic.Exception) : new ImapCommandException (message);
 		}
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="MailKit.Net.Imap.ImapCommandException"/> class.
 		/// </summary>
+		/// <remarks>
+		/// Creates a new <see cref="ImapCommandException"/>.
+		/// </remarks>
 		/// <param name="message">The error message.</param>
 		/// <param name="innerException">The inner exception.</param>
 		public ImapCommandException (string message, Exception innerException) : base (message, innerException)
@@ -75,6 +104,9 @@ namespace MailKit.Net.Imap {
 		/// <summary>
 		/// Initializes a new instance of the <see cref="MailKit.Net.Imap.ImapCommandException"/> class.
 		/// </summary>
+		/// <remarks>
+		/// Creates a new <see cref="ImapCommandException"/>.
+		/// </remarks>
 		/// <param name="message">The error message.</param>
 		public ImapCommandException (string message) : base (message)
 		{
@@ -83,6 +115,9 @@ namespace MailKit.Net.Imap {
 		/// <summary>
 		/// Initializes a new instance of the <see cref="MailKit.Net.Imap.ImapCommandException"/> class.
 		/// </summary>
+		/// <remarks>
+		/// Creates a new <see cref="ImapCommandException"/>.
+		/// </remarks>
 		public ImapCommandException ()
 		{
 		}
