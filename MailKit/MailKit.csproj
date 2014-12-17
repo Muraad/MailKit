@@ -34,14 +34,14 @@
     <DocumentationFile>bin\Release\lib\net45\MailKit.xml</DocumentationFile>
   </PropertyGroup>
   <PropertyGroup>
-    <SignAssembly>true</SignAssembly>
+    <SignAssembly>false</SignAssembly>
   </PropertyGroup>
   <PropertyGroup>
     <AssemblyOriginatorKeyFile>mailkit.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="crypto">
-      <HintPath>..\..\bc-csharp\crypto\bin\Debug\crypto.dll</HintPath>
+      <HintPath>..\..\..\Nulands\BouncyCastle\crypto\bin\Debug\crypto.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -172,15 +172,7 @@
     <Compile Include="UriExtensions.cs" />
   </ItemGroup>
   <ItemGroup />
-  <ItemGroup>
-    <Folder Include="Net\" />
-    <Folder Include="Net\Imap\" />
-    <Folder Include="Net\Pop3\" />
-    <Folder Include="Net\Smtp\" />
-    <Folder Include="Search\" />
-    <Folder Include="Security\" />
-    <Folder Include="Security\Ntlm\" />
-  </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ProjectExtensions>
     <MonoDevelop>
