@@ -2,7 +2,7 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2011/08/nuspec.xsd">
     <metadata>
         <id>MailKit</id>
-        <version>0.92.0.0</version>
+        <version>1.0.4.0</version>
         <title>MailKit</title>
         <authors>Jeffrey Stedfast</authors>
         <owners>Jeffrey Stedfast</owners>
@@ -14,7 +14,7 @@
 
 Features include:
 * SASL Authentication via SCRAM-SHA-1, NTLM, DIGEST-MD5, CRAM-MD5, LOGIN, PLAIN, and XOAUTH2.
-* A fully-cancellable SmtpClient with support for STARTTLS, 8BITMIME, BINARYMIME, ENHANCEDSTATUSCODES, SIZE, PIPELINING and SMTPUTF8.
+* A fully-cancellable SmtpClient with support for STARTTLS, 8BITMIME, BINARYMIME, ENHANCEDSTATUSCODES, SIZE, DSN, PIPELINING and SMTPUTF8.
 * A fully-cancellable Pop3Client with support for STLS, UIDL, APOP, PIPELINING, UTF8, and LANG.
 * A fully-cancellable ImapClient with support for QUOTA, LITERAL+, IDLE, NAMESPACE, CHILDREN, LOGINDISABLED, STARTTLS, MULTIAPPEND, UNSELECT, UIDPLUS, CONDSTORE, ESEARCH, SASL-IR, COMPRESS, WITHIN, ENABLE, QRESYNC, SORT, THREAD, ESORT, SPECIAL-USE, MOVE, SEARCH=FUZZY, UTF8=ACCEPT, UTF8=ONLY, XLIST, and X-GM-EXT1.
 * Client-side sorting and threading of messages (the Ordinal Subject and the Jamie Zawinski threading algorithms are supported).
@@ -22,14 +22,14 @@ Features include:
 * S/MIME and PGP support via MimeKit.
 * Microsoft TNEF support via MimeKit.</description>
         <summary>An Open Source .NET mail-client library for Windows, Mac, Linux, and mobile platforms such as iOS and Android.</summary>
-        <releaseNotes>* Fixed ImapClient's state before emitting the Disconnected event so that it's possible to reconnect in the event handler.
-* Fixed Pop3Stream.Read() to handle cases where there isn't enough data.
+        <releaseNotes>* Modified the IMAP BODYSTRUCTURE parser to allow NIL tokens for Content-Type and Content-Disposition parameter values. (issue #124)
+* Added ImapFolder.GetBodyPart() overrides to allow fetching body parts based on a part specifier string. (issue #130)
 * Improved documentation.</releaseNotes>
         <copyright>Xamarin Inc.</copyright>
         <language>en-US</language>
-        <tags>smtp pop3 imap mime security smime openpgp pgp mbox email parser tnef xamarin android ios monodroid monotouch net40 net45 wpa81</tags>
+        <tags>smtp pop3 imap mime security smime s/mime openpgp pgp mbox email parser tnef xamarin android ios monodroid monotouch net40 net45 wpa81</tags>
         <dependencies>
-            <dependency id="MimeKit" version="0.92.0.0" />
+            <dependency id="MimeKit" version="1.0.3.0" />
         </dependencies>
         <frameworkAssemblies>
             <frameworkAssembly assemblyName="System" targetFramework=".NETFramework4.0" />
@@ -55,6 +55,8 @@ Features include:
         <file src="..\MailKit\bin\Release\lib\net40\MailKit.xml" target="lib\net40\MailKit.xml" />
         <file src="..\MailKit\bin\Release\lib\net45\MailKit.dll" target="lib\net45\MailKit.dll" />
         <file src="..\MailKit\bin\Release\lib\net45\MailKit.xml" target="lib\net45\MailKit.xml" />
+        <file src="..\MailKit\bin\Release\lib\wpa81\MailKit.dll" target="lib\portable-netcore451+wpa81\MailKit.dll" />
+        <file src="..\MailKit\bin\Release\lib\wpa81\MailKit.xml" target="lib\portable-netcore451+wpa81\MailKit.xml" />
         <file src="..\MailKit\bin\Release\lib\wpa81\MailKit.dll" target="lib\wpa81\MailKit.dll" />
         <file src="..\MailKit\bin\Release\lib\wpa81\MailKit.xml" target="lib\wpa81\MailKit.xml" />
     </files>

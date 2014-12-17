@@ -54,43 +54,18 @@ namespace ImapIdle {
 				client.Inbox.Open (FolderAccess.ReadOnly);
 
 				// keep track of the messages
-				IList<IMessageSummary> messages = null;
-				int count = 0;
-
-				if (client.Inbox.Count > 0) {
-					messages = client.Inbox.Fetch (0, -1, MessageSummaryItems.Full | MessageSummaryItems.UniqueId).ToList ();
-					count = messages.Count;
-				}
+				var messages = client.Inbox.Fetch (0, -1, MessageSummaryItems.Full | MessageSummaryItems.UniqueId).ToList ();
 
 				// connect to some events...
-				client.Inbox.CountChanged += (sender, e) => {
-					// Note: the CountChanged event can fire for one of two reasons:
-					//
-					// 1. New messages have arrived in the folder.
-					// 2. Messages have been expunged from the folder.
-					//
-					// If messages have been expunged, then the MessageExpunged event
-					// should also fire and it should fire *before* the CountChanged
-					// event fires.
+				client.Inbox.MessagesArrived += (sender, e) => {
+					// Note: the CountChanged event will fire when new messages arrive in the folder.
 					var folder = (ImapFolder) sender;
 
-					if (folder.Count > count) {
-						// New messages have arrived in the folder.
-						Console.WriteLine ("{0}: {1} new messages have arrived.", folder, folder.Count - count);
+					// New messages have arrived in the folder.
+					Console.WriteLine ("{0}: {1} new messages have arrived.", folder, e.Count);
 
-						// Note: your first instict may be to fetch these new messages now, but you cannot do
-						// that in an event handler (the ImapFolder is not re-entrant).
-					} else if (folder.Count < count) {
-						// Note: this shouldn't happen since we are decrementing count in the MessageExpunged handler.
-						Console.WriteLine ("{0}: {1} messages have been removed.", folder, count - folder.Count);
-					} else {
-						// We just got a CountChanged event after 1 or more MessageExpunged events.
-						Console.WriteLine ("{0}: the message count is now {1}.", folder, folder.Count);
-					}
-
-					// update our count so we can keep track of whether or not CountChanged events
-					// signify new mail arriving.
-					count = folder.Count;
+					// Note: your first instict may be to fetch these new messages now, but you cannot do
+					// that in an event handler (the ImapFolder is not re-entrant).
 				};
 
 				client.Inbox.MessageExpunged += (sender, e) => {
@@ -108,10 +83,6 @@ namespace ImapIdle {
 					} else {
 						Console.WriteLine ("{0}: expunged message {1}: Unknown message.", folder, e.Index);
 					}
-
-					// update our count so we can keep track of whether or not CountChanged events
-					// signify new mail arriving.
-					count--;
 				};
 
 				client.Inbox.MessageFlagsChanged += (sender, e) => {
@@ -131,7 +102,7 @@ namespace ImapIdle {
 					thread.Join ();
 				}
 
-				if (count > messages.Count) {
+				if (client.Inbox.Count > messages.Count) {
 					Console.WriteLine ("The new messages that arrived during IDLE are:");
 					foreach (var message in client.Inbox.Fetch (messages.Count, -1, MessageSummaryItems.Full | MessageSummaryItems.UniqueId))
 						Console.WriteLine ("Subject: {0}", message.Envelope.Subject);
@@ -228,14 +199,16 @@ namespace ImapIdle {
 			var idle = (IdleState) state;
 
 			lock (idle.Client.SyncRoot) {
-				// Note: since the IMAP server will drop the connection after 10 minutes, we must loop sending IDLE commands that
-				// last ~9 minutes until the user has requested that they do not want to IDLE anymore.
+				// Note: since the IMAP server will drop the connection after 30 minutes, we must loop sending IDLE commands that
+				// last ~29 minutes or until the user has requested that they do not want to IDLE anymore.
+				//
+				// For GMail, we use a 9 minute interval because they do not seem to keep the connection alive for more than ~10 minutes.
 				while (!idle.IsCancellationRequested) {
 					// Note: In .NET 4.5, you can make this simpler by using the CancellationTokenSource .ctor that
 					// takes a TimeSpan argument, thus eliminating the need to create a timer.
 					using (var timeout = new CancellationTokenSource ()) {
 						using (var timer = new System.Timers.Timer (9 * 60 * 1000)) {
-							// End the IDLE command after 9 minutes... (most servers will disconnect the client after 10 minutes)
+							// End the IDLE command after 29 minutes... (most servers will disconnect the client after 30 minutes)
 							timer.Elapsed += (sender, e) => timeout.Cancel ();
 							timer.AutoReset = false;
 							timer.Enabled = true;

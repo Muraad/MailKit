@@ -33,6 +33,9 @@ using System.Collections.Generic;
 
 #if NETFX_CORE
 using Encoding = Portable.Text.Encoding;
+using EncoderExceptionFallback = Portable.Text.EncoderExceptionFallback;
+using DecoderExceptionFallback = Portable.Text.DecoderExceptionFallback;
+using DecoderFallbackException = Portable.Text.DecoderFallbackException;
 #endif
 
 using MimeKit;
@@ -91,6 +94,7 @@ namespace MailKit.Net.Imap {
 	/// </summary>
 	class ImapEngine : IDisposable
 	{
+		static readonly Encoding UTF8 = Encoding.GetEncoding (65001, new EncoderExceptionFallback (), new DecoderExceptionFallback ());
 		static readonly Encoding Latin1 = Encoding.GetEncoding (28591);
 		static int TagPrefixIndex;
 
@@ -435,7 +439,7 @@ namespace MailKit.Net.Imap {
 			else
 				message = string.Format ("Unexpected token in IMAP response: {0}", token);
 
-			return new ImapProtocolException (message);
+			return new ImapProtocolException (message) { UnexpectedToken = true };
 		}
 
 		/// <summary>
@@ -587,8 +591,8 @@ namespace MailKit.Net.Imap {
 #endif
 
 				try {
-					return Encoding.UTF8.GetString (buf, 0, count);
-				} catch {
+					return UTF8.GetString (buf, 0, count);
+				} catch (DecoderFallbackException) {
 					return Latin1.GetString (buf, 0, count);
 				}
 			}
@@ -1076,7 +1080,7 @@ namespace MailKit.Net.Imap {
 				var perm = (PermanentFlagsResponseCode) code;
 
 				Stream.UngetToken (token);
-				perm.Flags = ImapUtils.ParseFlagsList (this, cancellationToken);
+				perm.Flags = ImapUtils.ParseFlagsList (this, null, cancellationToken);
 				token = Stream.ReadToken (cancellationToken);
 				break;
 			case ImapResponseCodeType.UidNext:
@@ -1385,7 +1389,7 @@ namespace MailKit.Net.Imap {
 					Stream.ReadToken (cancellationToken);
 					break;
 				case "FLAGS":
-					folder.UpdateAcceptedFlags (ImapUtils.ParseFlagsList (this, cancellationToken));
+					folder.UpdateAcceptedFlags (ImapUtils.ParseFlagsList (this, null, cancellationToken));
 					token = Stream.ReadToken (cancellationToken);
 
 					if (token.Type != ImapTokenType.Eoln) {
@@ -1497,14 +1501,12 @@ namespace MailKit.Net.Imap {
 			current = queue[0];
 			queue.RemoveAt (0);
 
-			if (current.CancellationToken.IsCancellationRequested) {
+			try {
+				current.CancellationToken.ThrowIfCancellationRequested ();
+			} catch {
 				queue.RemoveAll (x => x.CancellationToken.IsCancellationRequested);
-
-				try {
-					current.CancellationToken.ThrowIfCancellationRequested ();
-				} finally {
-					current = null;
-				}
+				current = null;
+				throw;
 			}
 
 			current.Status = ImapCommandStatus.Active;

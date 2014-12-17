@@ -17,7 +17,7 @@
     <Optimize>false</Optimize>
     <OutputPath>bin\Debug\lib\net45</OutputPath>
     <IntermediateOutputPath>obj\Debug\lib\net45</IntermediateOutputPath>
-    <DefineConstants>DEBUG;</DefineConstants>
+    <DefineConstants>DEBUG;NET_4_5</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <ConsolePause>false</ConsolePause>
@@ -32,6 +32,7 @@
     <ConsolePause>false</ConsolePause>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <DocumentationFile>bin\Release\lib\net45\MailKit.xml</DocumentationFile>
+    <DefineConstants>NET_4_5</DefineConstants>
   </PropertyGroup>
   <PropertyGroup>
     <SignAssembly>false</SignAssembly>
@@ -127,6 +128,7 @@
     <Compile Include="BodyPartMultipart.cs" />
     <Compile Include="BodyPartText.cs" />
     <Compile Include="CommandException.cs" />
+    <Compile Include="DeliveryStatusNotification.cs" />
     <Compile Include="DuplexStream.cs" />
     <Compile Include="Envelope.cs" />
     <Compile Include="FolderAccess.cs" />
@@ -154,6 +156,8 @@
     <Compile Include="MessageFlags.cs" />
     <Compile Include="MessageFlagsChangedEventArgs.cs" />
     <Compile Include="MessageLabelsChangedEventArgs.cs" />
+    <Compile Include="MessagesArrivedEventArgs.cs" />
+    <Compile Include="MessageSentEventArgs.cs" />
     <Compile Include="MessageSorter.cs" />
     <Compile Include="MessageSummary.cs" />
     <Compile Include="MessageSummaryItems.cs" />

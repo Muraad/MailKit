@@ -373,6 +373,9 @@ namespace MailKit.Net.Imap {
 		{
 			var type = ImapStringType.Atom;
 
+			if (value.Length == 0)
+				return ImapStringType.QString;
+
 			for (int i = 0; i < value.Length; i++) {
 				if (!IsAtom (value[i])) {
 					if (!IsQuotedSafe (value[i]))
@@ -564,6 +567,12 @@ namespace MailKit.Net.Imap {
 						// looks like we didn't get an "OK", "NO", or "BAD"...
 						throw ImapEngine.UnexpectedToken (token, false);
 					}
+				} else if (token.Type == ImapTokenType.OpenBracket) {
+					// Note: this is a work-around for broken IMAP servers like Office365.com that
+					// return RESP-CODES that are not preceded by "* OK " such as the example in
+					// issue #115 (https://github.com/jstedfast/MailKit/issues/115).
+					var code = Engine.ParseResponseCode (CancellationToken);
+					RespCodes.Add (code);
 				} else {
 					// no clue what we got...
 					throw ImapEngine.UnexpectedToken (token, false);

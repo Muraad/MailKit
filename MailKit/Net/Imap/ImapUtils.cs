@@ -66,6 +66,98 @@ namespace MailKit.Net.Imap {
 				date.Offset.Hours, date.Offset.Minutes);
 		}
 
+		static bool TryGetInt32 (string text, ref int index, out int value)
+		{
+			int startIndex = index;
+
+			value = 0;
+
+			while (index < text.Length && text[index] >= '0' && text[index] <= '9') {
+				int digit = text[index] - '0';
+
+				if (value > int.MaxValue / 10) {
+					// integer overflow
+					return false;
+				}
+
+				if (value == int.MaxValue / 10 && digit > int.MaxValue % 10) {
+					// integer overflow
+					return false;
+				}
+
+				value = (value * 10) + digit;
+				index++;
+			}
+
+			return index > startIndex;
+		}
+
+		static bool TryGetInt32 (string text, ref int index, char delim, out int value)
+		{
+			return TryGetInt32 (text, ref index, out value) && index < text.Length && text[index] == delim;
+		}
+
+		static bool TryGetMonth (string text, ref int index, char delim, out int month)
+		{
+			int startIndex = index;
+
+			month = 0;
+
+			if ((index = text.IndexOf (delim, index)) == -1 || (index - startIndex) != 3)
+				return false;
+
+			for (int i = 0; i < Months.Length; i++) {
+				if (string.Compare (Months[i], 0, text, startIndex, 3, StringComparison.OrdinalIgnoreCase) == 0) {
+					month = i + 1;
+					return true;
+				}
+			}
+
+			return false;
+		}
+
+		static bool TryGetTimeZone (string text, ref int index, out TimeSpan timezone)
+		{
+			int tzone, sign = 1;
+
+			if (index >= text.Length) {
+				timezone = new TimeSpan ();
+				return false;
+			}
+
+			if (text[index] == '-') {
+				sign = -1;
+				index++;
+			} else if (text[index] == '+') {
+				index++;
+			}
+
+			if (!TryGetInt32 (text, ref index, out tzone)) {
+				timezone = new TimeSpan ();
+				return false;
+			}
+
+			tzone *= sign;
+
+			while (tzone < -1400)
+				tzone += 2400;
+
+			while (tzone > 1400)
+				tzone -= 2400;
+
+			int minutes = tzone % 100;
+			int hours = tzone / 100;
+
+			timezone = new TimeSpan (hours, minutes, 0);
+
+			return true;
+		}
+
+		static Exception InvalidInternalDateFormat (string text)
+		{
+			return new FormatException ("Invalid INTERNALDATE format: " + text);
+		}
+
 		/// <summary>
 		/// Parses the internal date string.
 		/// </summary>
@@ -73,7 +165,48 @@ namespace MailKit.Net.Imap {
 		/// <param name="text">The text to parse.</param>
 		public static DateTimeOffset ParseInternalDate (string text)
 		{
-			return DateTimeOffset.ParseExact (text.Trim (), "d-MMM-yyyy HH:mm:ss zzz", CultureInfo.InvariantCulture.DateTimeFormat);
+			int day, month, year, hour, minute, second;
+			TimeSpan timezone;
+			int index = 0;
+
+			while (index < text.Length && char.IsWhiteSpace (text[index]))
+				index++;
+
+			if (index >= text.Length || !TryGetInt32 (text, ref index, '-', out day) || day < 1 || day > 31)
+				throw InvalidInternalDateFormat (text);
+
+			index++;
+			if (index >= text.Length || !TryGetMonth (text, ref index, '-', out month))
+				throw InvalidInternalDateFormat (text);
+
+			index++;
+			if (index >= text.Length || !TryGetInt32 (text, ref index, ' ', out year) || year < 1969)
+				throw InvalidInternalDateFormat (text);
+
+			index++;
+			if (index >= text.Length || !TryGetInt32 (text, ref index, ':', out hour) || hour > 23)
+				throw InvalidInternalDateFormat (text);
+
+			index++;
+			if (index >= text.Length || !TryGetInt32 (text, ref index, ':', out minute) || minute > 59)
+				throw InvalidInternalDateFormat (text);
+
+			index++;
+			if (index >= text.Length || !TryGetInt32 (text, ref index, ' ', out second) || second > 59)
+				throw InvalidInternalDateFormat (text);
+
+			index++;
+			if (index >= text.Length || !TryGetTimeZone (text, ref index, out timezone))
+				throw InvalidInternalDateFormat (text);
+
+			while (index < text.Length && char.IsWhiteSpace (text[index]))
+				index++;
+
+			if (index < text.Length)
+				throw InvalidInternalDateFormat (text);
+
+			// return DateTimeOffset.ParseExact (text.Trim (), "d-MMM-yyyy HH:mm:ss zzz", CultureInfo.InvariantCulture.DateTimeFormat);
+			return new DateTimeOffset (year, month, day, hour, minute, second, timezone);
 		}
 
 		/// <summary>
@@ -414,7 +547,10 @@ namespace MailKit.Net.Imap {
 					break;
 
 				var name = ReadStringToken (engine, cancellationToken);
-				var value = ReadStringToken (engine, cancellationToken);
+
+				// Note: technically, the value should also be a 'string' token and not an 'nstring',
+				// but issue #124 reveals a server that is sending NIL for boundary values.
+				var value = ReadNStringToken (engine, false, cancellationToken) ?? string.Empty;
 
 				builder.Append ("; ").Append (name).Append ('=');
 
@@ -652,7 +788,8 @@ namespace MailKit.Net.Imap {
 			var type = ParseContentType (engine, cancellationToken);
 			var id = ReadNStringToken (engine, false, cancellationToken);
 			var desc = ReadNStringToken (engine, true, cancellationToken);
-			var enc = ReadStringToken (engine, cancellationToken);
+			// Note: technically, body-fld-enc, is not allowed to be NIL, but we need to deal with broken servers...
+			var enc = ReadNStringToken (engine, false, cancellationToken);
 			var octets = ReadNumber (engine, cancellationToken);
 			BodyPartBasic body;
 
@@ -866,11 +1003,13 @@ namespace MailKit.Net.Imap {
 		/// </summary>
 		/// <returns>The flags list string.</returns>
 		/// <param name="flags">The message flags.</param>
-		public static string FormatFlagsList (MessageFlags flags)
+		/// <param name="numUserFlags">The number of user-defined flags.</param>
+		public static string FormatFlagsList (MessageFlags flags, int numUserFlags)
 		{
 			var builder = new StringBuilder ();
 
 			builder.Append ('(');
+
 			if ((flags & MessageFlags.Answered) != 0)
 				builder.Append ("\\Answered ");
 			if ((flags & MessageFlags.Deleted) != 0)
@@ -881,8 +1020,13 @@ namespace MailKit.Net.Imap {
 				builder.Append ("\\Flagged ");
 			if ((flags & MessageFlags.Seen) != 0)
 				builder.Append ("\\Seen ");
+
+			for (int i = 0; i < numUserFlags; i++)
+				builder.Append ("%S ");
+
 			if (builder.Length > 1)
 				builder.Length--;
+
 			builder.Append (')');
 
 			return builder.ToString ();
@@ -893,8 +1037,9 @@ namespace MailKit.Net.Imap {
 		/// </summary>
 		/// <returns>The message flags.</returns>
 		/// <param name="engine">The IMAP engine.</param>
+		/// <param name="userFlags">A hash set of user-defined message flags that will be populated if non-null.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
-		public static MessageFlags ParseFlagsList (ImapEngine engine, CancellationToken cancellationToken)
+		public static MessageFlags ParseFlagsList (ImapEngine engine, HashSet<string> userFlags, CancellationToken cancellationToken)
 		{
 			var token = engine.ReadToken (cancellationToken);
 			var flags = MessageFlags.None;
@@ -916,6 +1061,10 @@ namespace MailKit.Net.Imap {
 				case "\\Seen":     flags |= MessageFlags.Seen; break;
 				case "\\Recent":   flags |= MessageFlags.Recent; break;
 				case "\\*":        flags |= MessageFlags.UserDefined; break;
+				default:
+					if (userFlags != null)
+						userFlags.Add (flag);
+					break;
 				}
 
 				token = engine.ReadToken (cancellationToken);

@@ -18,7 +18,7 @@ MailKit is a cross-platform mail client library built on top of [MimeKit](https:
   * Supports all of the SASL mechanisms listed above.
   * Supports SSL-wrapped connections via the "smtps" protocol.
   * Supports client SSL/TLS certificates.
-  * Supports the following extensions: STARTTLS, SIZE, 8BITMIME, PIPELINING, BINARYMIME, SMTPUTF8
+  * Supports the following extensions: STARTTLS, SIZE, DSN, 8BITMIME, PIPELINING, BINARYMIME, SMTPUTF8
   * All APIs are cancellable.
   * Async APIs are available.
 * POP3 Client
@@ -420,12 +420,15 @@ The first thing you'll need to do is fork MailKit to your own GitHub repository.
 
     git clone git@github.com/<your-account>/MailKit.git
 
-If you use [Xamarin Studio](http://xamarin.com/studio) or [MonoDevelop](http://monodevelop.org), all of the
+If you use [Xamarin Studio](http://xamarin.com/studio) or [MonoDevelop](http://monodevelop.com), all of the
 solution files are configured with the coding style used by MailKit. If you use Visual Studio or some
 other editor, please try to maintain the existing coding style as best as you can.
 
 Once you've got some changes that you'd like to submit upstream to the official MailKit repository,
 simply send me a Pull Request and I will try to review your changes in a timely manner.
+
+If you'd like to contribute but don't have any particular features in mind to work on, check out the issue
+tracker and look for something that might pique your interest!
 
 ## Reporting Bugs
 

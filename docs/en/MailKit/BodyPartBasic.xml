@@ -3,7 +3,7 @@
   <TypeSignature Language="ILAsm" Value=".class public auto ansi beforefieldinit BodyPartBasic extends MailKit.BodyPart" />
   <AssemblyInfo>
     <AssemblyName>MailKit</AssemblyName>
-    <AssemblyVersion>0.92.0.0</AssemblyVersion>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
   </AssemblyInfo>
   <Base>
     <BaseTypeName>MailKit.BodyPart</BaseTypeName>
@@ -24,7 +24,7 @@
       <MemberSignature Language="ILAsm" Value=".method public hidebysig specialname rtspecialname instance void .ctor() cil managed" />
       <MemberType>Constructor</MemberType>
       <AssemblyInfo>
-        <AssemblyVersion>0.92.0.0</AssemblyVersion>
+        <AssemblyVersion>1.0.0.0</AssemblyVersion>
       </AssemblyInfo>
       <Parameters />
       <Docs>
@@ -41,7 +41,7 @@
       <MemberSignature Language="ILAsm" Value=".property instance string ContentDescription" />
       <MemberType>Property</MemberType>
       <AssemblyInfo>
-        <AssemblyVersion>0.92.0.0</AssemblyVersion>
+        <AssemblyVersion>1.0.0.0</AssemblyVersion>
       </AssemblyInfo>
       <ReturnValue>
         <ReturnType>System.String</ReturnType>
@@ -61,7 +61,7 @@
       <MemberSignature Language="ILAsm" Value=".property instance class MimeKit.ContentDisposition ContentDisposition" />
       <MemberType>Property</MemberType>
       <AssemblyInfo>
-        <AssemblyVersion>0.92.0.0</AssemblyVersion>
+        <AssemblyVersion>1.0.0.0</AssemblyVersion>
       </AssemblyInfo>
       <ReturnValue>
         <ReturnType>MimeKit.ContentDisposition</ReturnType>
@@ -72,8 +72,11 @@
             </summary>
         <value>The content disposition.</value>
         <remarks>
-            Gets the Content-Disposition of the body part, if available.
-            </remarks>
+          <para>Gets the Content-Disposition of the body part, if available.</para>
+          <para>The Content-Disposition value is only retrieved if the
+            <see cref="F:MailKit.MessageSummaryItems.BodyStructure" /> flag is used when fetching
+            summary information from an <see cref="T:MailKit.IMailFolder" />.</para>
+        </remarks>
       </Docs>
     </Member>
     <Member MemberName="ContentId">
@@ -81,7 +84,7 @@
       <MemberSignature Language="ILAsm" Value=".property instance string ContentId" />
       <MemberType>Property</MemberType>
       <AssemblyInfo>
-        <AssemblyVersion>0.92.0.0</AssemblyVersion>
+        <AssemblyVersion>1.0.0.0</AssemblyVersion>
       </AssemblyInfo>
       <ReturnValue>
         <ReturnType>System.String</ReturnType>
@@ -101,7 +104,7 @@
       <MemberSignature Language="ILAsm" Value=".property instance string[] ContentLanguage" />
       <MemberType>Property</MemberType>
       <AssemblyInfo>
-        <AssemblyVersion>0.92.0.0</AssemblyVersion>
+        <AssemblyVersion>1.0.0.0</AssemblyVersion>
       </AssemblyInfo>
       <ReturnValue>
         <ReturnType>System.String[]</ReturnType>
@@ -112,8 +115,11 @@
             </summary>
         <value>The content language.</value>
         <remarks>
-            Gets the Content-Language of the body part, if available.
-            </remarks>
+          <para>Gets the Content-Language of the body part, if available.</para>
+          <para>The Content-Language value is only retrieved if the
+            <see cref="F:MailKit.MessageSummaryItems.BodyStructure" /> flag is used when fetching
+            summary information from an <see cref="T:MailKit.IMailFolder" />.</para>
+        </remarks>
       </Docs>
     </Member>
     <Member MemberName="ContentLocation">
@@ -121,7 +127,7 @@
       <MemberSignature Language="ILAsm" Value=".property instance class System.Uri ContentLocation" />
       <MemberType>Property</MemberType>
       <AssemblyInfo>
-        <AssemblyVersion>0.92.0.0</AssemblyVersion>
+        <AssemblyVersion>1.0.0.0</AssemblyVersion>
       </AssemblyInfo>
       <ReturnValue>
         <ReturnType>System.Uri</ReturnType>
@@ -132,8 +138,11 @@
             </summary>
         <value>The content location.</value>
         <remarks>
-            Gets the Content-Location of the body part, if available.
-            </remarks>
+          <para>Gets the Content-Location of the body part, if available.</para>
+          <para>The Content-Location value is only retrieved if the
+            <see cref="F:MailKit.MessageSummaryItems.BodyStructure" /> flag is used when fetching
+            summary information from an <see cref="T:MailKit.IMailFolder" />.</para>
+        </remarks>
       </Docs>
     </Member>
     <Member MemberName="ContentMd5">
@@ -141,7 +150,7 @@
       <MemberSignature Language="ILAsm" Value=".property instance string ContentMd5" />
       <MemberType>Property</MemberType>
       <AssemblyInfo>
-        <AssemblyVersion>0.92.0.0</AssemblyVersion>
+        <AssemblyVersion>1.0.0.0</AssemblyVersion>
       </AssemblyInfo>
       <ReturnValue>
         <ReturnType>System.String</ReturnType>
@@ -161,7 +170,7 @@
       <MemberSignature Language="ILAsm" Value=".property instance string ContentTransferEncoding" />
       <MemberType>Property</MemberType>
       <AssemblyInfo>
-        <AssemblyVersion>0.92.0.0</AssemblyVersion>
+        <AssemblyVersion>1.0.0.0</AssemblyVersion>
       </AssemblyInfo>
       <ReturnValue>
         <ReturnType>System.String</ReturnType>
@@ -181,7 +190,7 @@
       <MemberSignature Language="ILAsm" Value=".method familyhidebysig virtual instance void Encode(class System.Text.StringBuilder builder) cil managed" />
       <MemberType>Method</MemberType>
       <AssemblyInfo>
-        <AssemblyVersion>0.92.0.0</AssemblyVersion>
+        <AssemblyVersion>1.0.0.0</AssemblyVersion>
       </AssemblyInfo>
       <ReturnValue>
         <ReturnType>System.Void</ReturnType>
@@ -204,7 +213,7 @@
       <MemberSignature Language="ILAsm" Value=".property instance bool IsAttachment" />
       <MemberType>Property</MemberType>
       <AssemblyInfo>
-        <AssemblyVersion>0.92.0.0</AssemblyVersion>
+        <AssemblyVersion>1.0.0.0</AssemblyVersion>
       </AssemblyInfo>
       <ReturnValue>
         <ReturnType>System.Boolean</ReturnType>
@@ -216,8 +225,12 @@
         <value>
           <c>true</c> if thie part is an attachment; otherwise, <c>false</c>.</value>
         <remarks>
-            Determines whether or not the body part is an attachment.
-            </remarks>
+          <para>Determines whether or not the body part is an attachment based on the value of
+            the Content-Disposition.</para>
+          <para>Since the value of the Content-Disposition header is needed, it is necessary to
+            include the <see cref="F:MailKit.MessageSummaryItems.BodyStructure" /> flag when fetching
+            summary information from an <see cref="T:MailKit.IMailFolder" />.</para>
+        </remarks>
       </Docs>
     </Member>
     <Member MemberName="Octets">
@@ -225,7 +238,7 @@
       <MemberSignature Language="ILAsm" Value=".property instance unsigned int32 Octets" />
       <MemberType>Property</MemberType>
       <AssemblyInfo>
-        <AssemblyVersion>0.92.0.0</AssemblyVersion>
+        <AssemblyVersion>1.0.0.0</AssemblyVersion>
       </AssemblyInfo>
       <ReturnValue>
         <ReturnType>System.UInt32</ReturnType>

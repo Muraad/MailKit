@@ -41,6 +41,9 @@ using Windows.Networking.Sockets;
 using Windows.Storage.Streams;
 using Encoding = Portable.Text.Encoding;
 using Socket = Windows.Networking.Sockets.StreamSocket;
+using EncoderExceptionFallback = Portable.Text.EncoderExceptionFallback;
+using DecoderExceptionFallback = Portable.Text.DecoderExceptionFallback;
+using DecoderFallbackException = Portable.Text.DecoderFallbackException;
 #else
 using System.Net.Sockets;
 using System.Net.Security;
@@ -63,6 +66,12 @@ namespace MailKit.Net.Smtp {
 	/// </remarks>
 	public class SmtpClient : MailTransport
 	{
+#if NET_4_5 || __MOBILE__
+		const SslProtocols DefaultSslProtocols = SslProtocols.Tls | SslProtocols.Tls11 | SslProtocols.Tls12;
+#elif !NETFX_CORE
+		const SslProtocols DefaultSslProtocols = SslProtocols.Tls;
+#endif
+		static readonly Encoding UTF8 = Encoding.GetEncoding (65001, new EncoderExceptionFallback (), new DecoderExceptionFallback ());
 		static readonly byte[] EndData = Encoding.ASCII.GetBytes ("\r\n.\r\n");
 		static readonly Encoding Latin1 = Encoding.GetEncoding (28591);
 
@@ -371,11 +380,11 @@ namespace MailKit.Net.Smtp {
 
 				try {
 #if !NETFX_CORE
-					message = Encoding.UTF8.GetString (memory.GetBuffer (), 0, (int) memory.Length);
+					message = UTF8.GetString (memory.GetBuffer (), 0, (int) memory.Length);
 #else
-					message = Encoding.UTF8.GetString (memory.ToArray (), 0, (int) memory.Length);
+					message = UTF8.GetString (memory.ToArray (), 0, (int) memory.Length);
 #endif
-				} catch {
+				} catch (DecoderFallbackException) {
 #if !NETFX_CORE
 					message = Latin1.GetString (memory.GetBuffer (), 0, (int) memory.Length);
 #else
@@ -535,6 +544,8 @@ namespace MailKit.Net.Smtp {
 
 						if (uint.TryParse (capability.Substring (index), out size))
 							MaxSize = size;
+					} else if (capability == "DSN") {
+						capabilities |= SmtpCapabilities.Dsn;
 					} else if (capability == "BINARYMIME") {
 						capabilities |= SmtpCapabilities.BinaryMime;
 					} else if (capability == "CHUNKING") {
@@ -718,7 +729,8 @@ namespace MailKit.Net.Smtp {
 		/// <para>It should be noted that when using a clear-text SMTP connection,
 		/// if the server advertizes support for the STARTTLS extension, the client
 		/// will automatically switch into TLS mode before authenticating unless the
-		/// <paramref name="uri"/> contains a query string to disable it.</para>
+		/// <paramref name="uri"/> contains a query string ("?starttls=false") to
+		/// disable it.</para>
 		/// If a successful connection is made, the <see cref="AuthenticationMechanisms"/>
 		/// and <see cref="Capabilities"/> properties will be populated.
 		/// </remarks>
@@ -797,9 +809,12 @@ namespace MailKit.Net.Smtp {
 				}
 			}
 
+			if (socket == null)
+				throw new IOException (string.Format ("Failed to resolve host: {0}", uri.Host));
+
 			if (smtps) {
 				var ssl = new SslStream (new NetworkStream (socket, true), false, ValidateRemoteCertificate);
-				ssl.AuthenticateAsClient (uri.Host, ClientCertificates, SslProtocols.Default, true);
+				ssl.AuthenticateAsClient (uri.Host, ClientCertificates, DefaultSslProtocols, true);
 				stream = ssl;
 			} else {
 				stream = new NetworkStream (socket, true);
@@ -848,7 +863,7 @@ namespace MailKit.Net.Smtp {
 
 #if !NETFX_CORE
 					var tls = new SslStream (stream, false, ValidateRemoteCertificate);
-					tls.AuthenticateAsClient (uri.Host, ClientCertificates, SslProtocols.Tls, true);
+					tls.AuthenticateAsClient (uri.Host, ClientCertificates, DefaultSslProtocols, true);
 					stream = tls;
 #else
 					socket.UpgradeToSslAsync (SocketProtectionLevel.Tls12, new HostName (uri.DnsSafeHost))
@@ -871,6 +886,139 @@ namespace MailKit.Net.Smtp {
 
 			OnConnected ();
 		}
+
+#if !NETFX_CORE
+		/// <summary>
+		/// Establishes a connection to the specified SMTP server using the provided socket.
+		/// </summary>
+		/// <remarks>
+		/// <para>Establishes a connection to an SMTP or SMTP/S server. If the schema
+		/// in the uri is "smtp", a clear-text connection is assumed. However, if the
+		/// schema in the uri is "smtps", an SSL connection is made using the
+		/// <see cref="MailService.ClientCertificates"/>.</para>
+		/// <para>It should be noted that when using a clear-text SMTP connection,
+		/// if the server advertizes support for the STARTTLS extension, the client
+		/// will automatically switch into TLS mode before authenticating unless the
+		/// <paramref name="uri"/> contains a query string ("?starttls=false") to
+		/// disable it.</para>
+		/// If a successful connection is made, the <see cref="AuthenticationMechanisms"/>
+		/// and <see cref="Capabilities"/> properties will be populated.
+		/// </remarks>
+		/// <param name="uri">The server URI. The <see cref="System.Uri.Scheme"/> should either
+		/// be "smtp" to make a clear-text connection or "smtps" to make an SSL connection.</param>
+		/// <param name="socket">The socket to use for the connection.</param>
+		/// <param name="cancellationToken">The cancellation token.</param>
+		/// <exception cref="System.ArgumentNullException">
+		/// <para><paramref name="uri"/> is <c>null</c>.</para>
+		/// <para>-or-</para>
+		/// <para><paramref name="socket"/> is <c>null</c>.</para>
+		/// </exception>
+		/// <exception cref="System.ArgumentException">
+		/// <para><paramref name="uri"/> is not an absolute URI.</para>
+		/// <para>-or-</para>
+		/// <para><paramref name="socket"/> is not connected.</para>
+		/// </exception>
+		/// <exception cref="System.ObjectDisposedException">
+		/// The <see cref="SmtpClient"/> has been disposed.
+		/// </exception>
+		/// <exception cref="System.InvalidOperationException">
+		/// The <see cref="SmtpClient"/> is already connected.
+		/// </exception>
+		/// <exception cref="System.OperationCanceledException">
+		/// The operation was canceled.
+		/// </exception>
+		/// <exception cref="System.IO.IOException">
+		/// An I/O error occurred.
+		/// </exception>
+		/// <exception cref="SmtpCommandException">
+		/// An SMTP command failed.
+		/// </exception>
+		/// <exception cref="SmtpProtocolException">
+		/// An SMTP protocol error occurred.
+		/// </exception>
+		public void Connect (Uri uri, Socket socket, CancellationToken cancellationToken = default (CancellationToken))
+		{
+			if (uri == null)
+				throw new ArgumentNullException ("uri");
+
+			if (!uri.IsAbsoluteUri)
+				throw new ArgumentException ("The uri must be absolute.", "uri");
+
+			if (socket == null)
+				throw new ArgumentNullException ("socket");
+
+			if (!socket.Connected)
+				throw new ArgumentException ("The socket is not connected.", "socket");
+
+			CheckDisposed ();
+
+			if (IsConnected)
+				throw new InvalidOperationException ("The SmtpClient is already connected.");
+
+			capabilities = SmtpCapabilities.None;
+			AuthenticationMechanisms.Clear ();
+			MaxSize = 0;
+
+			var smtps = uri.Scheme.ToLowerInvariant () == "smtps";
+			var query = uri.ParsedQuery ();
+			SmtpResponse response = null;
+			string value;
+
+			var starttls = !smtps && (!query.TryGetValue ("starttls", out value) || Convert.ToBoolean (value));
+
+			this.socket = socket;
+
+			if (smtps) {
+				var ssl = new SslStream (new NetworkStream (socket, true), false, ValidateRemoteCertificate);
+				ssl.AuthenticateAsClient (uri.Host, ClientCertificates, DefaultSslProtocols, true);
+				stream = ssl;
+			} else {
+				stream = new NetworkStream (socket, true);
+			}
+
+			if (stream.CanTimeout) {
+				stream.WriteTimeout = timeout;
+				stream.ReadTimeout = timeout;
+			}
+
+			host = uri.Host;
+
+			logger.LogConnect (uri);
+
+			try {
+				// read the greeting
+				response = ReadResponse (cancellationToken);
+
+				if (response.StatusCode != SmtpStatusCode.ServiceReady)
+					throw new SmtpCommandException (SmtpErrorCode.UnexpectedStatusCode, response.StatusCode, response.Response);
+
+				// Send EHLO and get a list of supported extensions
+				Ehlo (cancellationToken);
+
+				if (starttls && (capabilities & SmtpCapabilities.StartTLS) != 0) {
+					response = SendCommand ("STARTTLS", cancellationToken);
+					if (response.StatusCode != SmtpStatusCode.ServiceReady)
+						throw new SmtpCommandException (SmtpErrorCode.UnexpectedStatusCode, response.StatusCode, response.Response);
+
+					var tls = new SslStream (stream, false, ValidateRemoteCertificate);
+					tls.AuthenticateAsClient (uri.Host, ClientCertificates, DefaultSslProtocols, true);
+					stream = tls;
+
+					// Send EHLO again and get the new list of supported extensions
+					Ehlo (cancellationToken);
+				}
+
+				connected = true;
+			} catch {
+				stream.Dispose ();
+				stream = null;
+				this.socket = null;
+				throw;
+			}
+
+			OnConnected ();
+		}
+#endif
 
 		/// <summary>
 		/// Disconnect the service.
@@ -1092,19 +1240,6 @@ namespace MailKit.Net.Smtp {
 			return PrepareMimeEntity (message.Body);
 		}
 
-		static string GetMailFromCommand (MailboxAddress mailbox, SmtpExtension extensions)
-		{
-			var utf8 = (extensions & SmtpExtension.UTF8) != 0 ? "SMTPUTF8 " : string.Empty;
-
-			if ((extensions & SmtpExtension.BinaryMime) != 0)
-				return string.Format ("MAIL FROM:<{0}> {1}BODY=BINARYMIME", mailbox.Address, utf8);
-
-			if ((extensions & SmtpExtension.EightBitMime) != 0)
-				return string.Format ("MAIL FROM:<{0}> {1}BODY=8BITMIME", mailbox.Address, utf8);
-
-			return string.Format ("MAIL FROM:<{0}>", mailbox.Address);
-		}
-
 		static void ProcessMailFromResponse (SmtpResponse response, MailboxAddress mailbox)
 		{
 			switch (response.StatusCode) {
@@ -1120,9 +1255,41 @@ namespace MailKit.Net.Smtp {
 			}
 		}
 
-		void MailFrom (MailboxAddress mailbox, SmtpExtension extensions, CancellationToken cancellationToken)
+		/// <summary>
+		/// Get the envelope identifier to be used with delivery status notifications.
+		/// </summary>
+		/// <remarks>
+		/// <para>The envelope identifier, if non-empty, is useful in determining which message
+		/// a delivery status notification was issued for.</para>
+		/// <para>The envelope identifier should be unique and may be up to 100 characters in
+		/// length, but must consist only of printable ASCII characters and no white space.</para>
+		/// <para>For more information, see rfc3461, section 4.4.</para>
+		/// </remarks>
+		/// <returns>The envelope identifier.</returns>
+		/// <param name="message">The message.</param>
+		protected virtual string GetEnvelopeId (MimeMessage message)
 		{
-			var command = GetMailFromCommand (mailbox, extensions);
+			return null;
+		}
+
+		void MailFrom (MimeMessage message, MailboxAddress mailbox, SmtpExtension extensions, CancellationToken cancellationToken)
+		{
+			var utf8 = (extensions & SmtpExtension.UTF8) != 0 ? " SMTPUTF8" : string.Empty;
+			var command = string.Format ("MAIL FROM:<{0}>{1}", mailbox.Address, utf8);
+
+			if ((extensions & SmtpExtension.BinaryMime) != 0)
+				command += " BODY=BINARYMIME";
+			else if ((extensions & SmtpExtension.EightBitMime) != 0)
+				command += " BODY=8BITMIME";
+
+			if ((capabilities & SmtpCapabilities.Dsn) != 0) {
+				var envid = GetEnvelopeId (message);
+
+				if (!string.IsNullOrEmpty (envid))
+					command += " ENVID=" + envid;
+
+				// TODO: RET parameter?
+			}
 
 			if ((capabilities & SmtpCapabilities.Pipelining) != 0) {
 				QueueCommand (SmtpCommand.MailFrom, command);
@@ -1150,9 +1317,49 @@ namespace MailKit.Net.Smtp {
 			}
 		}
 
-		void RcptTo (MailboxAddress mailbox, CancellationToken cancellationToken)
+		/// <summary>
+		/// Get the types of delivery status notification desired for the specified recipient mailbox.
+		/// </summary>
+		/// <remarks>
+		/// Gets the types of delivery status notification desired for the specified recipient mailbox.
+		/// </remarks>
+		/// <returns>The desired delivery status notification type.</returns>
+		/// <param name="message">The message being sent.</param>
+		/// <param name="mailbox">The mailbox.</param>
+		protected virtual DeliveryStatusNotification? GetDeliveryStatusNotifications (MimeMessage message, MailboxAddress mailbox)
+		{
+			return null;
+		}
+
+		static string GetNotifyString (DeliveryStatusNotification notify)
+		{
+			string value = string.Empty;
+
+			if (notify == DeliveryStatusNotification.Never)
+				return "NEVER";
+
+			if ((notify & DeliveryStatusNotification.Success) != 0)
+				value += "SUCCESS,";
+
+			if ((notify & DeliveryStatusNotification.Failure) != 0)
+				value += "FAILURE,";
+
+			if ((notify & DeliveryStatusNotification.Delay) != 0)
+				value += "DELAY";
+
+			return value.TrimEnd (',');
+		}
+
+		void RcptTo (MimeMessage message, MailboxAddress mailbox, CancellationToken cancellationToken)
 		{
 			var command = string.Format ("RCPT TO:<{0}>", mailbox.Address);
+
+			if ((capabilities & SmtpCapabilities.Dsn) != 0) {
+				var notify = GetDeliveryStatusNotifications (message, mailbox);
+
+				if (notify.HasValue)
+					command += " NOTIFY=" + GetNotifyString (notify.Value);
+			}
 
 			if ((capabilities & SmtpCapabilities.Pipelining) != 0) {
 				QueueCommand (SmtpCommand.RcptTo, command);
@@ -1186,6 +1393,7 @@ namespace MailKit.Net.Smtp {
 			case SmtpStatusCode.AuthenticationRequired:
 				throw new UnauthorizedAccessException (response.Response);
 			case SmtpStatusCode.Ok:
+				OnMessageSent (new MessageSentEventArgs (message, response.Response));
 				break;
 			}
 		}
@@ -1231,9 +1439,9 @@ namespace MailKit.Net.Smtp {
 			try {
 				// Note: if PIPELINING is supported, MailFrom() and RcptTo() will
 				// queue their commands instead of sending them immediately.
-				MailFrom (sender, extensions, cancellationToken);
+				MailFrom (message, sender, extensions, cancellationToken);
 				foreach (var recipient in recipients)
-					RcptTo (recipient, cancellationToken);
+					RcptTo (message, recipient, cancellationToken);
 
 				// Note: if PIPELINING is supported, this will flush all outstanding
 				// MAIL FROM and RCPT TO commands to the server and then process all

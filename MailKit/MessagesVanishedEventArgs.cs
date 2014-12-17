@@ -35,9 +35,17 @@ namespace MailKit {
 	/// <remarks>
 	/// Event args used when a message vanishes from a folder.
 	/// </remarks>
-	public sealed class MessagesVanishedEventArgs : EventArgs
+	public class MessagesVanishedEventArgs : EventArgs
 	{
-		internal MessagesVanishedEventArgs (IList<UniqueId> uids, bool earlier)
+		/// <summary>
+		/// Initializes a new instance of the <see cref="MailKit.MessagesVanishedEventArgs"/> class.
+		/// </summary>
+		/// <remarks>
+		/// Creates a new <see cref="MessagesVanishedEventArgs"/>.
+		/// </remarks>
+		/// <param name="uids">The list of unique identifiers.</param>
+		/// <param name="earlier">If set to <c>true</c>, the messages vanished in the past as opposed to just now.</param>
+		public MessagesVanishedEventArgs (IList<UniqueId> uids, bool earlier)
 		{
 			UniqueIds = new ReadOnlyCollection<UniqueId> (uids);
 			Earlier = earlier;
